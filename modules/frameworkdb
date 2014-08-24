@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Create and manipulate a database containing Android framework data.
+#@Author: Jake Valletta (jakev)
+#@Health: beta
+#@Version: 1.0
+
+. dtf_core.sh
+. dtf_log.sh
+
+create_db()
+{
+    log_i "Creating database table..."
+
+    sql='CREATE TABLE IF NOT EXISTS frameworks
+         (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT NOT NULL,
+         is_aosp INTEGER,
+         is_bcp INTEGER,
+         successfully_unpacked INTEGER
+         );'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+}
+
+
+drop_db()
+{
+    log_i "Dropping database table..."
+
+    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE frameworks" 2> /dev/null
+}
+
+. dtf_core.sh
+. dtf_log.sh
+
+log_i "Performing database additions for Jar files"
+
+if [ "$(dtf prop test Local framework-dir)" == "0" ]; then
+    echo "[ERROR] You need to set the Local\\framework-dir property if you want to use this module! Exiting."
+    exit -2
+fi
+
+db_dir=$(dtf prop get Local db-dir)
+framework_dir=$(dtf prop get Local framework-dir)
+sdk=$(dtf prop get Info sdk)
+
+LOCAL_DB_NAME=${db_dir}/frameworks.db
+AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
+
+if [ ! -f "${AOSP_DB_NAME}" ]; then
+
+   echo "[ERROR] Unable to find AOSP framework database for API ${sdk}, did you install it?"
+   exit -4
+
+fi
+
+if [ -f ${LOCAL_DB_NAME} ]; then
+    drop_db
+fi
+
+create_db
+
+# Get Bootclasspaths into Arrays
+local_bcp_delimited=$(dtf prop get Info bootclasspath-jars |sed 's/\/system\/framework\///g')
+
+IFS=':'
+read -a local_bcp <<< "${local_bcp_delimited}"
+
+unset IFS
+i=1
+for framework in `ls ${framework_dir}/*.jar`; do
+
+    is_aosp=1
+    is_bcp=0
+    framework_name=${framework##*/}
+
+    # First we determine if it is an AOSP framework file
+    rtn=$(sqlite3 "$AOSP_DB_NAME" "select id from frameworks where name=\"${framework_name}\";")
+
+    if [ -z $rtn ]; then
+        is_aosp=0
+    fi
+
+    # Now we see if it is a bootlasspath jar.
+    rtn=$(containsElement $framework_name "${local_bcp[@]}")
+
+    if [ "${rtn}" == "1" ]; then
+        is_bcp=1
+    fi
+
+    # Finally, insert it into the database
+    sqlite3 "$LOCAL_DB_NAME" "insert into frameworks(id, name, is_aosp, is_bcp) values (${i}, '${framework_name}', $is_aosp, $is_bcp);"
+
+    # Did it fail?
+    ret=$?
+    if [ "$ret" -ne "0" ]; then
+        log_e "Error inserting framework data for \"${framework_name}\" into database: ${ret}"
+        continue
+    fi
+
+    i=`expr $i + 1`
+
+done
+

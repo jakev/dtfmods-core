@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Attempt to launch the DebugIntentSender activity.
+#@Author: Jake Valletta (jakev)
+#@Health: stable
+#@Version: 1.0
+
+. dtf_core.sh
+
+apk_file=debugintentshortcut-0.1.apk
+
+if [ "$1" == "install" ]; then
+    echo "Installing shortcut..."
+    adb install ${DTF_PACKAGES}/IntentSender/${apk_file} 
+    adb shell am start -n com.jakev.dbgintnt/.MainActivity > /dev/null
+    exit 0
+fi
+
+adb shell am start -n com.android.settings/com.android.settings.DebugIntentSender -c android.intent.category.DEVELOPMENT_PREFERENCE

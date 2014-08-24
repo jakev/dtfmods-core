@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Get a listing of OEM added binaries (diff the AOSP).
+#@Author: Jake Valletta (jakev)
+#@Health: broken
+#@Version: 1.0
+
+# Imports 
+. dtf_core.sh
+
+
+make_csv()
+{
+    reports_dir=$(dtf prop get Local reports-dir)
+
+    if [ ! -d ${reports_dir} ]; then
+        reports_dir=.
+    fi
+
+    csv_file=${reports_dir}/oembins.csv
+
+
+    echo "Binary Name,Permissions,Owner,Group,Size,\"File Detail\",Notes" > ${csv_file}
+
+    IFS=$' \t\n'
+    for bin in `adb shell ls /system/bin|sed 's/\r//g'`; do
+
+        rtn=$(containsElement "${bin}" "${aosp_binlist[@]}")
+
+        if [ "${rtn}" == "0" ]; then
+            
+            #adb pull /system/bin/${bin} ${pull_dir}
+
+            stat=$(adb shell ls -l /system/bin/${bin})
+            perms=$(echo ${stat}|awk '{print $1}')
+            owner=$(echo ${stat}|awk '{print $2}')
+            group=$(echo ${stat}|awk '{print $3}')
+            size=$(echo ${stat}|awk '{print $4}')
+            details=$(file ${pull_dir}/${bin}| sed "s/${pull_dir}\/${bin}\://g")
+            printf '%s,"%s",%s,%s,%s,"%s"\n' ${bin} ${perms} ${owner} ${group} ${size} "${details}" >> ${csv_file}
+        fi
+    done
+    exit 0
+}
+
+pull=0
+pull_dir="oem-bins"
+sdk=$(dtf prop get Info sdk)
+
+mkdir ${pull_dir} 2> /dev/null
+
+binlist_file=${DTF_PACKAGES}/aosp-data-${sdk}/bindirlist
+
+IFS=$'\n' aosp_binlist=($(cat ${binlist_file}))
+
+if [ "$1" == "-pull" ]; then 
+    echo "Pulling OEM bins to \"${pull_dir}\""
+    mkdir ${pull_dir} 2> /dev/null
+    dtf prop set Local oem-bins ${pull_dir}
+    pull=1
+    make_csv
+fi
+
+echo "OEM Added Binaries:"
+
+for bin in `adb shell ls /system/bin|sed 's/\r//g'`; do
+
+    rtn=$(containsElement "${bin}" "${aosp_binlist[@]}")
+
+    if [ "${rtn}" == "0" ]; then
+        adb shell "ls -l /system/bin/${bin}"
+        adb pull /system/bin/${bin} ${pull_dir}
+        [[ $pull -eq 1 ]] && adb pull /system/bin/${bin} ${pull_dir}
+    fi
+done
+

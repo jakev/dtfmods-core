@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Configure framework resources for unpacking and repacking.
+#@Author: Jake Valletta (jakev)
+#@Health: stable
+#@Version: 1.0
+
+. dtf_core.sh
+. dtf_log.sh
+
+fwres_dir=.fwres
+framework_dir=$(dtf prop get Local framework-dir)
+sdk=$(dtf prop get Info serial)
+
+mkdir ${fwres_dir} 2>/dev/null
+
+tmp=tmp
+
+# Reset
+if [ "$1" == "-r" ]; then
+    rm ${fwres_dir}/.* 2>/dev/null
+fi 
+
+for res in `ls ${framework_dir}/*.apk`;
+do
+    log_i "Installing framework resource \"${res}\"...."
+
+    #Use apktool to install a FW resources file, capturing the install name.
+    install_out=$(dtf_apktool if ${res} ${sdk} --frame-path ${tmp}/ 2>&1|grep "installed to")
+
+    # We need to make sure apktool didnt explode
+    if [ "${install_out}" == "" ];  then
+        log_e "Unable to install the framework resource \"${res}\"!!!"
+        continue
+    fi
+
+    fwres_full_file=$(echo ${install_out} |awk -F: '{print $3}'| sed -e 's/^[ \t]*//')
+
+    fwres_file=$(echo $fwres_full_file | sed "s/${tmp}\\///g")
+
+    # Check if this file already exists
+    if [ -a ${fwres_dir}/${fwres_file} ]; then
+       echo -n "[WARNING] Apktool wants to install this framework file with a preexisting ID, skip? [y/N] "    
+       read $input
+       if [ "$input" != "y" ] && [ "$input" != "Y" ]; then
+           log_w "Skipping installation of \"${res}\""
+           continue
+       fi
+    fi
+
+    mv ${fwres_full_file} ${fwres_dir}/${fwres_file} 2>/dev/null
+
+    log_i "Installed resource \"${res}\" to \"${fwres_dir}/${fwres_file}\""
+done
+
+rm -rf ${tmp} 2>/dev/null
+
+dtf prop set Local fwres-dir "${fwres_dir}"

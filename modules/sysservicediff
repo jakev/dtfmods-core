@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Diff system service database against AOSP.
+#@Author: Jake Valletta (jakev)
+#@Health: stable
+#@Version: 1.0
+
+. dtf_core.sh
+
+usage()
+{
+    echo "System Service Differ"
+    echo 
+    echo "Usage: sysservicedb [-v]"
+    exit 
+}
+
+diff()
+{
+    db_dir=$(dtf prop get Local db-dir)
+    sdk=$(dtf prop get Info sdk)
+    verbose=0
+
+    if [ "$1" == "-v" ]; then
+        verbose=1
+    fi
+
+    sql="SELECT s.name,s.project
+         FROM services s"
+
+    ORIG_IFS=$IFS        # Save the original IFS
+    LINE_IFS=$'\n'$'\r'  # For splitting input into lines
+    FIELD_IFS=\|         # For splitting lines into fields
+
+    local_results=$(sqlite3 "${db_dir}/services.db" "${sql}")
+
+    echo "New Services:"
+
+    IFS=$LINE_IFS
+    for LINE in $local_results; do
+        IFS=$FIELD_IFS
+        FIELDS=($LINE)
+        IFS=$LINE_IFS
+
+        name=${FIELDS[0]}
+        project=${FIELDS[1]}
+
+        aosp_sysservice_db=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/services.db
+
+        count=$(sqlite3 "$aosp_sysservice_db" "SELECT id FROM services WHERE name='${name}';" |wc -l)
+
+        if [ $count -eq 0 ]; then
+
+            echo "    ${name} (${project})"
+            if [ ! -z ${project} ] && [ $verbose -eq 1 ]; then
+                dtf classsearch --framework --fields --fieldContains TRANS ${project}.Stub|grep TRANSACTION
+            fi
+        fi
+    done
+
+}
+
+diff $@

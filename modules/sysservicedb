@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Create database of system services.
+#@Author: Jake Valletta (jakev)
+#@Health: stable
+#@Version: 1.0
+
+. dtf_core.sh
+
+usage()
+{
+    echo "System Service DB Management"
+    echo 
+    echo "Usage: sysservicedb [create]"
+    exit 
+}
+
+create_db()
+{
+    db_dir=$(dtf prop get Local db-dir)
+
+    sql='CREATE TABLE IF NOT EXISTS services
+         (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT UNIQUE NOT NULL,
+         project TEXT
+         );'
+   
+    sqlite3 ${db_dir}/services.db "${sql}"
+
+    return $?
+}
+
+create_command()
+{
+
+    create_db
+    rtn=$?
+
+    if [ $rtn -ne 0 ]; then
+        echo "[ERROR] DB creation failed: $rtn"
+        exit -1
+    fi
+
+    db_dir=$(dtf prop get Local db-dir)
+
+    IFS=$'\r\n' lines=($(adb shell service list))
+
+    for line in "${lines[@]}"; do
+
+        if [[ $line =~ "Found " ]]; then
+            continue
+        fi
+
+        name=$(echo ${line}|awk '{print $2}'| sed 's/:$//g')
+        project=$(echo ${line}|awk '{print $3}' | tr -d '\['|tr -d '\]')
+
+        if [ ! -z "$project" ]; then
+
+            sql="INSERT INTO services(name,project)
+                 VALUES('${name}','${project}');"
+
+        else
+            sql="INSERT INTO services(name)
+                 VALUES('${name}');"
+        fi
+
+        sqlite3 ${db_dir}/services.db "${sql}"
+
+        rtn=$?
+        if [ $rtn -ne 0 ]; then
+            echo "[WARNING] Failed to enter service: $rtn"
+            exit -1
+        fi
+
+    done
+}
+
+echo -n "Waiting for device..."
+adb wait-for-device
+echo "Ok"
+
+if [ "$1" == "create" ]; then
+    create_command
+else
+    usage
+fi

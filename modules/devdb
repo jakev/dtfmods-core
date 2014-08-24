@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Create and manage a database with device driver details.
+#@Author: Jake Valletta (jakev)
+#@Health: stable
+#@Version: 1.0
+
+. dtf_log.sh
+. dtf_core.sh
+
+create_db()
+{
+    log_i "Creating database tables..."
+
+    sql='CREATE TABLE IF NOT EXISTS devices
+         (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT,
+         type INTEGER,
+         permissions INTEGER,
+         owner_name TEXT,
+         group_name TEXT,
+         major TEXT,
+         minor TEXT,
+         FOREIGN KEY(type) REFERENCES types(id)
+         );'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+    sql='CREATE TABLE IF NOT EXISTS mappings
+         (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT,
+         number INTEGER,
+         type INTEGER,
+         FOREIGN KEY(type) REFERENCES types(id)
+         );'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+    sql='CREATE TABLE IF NOT EXISTS types
+         (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT
+         );'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+    sql='INSERT INTO types(id, name)
+         VALUES(0, "block");'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+
+    sql='INSERT INTO types(id, name)
+         VALUES(1, "character");'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+    sql='INSERT INTO types(id, name)
+         VALUES(2, "socket");'
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+}
+
+drop_db()
+{
+    log_i "Dropping database tables..."
+
+    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE devices" 2> /dev/null
+    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE mappings" 2> /dev/null
+    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE types" 2> /dev/null
+}
+
+
+populate_mapping()
+{
+    log_i "Populating mappings..."
+
+    in_character=0
+    in_block=0
+    type=-1
+
+    adb shell cat /proc/devices| sed 's/\r$//' |while read line
+    do
+        if [ -z "$line" ]; then
+            continue
+        elif [ "$line" == "Character devices:" ]; then
+           in_character=1
+           type=1
+           continue
+        elif [ "$line" == "Block devices:" ]; then
+           in_character=0
+           in_block=1
+           type=0
+           continue
+        else
+            number=$(echo $line |awk '{print $1}')
+            name=$(echo $line |awk '{print $2}')
+
+            sql="INSERT INTO mappings(name, number, type)
+                 VALUES('${name}',${number},${type});"
+
+            sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+            rtn=$?
+
+            log_d "Sql return : ${rtn}"
+        fi
+    done
+}
+
+log_i "Checking if device is connected.."
+
+if ! dtf_device_connected; then
+    echo "[ERROR] Device connection required! Please connect your device to continue."
+    exit -1
+fi
+
+if [ "$(dtf prop test Info busybox)" == "0" ]; then
+    echo "[ERROR] You need to set the Info\\busybox property if you want to use this module! Exiting."
+    exit -2
+fi
+
+busybox=$(dtf prop get Info busybox)
+db_dir=$(dtf prop get Local db-dir)
+
+LOCAL_DB_NAME=${db_dir}/dev.db
+
+if [ -f ${LOCAL_DB_NAME} ]; then
+    drop_db
+fi
+
+create_db
+
+populate_mapping
+
+log_i "Finding all devices..."
+
+dtf_busybox "find / -type c -o -type b -o -type s 2>/dev/null"| sed 's/\r$//' |while read dev_name
+do
+    # I'm completely ignoring ptys and ttys. Change if you care!
+    if [[ $dev_name =~ /dev/(ptmx|pts|(pty|tty)([S0-9][0-9]?|[p-za-e][0-9a-f])?) ]]; then
+        log_d "Found a tty/pty: $dev_name"
+        continue 
+    fi
+
+    log_i "Processing device: ${dev_name}"
+
+    # Using built-in ls, since busybox grabs numeric only.
+    full_line=$(adb shell "ls -l ${dev_name}"|sed 's/\r$//')
+    stated=$(dtf_busybox "stat -c "%F,%a,%t,%T" ${dev_name}"|sed 's/\r$//')
+
+    name=${dev_name}
+    type_c=$(echo ${full_line} |awk '{print $1}'|head -c 1)   
+    permissions=$(echo $stated |awk -F, '{print $2}')
+    owner_name=$(echo ${full_line} |awk '{print $2}')
+    group_name=$(echo ${full_line} |awk '{print $3}')
+    major=$(echo $stated |awk -F, '{print $3}')
+    minor=$(echo $stated |awk -F, '{print $4}')
+
+    case "$type_c" in
+    'b' )
+        type=0 ;;
+    'c' )
+        type=1 ;;
+    's' )
+        type=2 ;;
+     *  )
+        type=-1 ;;
+    esac
+
+    sql="INSERT INTO devices(name,type,permissions,owner_name,group_name,major,minor)
+        VALUES('${name}',${type},${permissions},'${owner_name}','${group_name}','${major}','${minor}');"
+
+    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+
+    rtn=$?
+
+    log_d "SQL Return : ${rtn}"
+done
