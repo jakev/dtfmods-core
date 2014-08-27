@@ -40,7 +40,7 @@ install_drozer()
     if [ ! -d .drozer ]; then
         log_i "Installing drozer files to \".drozer\"..."
          mkdir .drozer 2>/dev/null
-         dtf_apktool d "${drozer_apk}" .drozer/ > /dev/null 2>&1
+         dtf_apktool d "${drozer_apk}" -f -o .drozer/ > /dev/null 2>&1
          cp "${DTF_PACKAGES}/Drozer/Makefile" .drozer/
     else
         log_w "The directory \".drozer\" already exists, skipping copy"

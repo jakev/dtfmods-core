@@ -96,7 +96,7 @@ unpack_with_fwres()
     # clean up first.
     rm -rf ${out_dir}/* 2>/dev/null
  
-    dtf_apktool decode -f --frame-path ${fwres_dir} --frame-tag ${serial} ${apk} ${out_dir}
+    dtf_apktool decode --force --frame-path ${fwres_dir} --frame-tag ${serial} --output ${out_dir} ${apk}
     ret=$?
   
     return $ret
@@ -110,7 +110,7 @@ unpack_with_nofwres()
     # Clean up first.
     rm -rf ${out_dir}/* 2>/dev/null
 
-    dtf_apktool decode -f ${apk} ${out_dir}
+    dtf_apktool decode --force --output ${out_dir} ${apk}
     ret=$?
 
     return $ret
@@ -122,7 +122,7 @@ unpack_manual()
     # Clean up first.
     rm -rf ${out_dir}/* 2>/dev/null
     
-    dtf_apktool decode -f -r ${apk} ${out_dir}
+    dtf_apktool decode --force --no-res --output ${out_dir} ${apk}
     mv ${out_dir}/AndroidManifest.xml ${out_dir}/AndroidManifest.xml.encoded
     axmlprinter2 ${out_dir}/AndroidManifest.xml.encoded > ${out_dir}/AndroidManifest.xml
 

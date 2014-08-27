@@ -24,7 +24,7 @@
 
 fwres_dir=.fwres
 framework_dir=$(dtf prop get Local framework-dir)
-sdk=$(dtf prop get Info serial)
+serial=$(dtf prop get Info serial)
 
 mkdir ${fwres_dir} 2>/dev/null
 
@@ -40,7 +40,7 @@ do
     log_i "Installing framework resource \"${res}\"...."
 
     #Use apktool to install a FW resources file, capturing the install name.
-    install_out=$(dtf_apktool if ${res} ${sdk} --frame-path ${tmp}/ 2>&1|grep "installed to")
+    install_out=$(dtf_apktool if --tag ${serial} --frame-path ${tmp}/ ${res} 2>&1|grep "installed to")
 
     # We need to make sure apktool didnt explode
     if [ "${install_out}" == "" ];  then
