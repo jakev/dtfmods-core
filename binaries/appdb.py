@@ -34,11 +34,11 @@ except ImportError:
 
 APP_DB = dtfconfig.get_prop("Local", "db-dir")+"/sysapps.db"
 
-__VERSION__ = "0.9"
+__VERSION__ = "1.0"
 
 #log.LOG_LEVEL_STDOUT = 5
 
-TAG = "app2db.py"
+TAG = "appdb.py"
 app_db = None
 
 FILTER_ACTIVITIES = "activities"
@@ -318,9 +318,9 @@ def parseActivities(appdb, application_id, manifest_path):
         if enabled == None:
             pass
         elif enabled == "true":
-            enabled = 1
+            enabled = True
         elif enabled == "false":
-            enabled = 0
+            enabled = False
         else:
             log.w(TAG, "Found weird enabled in parseActivities : %s" % enabled)
             enabled = None
@@ -328,9 +328,9 @@ def parseActivities(appdb, application_id, manifest_path):
         if exported == None:
             pass
         elif exported == "true":
-            exported = 1
+            exported = True
         elif exported == "false":
-            exported = 0
+            exported = False
         else:
             log.w(TAG, "Found weird exported in parseActivities : %s" % exported)
             exported = None
@@ -381,9 +381,9 @@ def parseServices(appdb, application_id, manifest_path):
         if enabled == None:
             pass
         elif enabled == "true":
-            enabled = 1
+            enabled = True
         elif enabled == "false":
-            enabled = 0
+            enabled = False
         else:
             log.w(TAG, "Found weird enabled in parseServices : %s" % enabled)
             enabled = None
@@ -391,9 +391,9 @@ def parseServices(appdb, application_id, manifest_path):
         if exported == None:
             pass
         elif exported == "true":
-            exported = 1          
+            exported = True
         elif exported == "false":
-            exported = 0
+            exported = False
         else:
             log.w(TAG, "Found weird exported in parseServices : %s" % exported)
             exported = None
@@ -443,9 +443,9 @@ def parseProviders(appdb, application_id, manifest_path):
         if enabled == None:
             pass
         elif enabled == "true":
-            enabled = 1
+            enabled = True
         elif enabled == "false":
-            enabled = 0
+            enabled = False
         else:
             log.w(TAG, "Found weird enabled in parseProvider : %s" % enabled)
             enabled = None
@@ -453,9 +453,9 @@ def parseProviders(appdb, application_id, manifest_path):
         if exported == None:
             pass
         elif exported == "true":
-            exported = 1
+            exported = True
         elif exported == "false":
-            exported = 0
+            exported = False
         else:
             log.w(TAG, "Found weird exported in parseProvider : %s" % exported)
             exported = None
@@ -538,9 +538,9 @@ def parseReceivers(appdb, application_id, manifest_path):
         if enabled == None:
             pass
         elif enabled == "true":
-            enabled = 1
+            enabled = True
         elif enabled == "false":
-            enabled = 0
+            enabled = False
         else:
             log.w(TAG, "Found weird enabled in parseReceivers : %s" % enabled)
             enabled = None
@@ -548,9 +548,9 @@ def parseReceivers(appdb, application_id, manifest_path):
         if exported == None:
             pass
         elif exported == "true":
-            exported = 1
+            exported = True
         elif exported == "false":
-            exported = 0
+            exported = False
         else:
             log.w(TAG, "Found weird exported in parseReceivers : %s" % exported)
             exported = None

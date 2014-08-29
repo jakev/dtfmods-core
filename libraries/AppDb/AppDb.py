@@ -22,9 +22,6 @@ from pydtf import dtfglobals
 from pydtf import dtfconfig
 import base64
 
-def test():
-    print "All the base belongs to me~~~"
-
 _TAG = "AppDb"
 
 APP_DB_NAME = "sysapps.db"
@@ -150,24 +147,13 @@ class Activity(object):
 
     def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
 
-        # Note - Constructor expects 0/1/NoneType as exported/enabled
+        # EDIT : Constructor expects True/False/NoneType as exported and enabled.
         # Note - Constrctor expects intent_data as a string.
         self.name = name
         self.permission = permission
 
-        if exported == 0:
-            self.exported = False
-        elif exported == 1:
-            self.exported = True
-        else:
-            self.exported = None
-
-        if enabled == 0:
-            self.enabled = False
-        elif enabled == 1:
-            self.enabled = True
-        else:
-            self.enabled = None
+        self.exported = exported
+        self.enabled = enabled
 
         # A object should store the String representaiton of the intent_data.
         self.intent_data = intent_data
@@ -188,24 +174,13 @@ class Service(object):
 
     def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
 
-        # Note - Constructor expects 0/1/NoneType as exported/enabled
+        # EDIT : Constructor expects True/False/NoneType as exported and enabled.
         # Note - Constrctor expects intent_data as a string.
         self.name = name
         self.permission = permission
 
-        if exported == 0:
-            self.exported = False
-        elif exported == 1:
-            self.exported = True
-        else:
-            self.exported = None
-
-        if enabled == 0:
-            self.enabled = False
-        elif enabled == 1:
-            self.enabled = True
-        else:
-            self.enabled = None
+        self.exported = exported
+        self.enabled = enabled
 
         self.intent_data = intent_data
         self.application_id = application_id
@@ -232,25 +207,14 @@ class Provider(object):
                  grant_uri_permission_data, path_permission_data, permission, read_permission, 
                  write_permission, application_id, id=None):
 
-        # Note - Constructor expects 0/1/NoneType as exported/enabled
+        # EDIT : Constructor expects True/False/NoneType as exported and enabled.
         # Note - Constructor expects 0/1/NoneType as grantUriPermissions
         # Note - Constrctor expects path_permission_data  as a string.
         self.name = name
         self.authorities = authorities
 
-        if exported == 0:
-            self.exported = False
-        elif exported == 1:
-            self.exported = True
-        else:
-            self.exported = None
-
-        if enabled == 0:
-            self.enabled = False
-        elif enabled == 1:
-            self.enabled = True
-        else:
-            self.enabled = None
+        self.exported = exported
+        self.enabled = enabled
 
         if grant_uri_permissions == 0:
             self.grant_uri_permissions = False
@@ -269,21 +233,6 @@ class Provider(object):
         if id is not None:
             self._id = id
 
-    #@property
-    #def permission(self):
-    #    return self._permission
-    #
-    #@permission.getter
-    #def permission(self):
-    #    if self._permission == None:
-    #        return None
-    #    else:
-    #        return self._permission.name
-    #
-    #@permission.setter
-    #def permission(self, value):
-    #    self._permission = value
-
 class Receiver(object):
 
     _id = 0
@@ -296,24 +245,14 @@ class Receiver(object):
 
     def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
 
+        # EDIT : Constructor expects True/False/NoneType as exported and enabled.
         # Note - Constrctor expects intent_data as a string.
         # Note - Construtor expects 0/1/NoneType as exported/enabled
         self.name = name
         self.permission = permission
 
-        if exported == 0:
-            self.exported = False
-        elif exported == 1:
-            self.exported = True
-        else:
-            self.exported = None
-
-        if enabled == 0:
-            self.enabled = False
-        elif enabled == 1:
-            self.enabled = True
-        else:
-            self.enabled = None
+        self.exported = exported
+        self.enabled = enabled
 
         self.intent_data = intent_data
         self.application_id = application_id
@@ -421,8 +360,8 @@ class AppDb(object):
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                'name TEXT NOT NULL,'
                'permission INTEGER,'
-               'exported INTEGER,'
-               'enabled INTEGER,'
+               'exported TEXT,'
+               'enabled TEXT,'
                'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id),'
@@ -438,8 +377,8 @@ class AppDb(object):
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                'name TEXT NOT NULL,'
                'permission INTEGER,'
-               'exported INTEGER,'
-               'enabled INTEGER,'
+               'exported TEXT,'
+               'enabled TEXT,'
                'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id),'
@@ -458,8 +397,8 @@ class AppDb(object):
                'permission INTEGER,'
                'read_permission INTEGER,'
                'write_permission INTEGER,'
-               'exported INTEGER,'
-               'enabled INTEGER,'
+               'exported TEXT,'
+               'enabled TEXT,'
                'grant_uri_permissions INTEGER,'
                'path_permission_data TEXT,'
                'grant_uri_permission_data TEXT,'
@@ -479,8 +418,8 @@ class AppDb(object):
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                'name TEXT NOT NULL,'
                'permission INTEGER,'
-               'exported INTEGER,'
-               'enabled INTEGER,'
+               'exported TEXT,'
+               'enabled TEXT,'
                'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id)'
@@ -937,8 +876,21 @@ class AppDb(object):
 
              if exported == "None":
                  exported = None
+             elif exported == "False":
+                 exported = False
+             elif exported == "True":
+                 exported = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % exported)
+
              if enabled == "None":
                  enabled = None
+             elif enabled == "False":
+                 enabled = False
+             elif enabled == "True":
+                 enabled = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
@@ -965,14 +917,28 @@ class AppDb(object):
              name = line[1]
              permission_id = line[2]
              exported = line[3]
+
              enabled = line[4]
              intent_data = base64.b64decode(line[5])
              application_id = line[6]
 
              if exported == "None":
                  exported = None
+             elif exported == "False":
+                 exported = False
+             elif exported == "True":
+                 exported = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % exported)
+
              if enabled == "None":
                  enabled = None
+             elif enabled == "False":
+                 enabled = False
+             elif enabled == "True":
+                 enabled = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
@@ -1010,10 +976,21 @@ class AppDb(object):
 
              if exported == "None":
                  exported = None
+             elif exported == "False":
+                 exported = False
+             elif exported == "True":
+                 exported = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % exported)
+
              if enabled == "None":
                  enabled = None
-             if grant_uri_permissions == "None":
-                 grant_uri_permissions = None
+             elif enabled == "False":
+                 enabled = False
+             elif enabled == "True":
+                 enabled = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % enabled)
 
              # Generic Permission
              if permission_id != 0:
@@ -1060,8 +1037,21 @@ class AppDb(object):
 
              if exported == "None":
                  exported = None
+             elif exported == "False":
+                 exported = False
+             elif exported == "True":
+                 exported = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % exported)
+
              if enabled == "None":
                  enabled = None
+             elif enabled == "False":
+                 enabled = False
+             elif enabled == "True":
+                 enabled = True
+             else:
+                 log.e(TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
