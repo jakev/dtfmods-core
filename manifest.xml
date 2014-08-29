@@ -1,0 +1,446 @@
+<Items>	
+    <!-- Module Content -->
+	<Item type="module"
+          name="activitydiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Get all activities that were added to the AOSP version of the package."
+          localName="modules/activitydiff" />
+	
+	<Item type="module"
+          name="appdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          about="Module to process all applications into SQLite3 databases."
+          localName="modules/appdb" />
+	
+	<Item type="module"
+          name="appdexdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Create dexdb for an application or all AOSP applications."
+          localName="modules/appdexdb" />
+		  
+	<Item type="module"
+          name="appdexdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Compare the DEX code of a local application to the AOSP equivalent."
+          localName="modules/appdexdiff" />
+	
+	<Item type="module"
+          name="appdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Get all components that were added to the AOSP version of the package."
+          localName="modules/appdiff" />
+	
+	<Item type="module"
+          name="binderdump"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Dump details about binder interface."
+          localName="modules/binderdump" />
+
+	<Item type="module"
+          name="bindiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          about="Get a listing of OEM added binaries (diff the AOSP)."
+          localName="modules/bindiff" />
+
+	<Item type="module"
+          name="classsearch"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Search class files for classname (requires DEX databases)."
+          localName="modules/classsearch" />
+		  
+	<Item type="module"
+          name="devdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Create and manage a database with device driver details."
+          localName="modules/devdb" />
+
+	<Item type="module"
+          name="devdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Print devices that are not part of the AOSP image."
+          localName="modules/devdiff" />
+		  
+	<Item type="module"
+          name="drozer"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Starts a drozer session on the device (requires Drozer install)."
+          localName="modules/drozer" />
+
+	<Item type="module"
+          name="framework2jar"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Convert a framework DEX JAR to a Java JAR for importing into Eclipse."
+          localName="modules/framework2jar" />
+		 
+	<Item type="module"
+          name="frameworkdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Create and manipulate a database containing Android framework data."
+          localName="modules/frameworkdb" />
+		  
+	<Item type="module"
+          name="frameworkdexdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Create dexdb for a framework file or all frameworks."
+          localName="modules/frameworkdexdb" />
+	
+	<Item type="module"
+          name="frameworkdexdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Compare the DEX code of a local framework to the AOSP equivalent."
+          localName="modules/frameworkdexdiff" />
+
+	<Item type="module"
+          name="frameworkdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Get a listing of OEM added framework files."
+          localName="modules/frameworkdiff" />
+		  
+	<Item type="module"
+          name="frameworkres"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Configure framework resources for unpacking and repacking."
+          localName="modules/frameworkres" />
+		  
+	<Item type="module"
+          name="getbins"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Pull all system binaries (/bin/sh) to project directory."
+          localName="modules/getbins" />
+		  
+	<Item type="module"
+          name="getframeworks"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Pull all framework JARs (and ODEX files) and framework resources to project directory."
+          localName="modules/getframeworks" />
+		 
+	<Item type="module"
+          name="getpermissions"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Download all the /etc/permission files."
+          localName="modules/getpermissions" />
+		 
+	<Item type="module"
+          name="getsysapps"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Pull all system applications (and ODEX files) to project directory."
+          localName="modules/getsysapps" />
+		  
+	<Item type="module"
+          name="getsyslibs"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          about="Get app system libraries off the device."
+          localName="modules/getsyslibs" />
+		  
+	<Item type="module"
+          name="intentsender"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Attempt to launch the DebugIntentSender activity."
+          localName="modules/intentsender" />
+		  
+	<Item type="module"
+          name="libinfo"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Get information about a shared library (SO)."
+          localName="modules/libinfo" />
+		  
+	<Item type="module"
+          name="newapp"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Copy a blank, compiled, application for building."
+          localName="modules/newapp" />
+		  
+	<Item type="module"
+          name="permissions"
+          majorVersion="1"
+          minorVersion="0"
+          health="working"
+          author="Jake Valletta (jakev)"
+          about="Simple permision printer."
+          localName="modules/permissions" />
+		  
+	<Item type="module"
+          name="platformdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Parse the /system/etc/permissions/platform.xml file."
+          localName="modules/platformdiff" />
+		  
+	<Item type="module"
+          name="providerdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Get all components that were added to the AOSP version of the package."
+          localName="modules/providerdiff" />
+		  
+	<Item type="module"
+          name="receiverdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Get all receivers that were added to the AOSP version of the package."
+          localName="modules/providerdiff" />
+		  
+	<Item type="module"
+          name="secretcode"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Send an android_secret_code broadcast."
+          localName="modules/secretcode" />
+		  
+	<Item type="module"
+          name="servicediff"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Get all services that were added to the AOSP version of the package."
+          localName="modules/servicediff" />
+		  
+	<Item type="module"
+          name="sharedid"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Find all shared ID occurances for a give useSharedId string."
+          localName="modules/sharedid" />
+		  
+	<Item type="module"
+          name="sysappdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          about="Get a listing of OEM added system applications (diff the AOSP)."
+          localName="modules/sysappdiff" />
+		  
+	<Item type="module"
+          name="syslibdiff"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          about="List OEM added system libraries."
+          localName="modules/syslibdiff" />
+		  
+	<Item type="module"
+          name="sysservicedb"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Create database of system services."
+          localName="modules/sysservicedb" />
+		  
+	<Item type="module"
+          name="sysservicediff"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Diff system service database against AOSP."
+          localName="modules/sysservicediff" />
+		  
+	<Item type="module"
+          name="testperm"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Just a sample permissions and uses-permission generator."
+          localName="modules/testperm" />
+		  
+	<Item type="module"
+          name="unpacksysapps"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Unpack all system applications, and unODEX all ODEX files."
+          localName="modules/unpacksysapps" />
+		  
+	<Item type="module"
+          name="usesperm"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Just a sample uses-permission generator."
+          localName="modules/usesperm" />
+
+    <!-- Library Content -->
+    <Item type="library"
+          name="AppDb"
+          about="Application Database API"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="libraries/AppDb" />
+
+    <!-- Binary Content -->
+    <Item type="binary"
+          name="appdb.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/appdb.py" />
+
+    <Item type="binary"
+          name="appdiff.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="broken"
+          author="Jake Valletta (jakev)"
+          localName="binaries/appdiff.py" />
+
+    <Item type="binary"
+          name="binderdump.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/binderdump.py" />
+
+    <Item type="binary"
+          name="classsearch.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/classsearch.py" />
+
+    <Item type="binary"
+          name="dexdiff.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/dexdiff.py" />
+
+    <Item type="binary"
+          name="dexdumpsql"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/dexdumpsql" />
+
+    <Item type="binary"
+          name="platform-diff.py"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/platform-diff.py" />
+
+    <!-- Package Content -->
+    <Item type="package"
+          name="Drozer"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="packages/Drozer" />
+
+    <Item type="package"
+          name="HelloWorld_app"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="packages/HelloWorld_app" />
+
+    <Item type="package"
+          name="IntentSender"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="packages/IntentSender" />
+</Items>
+

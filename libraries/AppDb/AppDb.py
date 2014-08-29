@@ -561,16 +561,6 @@ class AppDb(object):
         grant_uri_permission_data = base64.b64encode(provider.grant_uri_permission_data)
         path_permission_data = base64.b64encode(provider.path_permission_data)
 
-        if enabled == True:
-            enabled = 1
-        elif enabled == False:
-            enabled = 0
-
-        if exported == True:
-            exported = 1
-        elif exported == False:
-            exported = 0
-
         if grant_uri_permissions == True:
             grant_uri_permissions = 1
         elif grant_uri_permissions == False:
@@ -881,7 +871,7 @@ class AppDb(object):
              elif exported == "True":
                  exported = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % exported)
+                 log.e(_TAG, "Unknown export value :  %s" % exported)
 
              if enabled == "None":
                  enabled = None
@@ -890,7 +880,7 @@ class AppDb(object):
              elif enabled == "True":
                  enabled = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % enabled)
+                 log.e(_TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
@@ -929,7 +919,7 @@ class AppDb(object):
              elif exported == "True":
                  exported = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % exported)
+                 log.e(_TAG, "Unknown export value :  %s" % exported)
 
              if enabled == "None":
                  enabled = None
@@ -938,7 +928,7 @@ class AppDb(object):
              elif enabled == "True":
                  enabled = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % enabled)
+                 log.e(_TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
@@ -981,7 +971,7 @@ class AppDb(object):
              elif exported == "True":
                  exported = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % exported)
+                 log.e(_TAG, "Unknown export value :  %s" % exported)
 
              if enabled == "None":
                  enabled = None
@@ -990,7 +980,7 @@ class AppDb(object):
              elif enabled == "True":
                  enabled = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % enabled)
+                 log.e(_TAG, "Unknown export value :  %s" % enabled)
 
              # Generic Permission
              if permission_id != 0:
@@ -1042,7 +1032,7 @@ class AppDb(object):
              elif exported == "True":
                  exported = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % exported)
+                 log.e(_TAG, "Unknown export value :  %s" % exported)
 
              if enabled == "None":
                  enabled = None
@@ -1051,7 +1041,7 @@ class AppDb(object):
              elif enabled == "True":
                  enabled = True
              else:
-                 log.e(TAG, "Unknown export value :  %s" % enabled)
+                 log.e(_TAG, "Unknown export value :  %s" % enabled)
 
              if permission_id != 0:
                  permission = self.resolvePermissionById(permission_id)
