@@ -175,8 +175,6 @@ if [ -z $fwres_dir ]; then
     fi
 fi 
 
-exit 34
-
 IFS=$'\n' oem_packages=($(dtf sysappdiff -q))
 unset IFS
 
