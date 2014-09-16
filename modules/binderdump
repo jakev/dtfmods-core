@@ -17,7 +17,7 @@
 #@About: Dump details about binder interface.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 
@@ -39,7 +39,7 @@ package=$(sqlite3 ${db_dir}/services.db "${sql}")
 
 if [ ! -z  "${package}" ]; then
 
-    path=$(dtf classsearch --framework -ef ${package} |sed 's/\.smali//')
+    path=$(dtf classsearch --framework -ef ${package} |head -n1|sed 's/\.smali//')
 
     if [ -z "${path}" ]; then
         echo "Couldn't find source files for service '${service_name}'!"

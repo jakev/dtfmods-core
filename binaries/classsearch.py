@@ -149,13 +149,18 @@ db_dir = dtfconfig.get_prop("Local", "db-dir")
 
 if search_frameworks:
     # For file in frameworkdexdbs
-    for db in listdir(db_dir+"/frameworkdexdbs/"):
-
-        searchDb(db_dir+"/frameworkdexdbs/"+db, config)
+    try:
+        for db in listdir(db_dir+"/frameworkdexdbs/"):
+            searchDb(db_dir+"/frameworkdexdbs/"+db, config)
+    except OSError:
+        print "[ERROR] Error listing framework DEX databases, do they exist?"
+        exit(-4)
 
 if search_apps:
     # For file in appdexdbs
-    for db in listdir(db_dir+"/appdexdbs/"):
-
-        searchDb(db_dir+"/appdexdbs/"+db, config) 
-
+    try:
+        for db in listdir(db_dir+"/appdexdbs/"):
+            searchDb(db_dir+"/appdexdbs/"+db, config) 
+    except OSError:
+        print "[ERROR] Error listing app DEX databases, do they exist?"
+        exit(-4)

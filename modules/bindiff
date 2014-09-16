@@ -22,7 +22,6 @@
 # Imports 
 . dtf_core.sh
 
-
 make_csv()
 {
     reports_dir=$(dtf prop get Local reports-dir)
@@ -61,18 +60,18 @@ pull=0
 pull_dir="oem-bins"
 sdk=$(dtf prop get Info sdk)
 
-mkdir ${pull_dir} 2> /dev/null
-
 binlist_file=${DTF_PACKAGES}/aosp-data-${sdk}/bindirlist
 
 IFS=$'\n' aosp_binlist=($(cat ${binlist_file}))
 
-if [ "$1" == "-pull" ]; then 
+echo ${aosp_binlist[*]}
+
+if [ "$1" == "--pull" ]; then 
     echo "Pulling OEM bins to \"${pull_dir}\""
     mkdir ${pull_dir} 2> /dev/null
     dtf prop set Local oem-bins ${pull_dir}
     pull=1
-    make_csv
+    #make_csv
 fi
 
 echo "OEM Added Binaries:"
@@ -83,8 +82,7 @@ for bin in `adb shell ls /system/bin|sed 's/\r//g'`; do
 
     if [ "${rtn}" == "0" ]; then
         adb shell "ls -l /system/bin/${bin}"
-        adb pull /system/bin/${bin} ${pull_dir}
-        [[ $pull -eq 1 ]] && adb pull /system/bin/${bin} ${pull_dir}
+        [[ $pull == 1 ]] && adb pull /system/bin/${bin} ${pull_dir}
     fi
 done
 

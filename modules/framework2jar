@@ -17,7 +17,7 @@
 #@About: Convert a framework DEX JAR to a Java JAR for importing into Eclipse.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
@@ -57,7 +57,7 @@ mkdir ${java_framework_dir} 2> /dev/null
 
 # Single Mode
 if [ -z "$1" ]; then
-    echo "Usage: $name [-all] framework_name"
+    echo "Usage: $name [--all] framework_name"
     exit -2
 elif [ "$1" == "--all" ]; then
 

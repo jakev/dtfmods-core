@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#@About: Get all components that were added to the AOSP version of the package.
+#@About: Get all providers that were added to the AOSP version of the package.
 #@Author: Jake Valletta (jakev)
 #@Health: beta
 #@Version: 1.0

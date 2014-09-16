@@ -17,7 +17,7 @@
 #@About: Unpack all system applications, and unODEX all ODEX files.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
@@ -129,7 +129,11 @@ unpack_manual()
     return 0
 }
 
-
+# Test for aapt, since we need it.
+if [[ ! `aapt v 2> /dev/null |grep "Android Asset Packaging Tool"` ]]; then
+    echo "[ERROR] Unable to find \`aapt\`, can you confirm it is in your path?"
+    exit -1
+fi
 
 framework_dir=$(dtf prop get Local framework-dir)
 fwres_dir=$(dtf prop get Local fwres-dir)
@@ -151,6 +155,27 @@ if [ -z $sdk ]; then
     echo "[ERROR] SDK level not found. Are you sure it's set?"
     exit -2
 fi
+
+if [ -z $fwres_dir ]; then
+
+    echo -n "No framework resources are installed, do you want to install them now? [y/N] "
+
+    read res
+
+    if [[ "$res" = "y" ]]; then
+        if dtf_has_module frameworkres; then
+            dtf frameworkres
+        else
+            echo "[ERROR] You need the \`frameworkres\` module to install framework resources. Exiting."
+            exit -4
+        fi
+    else
+        echo "Exiting."
+        exit -2
+    fi
+fi 
+
+exit 34
 
 IFS=$'\n' oem_packages=($(dtf sysappdiff -q))
 unset IFS

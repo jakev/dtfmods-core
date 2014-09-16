@@ -17,7 +17,7 @@
 #@About: Create dexdb for a framework file or all frameworks.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
@@ -26,6 +26,8 @@ run_command () {
 
     ${DTF_BINS}/dexdumpsql create "$1" "$2"
 }
+
+MODULE_NAME="frameworkdexdb"
 
 db_dir=$(dtf prop get Local db-dir)
 framework_dir=$(dtf prop get Local framework-dir)
@@ -64,20 +66,21 @@ if [ "$1" == "create" ]; then
             fi
         done
     else
-        framework_name=$2
+        for framework_name in ${*:2}; do
 
-        log_i "Doing \"${framework_name}\"..."
-        # First try ODEX.
-        if [ -f ${framework_dir}/${framework_name}.odex ]; then
-            log_i "ODEX MODE"
-            run_command "${framework_dir}/${framework_name}.odex" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-        else
-            log_i "JAR MODE"
-            run_command "${framework_dir}/${framework_name}.jar" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-        fi
+            log_i "Doing \"${framework_name}\"..."
+            # First try ODEX.
+            if [ -f ${framework_dir}/${framework_name}.odex ]; then
+                log_i "ODEX MODE"
+                run_command "${framework_dir}/${framework_name}.odex" "${db_dir}/frameworkdexdbs/${framework_name}.db"
+            else
+                log_i "JAR MODE"
+                run_command "${framework_dir}/${framework_name}.jar" "${db_dir}/frameworkdexdbs/${framework_name}.db"
+            fi
+        done 
     fi
 else
-    echo "Usage: $0 create [package_name]"
+    echo "Usage: ${MODULE_NAME} create [package_name] [package_name] .."
     echo ""
     echo "Note: If [package_name] is not supplied, all AOSP frameworks are created."
 fi

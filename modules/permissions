@@ -17,6 +17,8 @@
 #@About: Simple permision printer.
 #@Author: Jake Valletta (jakev)
 #@Health: working
-#@Version: 1.0
+#@Version: 1.1
 
-sqlite3 .dbs/sysapps.db "select permissions.id,permissions.name, permissions.protection_level, apps.project_name, apps.package_name from permissions join apps on permissions.application_id=apps.id"
+permission=$1
+
+sqlite3 .dbs/sysapps.db "select permissions.id,permissions.name, permissions.protection_level, apps.project_name, apps.package_name from permissions join apps on permissions.application_id=apps.id" |grep "$permission"
