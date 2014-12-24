@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Generates data needed for comparing projects.
+#@Author: Jake Valletta (jakev)
+#@Health: beta
+#@Version: 1.0
+
+. dtf_core.sh
+. dtf_log.sh
+
+log_i "Creating AOSP data..."
+
+# Get Data
+dtf sysappdb pull --threads 10
+dtf getframeworks
+dtf getpermissions
+dtf getsyslibs
+
+# Unpack, process
+dtf frameworkres
+dtf sysappdb unpack --aosp-mode
+dtf appdexdb --all
+dtf frameworkdexdb --all
+dtf aosp_frameworkdb
+dtf unframework
+dtf devdb create
+dtf sysservicedb create
+
+sdk=$(dtf prop get Info sdk)
+permissions_dir=$(dtf prop get Local permissions-dir)
+system_libs_dir=$(dtf prop get Local system-libs-dir)
+decoded_aosp_dir=$(dtf prop get Local decoded-aosp-dir)
+db_dir=$(dtf prop get Local db-dir)
+bundle_dir=aosp-data-${sdk}
+
+mkdir ${bundle_dir}/
+mkdir ${bundle_dir}/dbs/
+
+# Platform Data
+cp ${permissions_dir}/platform.xml ${bundle_dir}/
+
+# BIN listing
+adb shell ls /system/bin|sed 's/\r//g' > ${bundle_dir}/bindirlist
+
+# System Libs
+find ${system_libs_dir} -type f |sed 's/^\.\///g'|sed "s/^${system_libs_dir}\///g" > ${bundle_dir}/systemlibraries
+
+# DB Data
+cp -r ${db_dir}/* ${bundle_dir}/dbs

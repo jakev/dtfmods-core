@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
 # Copyright 2013-2014 Jake Valletta (@jake_valletta)
 # 
@@ -13,74 +13,132 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Generate DEX Databases
+from argparse import ArgumentParser
+from os import mkdir
+from os.path import isdir, isfile
+from pydtf import dtfconfig
+from pydtf.dtfcore import launch_binary
+from pydtf import dtflog as log
+from sys import argv, exit
 
-#@About: Create dexdb for a framework file or all frameworks.
-#@Author: Jake Valletta (jakev)
-#@Health: stable
-#@Version: 1.1
 
-. dtf_core.sh
-. dtf_log.sh
+import sqlite3
 
-run_command () {
+__VERSION__ = "1.2"
 
-    ${DTF_BINS}/dexdumpsql create "$1" "$2"
-}
+# dtf Python Module declaration
+dtf_module = { "About" : "Create dexdb for a framework file or all frameworks.",
+               "Author" : "Jake Valletta (jakev)",
+               "Health" : "stable",
+               "Version" : __VERSION__ }
 
-MODULE_NAME="frameworkdexdb"
+PROJECT_DB = ''
+AOSP_DB = ''
 
-db_dir=$(dtf prop get Local db-dir)
-framework_dir=$(dtf prop get Local framework-dir)
+log.LOG_LEVEL_STDOUT = 5
+                                   
+TAG="frameworkdexdb"
 
-mkdir ${db_dir}/frameworkdexdbs 2>/dev/null
+class FrameworkDexDb():
 
-if [ "$1" == "create" ]; then
+    def __init__(self):
 
-    if [ -z "$2" ]; then
-        # Do all the apps!
-        log_i "Making DEX dbs for AOSP frameworks..."
+        self.con = sqlite3.connect(
+                        dtfconfig.get_prop("Local", "db-dir") + "/frameworks.db")
+        self.sdk = dtfconfig.get_prop("Info", "sdk")
+        self.framework_dir =  dtfconfig.get_prop("Local", "framework-dir")
+        self.fwdex_dir = dtfconfig.get_prop("Local", "db-dir") + "/frameworkdexdbs"
 
-        ORIG_IFS=$IFS        # Save the original IFS
-        LINE_IFS=$'\n'$'\r'  # For splitting input into lines
-        FIELD_IFS=\|         # For splitting lines into fields
+    def processFramework(self, in_file, out_file):
+ 
+        out, err, rtn = launch_binary("dexdumpsql.jar", "%s %s %s" % (in_file, out_file, self.sdk), launcher="java -jar")
+        log.d(TAG, "Processing completed : %d" % rtn)
+        return rtn
 
-        local_results=$(sqlite3 ${db_dir}/frameworks.db "select name from frameworks where is_aosp=1;")
+    def processFrameworks(self, fw_list):
 
-        IFS=$LINE_IFS
-        for LINE in $local_results; do
-            IFS=$FIELD_IFS
-            FIELDS=($LINE)
-            IFS=$LINE_IFS
+        rtn = 0
 
-            framework_jar=${FIELDS[0]}
-            framework_name=$(echo ${framework_jar} |sed 's/\.jar$//g')
+        if not isdir(self.fwdex_dir):
+            mkdir(self.fwdex_dir)
 
-            log_i "Doing \"${framework_name}\"..."
-            # First try ODEX.
-            if [ -f ${framework_dir}/${framework_name}.odex ]; then
-                log_i "ODEX MODE"
-                run_command "${framework_dir}/${framework_name}.odex" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-            else
-                log_i "JAR MODE"
-                run_command "${framework_dir}/${framework_name}.jar" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-            fi
-        done
-    else
-        for framework_name in ${*:2}; do
+        for fw in fw_list:
+            log.i(TAG, "Processing '%s'..." % fw)
 
-            log_i "Doing \"${framework_name}\"..."
-            # First try ODEX.
-            if [ -f ${framework_dir}/${framework_name}.odex ]; then
-                log_i "ODEX MODE"
-                run_command "${framework_dir}/${framework_name}.odex" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-            else
-                log_i "JAR MODE"
-                run_command "${framework_dir}/${framework_name}.jar" "${db_dir}/frameworkdexdbs/${framework_name}.db"
-            fi
-        done 
-    fi
-else
-    echo "Usage: ${MODULE_NAME} create [package_name] [package_name] .."
-    echo ""
-    echo "Note: If [package_name] is not supplied, all AOSP frameworks are created."
-fi
+            base_name = fw.replace(".jar", '')
+ 
+            vm_type = dtfconfig.get_prop("Info", "vmtype")
+
+            odex_name = "%s/%s.odex" % (self.framework_dir, base_name)
+            jar_name = "%s/%s.jar" % (self.framework_dir, base_name)
+            out_name = "%s/%s.db" % (self.fwdex_dir, base_name)
+
+            if vm_type == "ART":
+                # Need to handle the ELF BS.
+                if isfile(odex_name):
+                    log.d(TAG, "ART ODEX mode selected.")
+                    rtn |= self.processFramework(odex_name, out_name)   
+                else:
+                    log.w(TAG, "No ODEX file found for package '%s'" % base_name)                    
+            elif isfile(odex_name):
+                log.d(TAG, "ODEX mode selected.")
+                rtn |= self.processFramework(odex_name, out_name)
+            else:
+                log.d(TAG, "JAR mode selected.")
+                rtn |= self.processFramework(jar_name, out_name)
+
+        return rtn
+
+    def getAllFrameworks(self):
+        with self.con:
+
+            cur = self.con.cursor() 
+            sql = "SELECT name FROM frameworks ORDER BY name"
+            cur.execute(sql)
+            return [ i[0] for i in cur.fetchall() ]
+
+    def getAllAospFrameworks(self):
+        with self.con:
+
+            cur = self.con.cursor() 
+            sql = "SELECt name FROM frameworks WHERE is_aosp=1 ORDER BY name"
+            cur.execute(sql)
+            return [ i[0] for i in cur.fetchall() ]
+
+def main(args):
+
+    parser = ArgumentParser(prog='frameworkdexdb',
+                            description='Create dexdb for a framework file or all frameworks.')
+    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='?', default=None,
+                        help='Process a single framework file.')
+    parser.add_argument('--all-aosp', dest='aosp_mode', action='store_const', const=True,
+                        default=False, help='Convert all AOSP framework files.')
+    parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
+                        default=False, help='Convert all framework files.')
+
+    args = parser.parse_args()
+
+    fwdexdb = FrameworkDexDb()
+
+    # Is this all mode?
+    if args.all_mode:
+        log.i(TAG, "Doing all frameworks")
+        return fwdexdb.processFrameworks( fwdexdb.getAllFrameworks() )
+    # What about only AOSP?
+    elif args.aosp_mode:
+        log.i(TAG, "Doing all AOSP frameworks")
+        return fwdexdb.processFrameworks( fwdexdb.getAllAospFrameworks() )
+    # Single
+    elif args.framework_name != None:
+        framework_jar = "%s.jar" % args.framework_name
+        log.i(TAG, "Doing single framework '%s'" % args.framework_name)
+        return fwdexdb.processFrameworks( [framework_jar] )
+    # ERROR
+    else:
+        print "[ERROR] You must supply a framework name or --all/--all-aosp."
+        return -1
+
+if __name__ == '__main__':
+        exit(main(argv))

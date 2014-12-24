@@ -54,7 +54,6 @@ done
 
 echo -n "Waiting for device..."
 adb wait-for-device
-echo "OK"
 
 if [ $search ]; then
    echo "Searching for \"${search}\"..."

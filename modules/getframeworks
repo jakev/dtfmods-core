@@ -17,12 +17,15 @@
 #@About: Pull all framework JARs (and ODEX files) and framework resources to project directory.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_log.sh
 . dtf_core.sh
 
 framework_dir=framework
+
+log_i "Waiting for device to connect..."
+adb wait-for-device
 
 log_i "Pulling all framework files..."
 

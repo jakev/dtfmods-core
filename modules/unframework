@@ -17,15 +17,23 @@
 #@About: Unpack all framework files, and unODEX framework files (if present).
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
 
+cd $TOP
+
 framework_dir=$(dtf prop get Local framework-dir)
 sdk=$(dtf prop get Info sdk)
+vmtype=$(dtf prop get Info vmtype)
 
 unframework_dir=unframework
+
+if [ -d $unframework_dir ]; then
+    echo "Unframework dir already exists.  Run with -f to override."
+    exit -1
+fi
 
 mkdir ${unframework_dir} 2> /dev/null
 
@@ -81,8 +89,44 @@ for fwjar in `ls ${framework_dir}/*.jar`; do
     # No ODEX or classes, weird situation.
         log_w "No ODEX or classes.dex for this framework file!"
     fi
-
 done
+
+# Lollipop uses ART
+if [ "$vmtype" = "ART" ]; then
+    # First we can extract from each JAR ODEX
+
+    log_i "Extracting ODEX from each JAR file.."
+
+    for oatelf in `ls ${framework_dir}/arm/*.odex`; do
+        tmp=${oatelf%.*}
+        fwname=${tmp##*/}
+
+        # Extract each DEX
+        dtf oatdextract --out-dir ${unframework_dir}/${fwname} $oatelf
+        cp ${unframework_dir}/${fwname}/${fwname}.odex ${framework_dir}/              
+        # baksmali
+        dtf_baksmali -a ${sdk} -o ${unframework_dir}/${fwname}/ ${unframework_dir}/${fwname}/${fwname}.odex
+    done
+
+    # Next, we extract the rest from the boot.oat
+
+    log_i "Extracting the remaining ODEX from boot.oat"
+    tmp_dir=$(mktemp -d)
+    dtf oatdextract --out-dir ${tmp_dir} ${framework_dir}/arm/boot.oat
+
+    for odex in `ls $tmp_dir`; do
+        tmp=${odex%.*}                                                        
+        fwname=${tmp##*/}
+
+        mkdir ${unframework_dir}/${fwname} 2> /dev/null
+        cp ${tmp_dir}/${odex} ${framework_dir}/
+        dtf_baksmali -a ${sdk} -o ${unframework_dir}/${fwname}/ ${tmp_dir}/${odex}
+
+    done
+
+    # Clean the tmp dir.
+    rm -rf "${tmp_dir}" 2>/dev/null
+fi
 
 log_i "Framework unpack complete!"
 # Set Properties

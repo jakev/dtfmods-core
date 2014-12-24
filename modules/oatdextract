@@ -1,0 +1,302 @@
+#!/usr/bin/env python
+# DTF Core Content
+# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Extract DEX files from OAT ELF files
+
+import struct
+from argparse import ArgumentParser
+from os import mkdir
+from os.path import isdir
+from sys import argv
+
+from elftools.common.exceptions import ELFError
+from elftools.common.py3compat import  bytes2str
+from elftools.elf.elffile import ELFFile
+from elftools.elf.dynamic import DynamicSection
+from elftools.elf.sections import SymbolTableSection
+from elftools.elf.gnuversions import (
+    GNUVerSymSection, GNUVerDefSection, GNUVerNeedSection)
+from elftools.elf.descriptions import describe_p_type
+
+from pydtf import dtflog as log
+
+__VERSION__ = "1.0"
+
+# dtf Python Module declaration
+dtf_module = { "About" : "Extract DEX files from an OAT file.",
+               "Author" : "Jake Valletta (jakev)",
+               "Health" : "stable",
+               "Version" : __VERSION__ }
+
+OAT_DATA_SYMBOL = "oatdata"
+P_TYPE_PHDR = "PHDR"
+
+TAG="oatdextract"
+
+
+def usage():
+    print "OatDextract dtf Module Version %s" % __VERSION__
+    print ""
+    print "Usage: oatdextract [oat_file]"
+    print ""
+    exit(0)
+
+def readUInt32(f, offset):
+
+    f.seek(offset)
+    return struct.unpack('I', f.read(4))[0]
+
+def readString(f, offset, len):
+
+    f.seek(offset)
+    return struct.unpack("%is" % len, f.read(len))[0]
+
+class OatElf(object):
+    def __init__(self, file, out_dir, base_name):
+
+        self.file = file
+        self.elffile = ELFFile(file)
+        self._versioninfo = None
+        self.out_dir = out_dir
+        self.base_name = base_name
+        self.i = 0
+
+    def get_oatdata_offset(self):
+        return self.get_oat_data_sym() - self.get_base_offset()
+
+    def _init_versioninfo(self):
+        """ Search and initialize informations about version related sections
+            and the kind of versioning used (GNU or Solaris).
+        """
+        if self._versioninfo is not None:
+            return
+
+        self._versioninfo = {'versym': None, 'verdef': None,
+                             'verneed': None, 'type': None}
+
+        for section in self.elffile.iter_sections():
+            if isinstance(section, GNUVerSymSection):
+                self._versioninfo['versym'] = section
+            elif isinstance(section, GNUVerDefSection):
+                self._versioninfo['verdef'] = section
+            elif isinstance(section, GNUVerNeedSection):
+                self._versioninfo['verneed'] = section
+            elif isinstance(section, DynamicSection):
+                for tag in section.iter_tags():
+                    if tag['d_tag'] == 'DT_VERSYM':
+                        self._versioninfo['type'] = 'GNU'
+                        break
+
+        if not self._versioninfo['type'] and (
+                self._versioninfo['verneed'] or self._versioninfo['verdef']):
+            self._versioninfo['type'] = 'Solaris'
+
+
+    def get_base_offset(self):
+        if self.elffile.num_segments() == 0:
+            print "[ERROR] Unable to read program header!"
+            raise -2
+
+        for segment in self.elffile.iter_segments():
+            if describe_p_type(segment['p_type']) == P_TYPE_PHDR:
+
+                p_offset = segment['p_offset']
+                p_vaddr = segment['p_vaddr']
+
+                return  p_vaddr - p_offset
+
+        print "[ERROR] Unable to find base address!"
+        raise -3
+
+    def get_oat_data_sym(self):
+
+        self._init_versioninfo()
+
+        for section in self.elffile.iter_sections():
+            if not isinstance(section, SymbolTableSection):
+                continue
+
+            if section['sh_entsize'] == 0:
+                    print "[ERROR] Could not find any symbol table!"
+                    return -1
+
+            for nsym, symbol in enumerate(section.iter_symbols()):
+
+                version_info = ''
+
+                if (section['sh_type'] == 'SHT_DYNSYM' and
+                        self._versioninfo['type'] == 'GNU'):
+                    version = self._symbol_version(nsym)
+                    if (version['name'] != bytes2str(symbol.name) and
+                        version['index'] not in ('VER_NDX_LOCAL',
+                                                 'VER_NDX_GLOBAL')):
+                        if version['filename']:
+                            # external symbol
+                            version_info = '@%(name)s (%(index)i)' % version
+                        else:
+                            # internal symbol
+                            if version['hidden']:
+                                version_info = '@%(name)s' % version
+                            else:
+                                version_info = '@@%(name)s' % version
+
+                name = bytes2str(symbol.name)
+                if name == OAT_DATA_SYMBOL:
+                    return symbol['st_value']
+
+    def carve_dex_header(self, oat_start, dex_header_start):
+        off = dex_header_start
+
+        dex_file_location_size = readUInt32(self.file, off)
+        off += 4
+
+        dex_file_location_data = readString(self.file, off,
+                                            dex_file_location_size)
+        off += dex_file_location_size
+
+        dex_file_location_checksum = readUInt32(self.file, off)
+        off += 4
+
+        dex_file_pointer = readUInt32(self.file, off) 
+        off += 4
+
+        # beginning of "oatdata" section + offset is the dex file.
+        dex_offset = dex_file_pointer +oat_start
+
+        out_file_name = dex_file_location_data.split('/')[-1]
+
+        # Do some renaming.
+        if out_file_name[-4:] == ".jar":
+            out_file_name = out_file_name[:-4] + ".odex"
+
+        # Weird "file.jar:classes#.dex"
+        elif out_file_name[-4:] == ".dex":
+            offset = out_file_name[-5]
+            out_file_name = "%s%s.odex" % (out_file_name.split(":")[0][:-4],                                                    offset)
+
+        if self.base_name != None:
+            num = self.i if self.i != 0 else ''             
+
+            out_file_path = "%s/%s%s.odex" % (self.out_dir, self.base_name, num)
+        else:
+            out_file_path = "%s/%s" % (self.out_dir, out_file_name)
+
+        log.i(TAG, 
+            "Carving DEX '%s' to '%s' (0x%4x) @%i" %
+            (dex_file_location_data, out_file_path, 
+             dex_file_location_checksum, dex_offset))
+
+        # Carve the DEX
+        self.carve_dex(dex_offset, out_file_path)
+
+        # We still need to finish processing the OatDexHeader
+        class_defs_size = readUInt32(self.file, dex_offset + (96))
+
+        # Return offset to next OatDexHeader
+        return off + (class_defs_size * 4)
+
+
+    def carve_dex(self, dex_offset, out_file_path):
+
+        dex_size = readUInt32(self.file, dex_offset + 32)
+
+        log.d(TAG, "DEX size is: %i" % dex_size)
+
+        if dex_size < 0:
+            print "[ERROR] Unable to get DEX size."
+            raise RuntimeError
+
+        if not isdir(self.out_dir):
+            mkdir(self.out_dir)
+
+        with open(out_file_path,'wb') as out_file:
+
+            self.file.seek(dex_offset)
+            read_bytes=0
+           
+            while True:
+                if read_bytes + 1024 > dex_size:
+                    read_size = dex_size - read_bytes
+                else:
+                    read_size = 1024
+
+                bytes=self.file.read(read_size)
+                read_bytes+= read_size
+
+                if bytes: 
+                    out_file.write(bytes)
+                else:
+                    break
+
+        # Keep track of what DEX file we are carving.
+        self.i += 1
+
+        return 0
+
+
+def processOat(args):
+
+    oat_name = args.oat_file
+    out_dir = args.out_dir
+    base_name = args.base_name
+
+    with open(oat_name, 'rb') as file:
+        try:
+            oatfile = OatElf(file, out_dir, base_name)
+
+            oat_header_start = oatfile.get_oatdata_offset()
+
+            dex_file_count = readUInt32(file, oat_header_start + 20)
+            key_value_store_size = readUInt32(file, oat_header_start + 80)
+
+            start = key_value_store_size + oat_header_start + 84
+
+            i = 0
+            while i < dex_file_count:
+                start = oatfile.carve_dex_header(oat_header_start, start)
+                i+=1
+
+        except ELFError as ex:
+            # TODO
+            sys.stderr.write('ELF error: %s\n' % ex)
+            sys.exit(1)
+
+def cmdProcess(args):
+
+    parser = ArgumentParser(prog='oatdextract',
+                            description='Extract DEX files from OAT file.')
+    parser.add_argument('oat_file', metavar="oat_file", type=str, nargs='?', default=None,
+                        help='The system service to check.')
+    parser.add_argument('--out-dir', metavar="out_dir", type=str, default=".",
+                        help='Output files to this directory.')
+    parser.add_argument('--base-name', metavar="base_name", type=str, 
+                        default=None, help='The name of the output file (appends if multiple)')
+
+    args = parser.parse_args()
+
+    return processOat(args)
+
+def main(argv):
+
+    return cmdProcess(argv)
+
+if __name__ == '__main__':
+
+    if len(argv) < 2:
+        exit(usage())
+    else:
+        exit(main(argv))
+

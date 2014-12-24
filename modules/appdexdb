@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
 # Copyright 2013-2014 Jake Valletta (@jake_valletta)
 # 
@@ -13,106 +13,151 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Generate DEX Databases for Applications
+from argparse import ArgumentParser
+from os import mkdir
+from os.path import isdir, isfile
+from pydtf import dtfglobals
+from pydtf import dtfconfig
+from pydtf.dtfcore import launch_binary
+from pydtf import dtflog as log
+from sys import argv, exit
 
-#@About: Create dexdb for an application or all AOSP applications.
-#@Author: Jake Valletta (jakev)
-#@Health: stable
-#@Version: 1.0
+import AppDb
 
-. dtf_core.sh
-. dtf_log.sh
+import sqlite3
 
-run_command () {
+__VERSION__ = "1.2"
 
-    ${DTF_BINS}/dexdumpsql create "$1" "$2"
-}
+# dtf Python Module declaration
+dtf_module = { "About" : "Create dexdb for an application or all applications.",
+               "Author" : "Jake Valletta (jakev)",
+               "Health" : "stable",
+               "Version" : __VERSION__ }
 
-db_dir=$(dtf prop get Local db-dir)
-decoded_aosp_dir=$(dtf prop get Local decoded-aosp-dir)
-decoded_oem_dir=$(dtf prop get Local decoded-oem-dir)
-system_apps_dir=$(dtf prop get Local system-apps-dir)
+PROJECT_DB = ''
+AOSP_DB = ''
 
-mkdir ${db_dir}/appdexdbs 2>/dev/null
+log.LOG_LEVEL_STDOUT = 5
+                                   
+TAG="appdexdb"
 
-if [ "$1" == "create" ]; then
+class AppDexDb():
 
-    if [ -z "$2" ]; then
-        # Do all AOSP apps!
-        echo "Making DEX dbs for all AOSP apps..."
+    def __init__(self):
 
-        for app in `ls ${decoded_aosp_dir}/`; do 
-            if [ -d "${decoded_aosp_dir}/${app}/smali" ]; then
+        self.local_appdb = AppDb.AppDb(
+                            dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db", safe=True)
+        self.aosp_appdb = None
 
-                if [ -f ${db_dir}/appdexdbs/${app}.db ]; then
-                    log_w "Skipping \"${app},\" DB already exists!"
-                    continue
+        self.sdk = dtfconfig.get_prop("Info", "sdk")
+        self.system_apps_dir =  dtfconfig.get_prop("Local", "system-apps-dir")
+        self.appdex_dir = dtfconfig.get_prop("Local", "db-dir") + "/appdexdbs"
 
-                else
-                    echo "Doing \"${app}\"..."
-                    # First try ODEX.
-                    if [ -f ${system_apps_dir}/${app}.odex ]; then
-                        run_command "${system_apps_dir}/${app}.odex" "${db_dir}/appdexdbs/${app}.db"
-                    else
-                        run_command "${system_apps_dir}/${app}.apk" "${db_dir}/appdexdbs/${app}.db" 
-                    fi  
-                fi
-            fi
-        done
-    elif [ "$2" == "--all" ]; then
-        # Do all AOSP apps
-        echo "Making DEX dbs for all AOSP apps..."
+    def processApplication(self, in_file, out_file):
+        
+        out, err, rtn = launch_binary("dexdumpsql.jar", "%s %s %s" % (in_file, out_file, self.sdk), launcher="java -jar")
+        log.d(TAG, "Processing completed : %d" % rtn)
+        return rtn
 
-        for app in `ls ${decoded_aosp_dir}/`; do
-            if [ -d "${decoded_aosp_dir}/${app}/smali" ]; then
+    def processApplications(self, app_list):
 
-                if [ -f ${db_dir}/appdexdbs/${app}.db ]; then
-                    log_w "Skipping \"${app},\" DB already exists!"
-                    continue
+        rtn = 0
 
-                else
-                    echo "Doing \"${app}\"..."
-                    # First try ODEX.
-                    if [ -f ${system_apps_dir}/${app}.odex ]; then
-                        run_command "${system_apps_dir}/${app}.odex" "${db_dir}/appdexdbs/${app}.db"
-                    else
-                        run_command "${system_apps_dir}/${app}.apk" "${db_dir}/appdexdbs/${app}.db"
-                    fi
-                fi
-            fi
-        done
-        # Do all OEM apps
-        echo "Making DEX dbs for all OEM apps..."
+        if not isdir(self.appdex_dir):
+            mkdir(self.appdex_dir)
 
-        for app in `ls ${decoded_oem_dir}/`; do
-            if [ -d "${decoded_oem_dir}/${app}/smali" ]; then
+        for app in app_list:
 
-                if [ -f ${db_dir}/appdexdbs/${app}.db ]; then
-                    log_w "Skipping \"${app},\" DB already exists!"
-                    continue
+            project_name = app.project_name
+            log.i(TAG, "Processing '%s'..." % project_name)
 
-                else
-                    echo "Doing \"${app}\"..."
-                    # First try ODEX.
-                    if [ -f ${system_apps_dir}/${app}.odex ]; then
-                        run_command "${system_apps_dir}/${app}.odex" "${db_dir}/appdexdbs/${app}.db"
-                    else
-                        run_command "${system_apps_dir}/${app}.apk" "${db_dir}/appdexdbs/${app}.db"
-                    fi
-                fi
-            fi
-        done
-    else
-       app=$2
-       echo "Doing \"${app}\"..."
-       # First try ODEX.
-       if [ -f ${system_apps_dir}/${app}.odex ]; then
-           run_command "${system_apps_dir}/${app}.odex" "${db_dir}/appdexdbs/${app}.db"
-       else
-           run_command "${system_apps_dir}/${app}.apk" "${db_dir}/appdexdbs/${app}.db"  
-       fi
-    fi
-else
-    echo "Usage: $0 create [package_name]"
-    echo ""
-    echo "Note: If [package_name] is not supplied, all AOSP packages are created."
-fi
+            odex_name = "%s/%s.odex" % (self.system_apps_dir, project_name)
+            apk_name = "%s/%s.apk" % (self.system_apps_dir, project_name)
+            out_name = "%s/%s.db" % (self.appdex_dir, project_name)
+
+            vm_type = dtfconfig.get_prop("Info", "vmtype")
+
+            if vm_type == "ART":
+                if isfile(odex_name):
+                    log.d(TAG, "ART ODEX mode selected.")
+                    rtn |= self.processApplication(odex_name, out_name)            
+                else:
+                    log.w(TAG, "[WARNING] No ODEX for this application. '%s'" % project_name)
+
+            elif isfile(odex_name):
+                log.d(TAG, "ODEX mode selected.")
+                rtn |= self.processApplication(odex_name, out_name)
+            else:
+                log.d(TAG, "APK mode selected.")
+                rtn |= self.processApplication(apk_name, out_name)
+
+        return rtn
+
+    def getAllApplications(self):
+
+            return self.local_appdb.getApps(dont_resolve=True)
+
+    def getAllAospApplications(self):
+
+        aosp_app_list = []
+
+        aosp_app_list = [ i.project_name for i in self.aosp_appdb.getApps(dont_resolve=True) ]
+
+        return [ i for i in self.local_appdb.getApps() if i.project_name not in aosp_app_list ]
+
+def main(args):
+
+    AOSP_DB = ("%s/%s-%s/dbs/sysapps.db" %
+            (dtfglobals.DTF_PACKAGES, AppDb.AOSP_PACKAGE_PREFIX,
+             dtfconfig.get_prop("Info", "sdk")))
+
+    parser = ArgumentParser(prog='appdexdb',
+                            description='Create dexdb for an application or all application.')
+    parser.add_argument('application_name', metavar="application_name", type=str, nargs='?', default=None,
+                        help='Process a single application.')
+    parser.add_argument('--all-aosp', dest='aosp_mode', action='store_const', const=True,
+                        default=False, help='Convert all AOSP applications.')
+    parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
+                        default=False, help='Convert all applications.')
+    parser.add_argument('--aosp-db', dest='aosp_db', default=AOSP_DB,
+                        help='Use the specified AOSP database.')
+                
+    args = parser.parse_args()
+
+    appdexdb = AppDexDb()
+
+    # Is this all mode?
+    if args.all_mode:
+        log.i(TAG, "Doing all applications...")
+        return appdexdb.processApplications( appdexdb.getAllApplications() )
+    # What about only AOSP?
+    elif args.aosp_mode:
+        if args.aosp_db == None:
+            aosp_db = AOSP_DB
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+        else:
+            aosp_db = args.aosp_db
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+
+        appdexdb.aosp_appdb = AppDb.AppDb(aosp_db, safe=True)
+        log.i(TAG, "Doing all AOSP frameworks...")
+        return appdexdb.processApplications( appdexdb.getAllAospApplications() )
+    # Single
+    elif args.application_name != None:
+        app_project = appdexdb.local_appdb.getAppByName(args.application_name)
+        log.i(TAG, "Doing single application '%s'" % app_project)
+        return appdexdb.processApplications( [app_project] )
+    # ERROR
+    else:
+        print "[ERROR] You must supply an application name or --all/--all-aosp."
+        return -1
+
+if __name__ == '__main__':
+        exit(main(argv))

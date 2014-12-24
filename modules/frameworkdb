@@ -17,7 +17,7 @@
 #@About: Create and manipulate a database containing Android framework data.
 #@Author: Jake Valletta (jakev)
 #@Health: beta
-#@Version: 1.0
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
@@ -61,13 +61,21 @@ framework_dir=$(dtf prop get Local framework-dir)
 sdk=$(dtf prop get Info sdk)
 
 LOCAL_DB_NAME=${db_dir}/frameworks.db
-AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
 
-if [ ! -f "${AOSP_DB_NAME}" ]; then
+# TODO: temp fix until python frameworkdb is created.
+if [ "$1" = "--aosp-db" ]; then
 
-   echo "[ERROR] Unable to find AOSP framework database for API ${sdk}, did you install it?"
-   exit -4
+    AOSP_DB_NAME=$2
 
+else
+    AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
+
+    if [ ! -f "${AOSP_DB_NAME}" ]; then
+
+        echo "[ERROR] Unable to find AOSP framework database for API ${sdk}, did you install it?"
+        exit -4
+
+    fi
 fi
 
 if [ -f ${LOCAL_DB_NAME} ]; then

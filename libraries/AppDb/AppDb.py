@@ -26,7 +26,7 @@ _TAG = "AppDb"
 
 APP_DB_NAME = "sysapps.db"
 
-AOSP_PACKAGE_PREFIX="appdb-aosp-"
+AOSP_PACKAGE_PREFIX="aosp-data-"
 
 PROTECTION_NORMAL = 0
 PROTECTION_DANGEROUS = 1
@@ -42,9 +42,16 @@ PROTECTION_MASK_BASE = 0x0f
 def isAOSPDataInstalled():
 
     sdk = dtfconfig.get_prop("Info", "sdk")
-    dtf_packages = dtfglobal.DTF_PACKAGES
+    dtf_packages = dtfglobals.DTF_PACKAGES
 
     if isdir(dtf_packages + '/' + AOSP_PACKAGE_PREFIX + sdk):
+        return True
+    else:
+        return False
+
+# Check if made by Google.
+def isGoogleApp(package_name):
+    if package_name[0:11] == "com.google.":
         return True
     else:
         return False
@@ -62,16 +69,27 @@ class AppDbException(Exception):
 class Application(object):
 
     _id = 0
-    project_name = ""
+    package_name = ''
+    project_name = ''
+    decoded_path = ''
+    has_native = 0
     min_sdk_version = 0
     target_sdk_version = 0
+    version_name = ''
+    version_code = ''
     permisison = None
     debuggable = None
-    has_native = 0
+    successfully_unpacked = None
 
-    def __init__(self, project_name, min_sdk_version, target_sdk_version, debuggable, permission, has_native, id=None):
+    def __init__(self, package_name, project_name, decoded_path, has_native,
+                min_sdk_version, target_sdk_version, version_name,
+                version_code, permission, debuggable, id=None):
 
         self.project_name = project_name
+        self.package_name = package_name
+        self.decoded_path = decoded_path
+
+        self.has_native = has_native
 
         if debuggable == None:
             self.debuggable = None
@@ -82,8 +100,10 @@ class Application(object):
 
         self.min_sdk_version = min_sdk_version
         self.target_sdk_version = target_sdk_version
+        self.version_name = version_name
+        self.version_code = version_code
+
         self.permission = permission
-        self.has_native = has_native
  
         if id is not None:
             self._id = id
@@ -488,8 +508,6 @@ class AppDb(object):
         permission_group = permission.permission_group
         application_id = permission.application_id
 
-        print permission.permission_group
-
         if permission_group is None:
             permission_group_id = 0
         else:
@@ -629,69 +647,70 @@ class AppDb(object):
 
 
 #### Table Querying Methods ############################
-    def getApps(self,aosp=True):
+    def getApps(self,dont_resolve=False):
 
         app_list = list()
 
-        if aosp:
-            return self.app_db.execute('SELECT * FROM apps ORDER BY id')
-        else:
+        sql = ('SELECT * '
+               'FROM apps '
+               'ORDER BY id')
 
-            sql = ('SELECT * '
-                   'FROM apps '
-                   'WHERE aosp_package=0 '
-                   'ORDER BY id')
+        for line in self.app_db.execute(sql):
 
-            for line in self.app_db.execute(sql):
+            id = line[0]
+            package_name = line[1]
+            project_name = line[2]
+            decoded_path = line[3]
+            has_native = line[4]
+            min_sdk_version = line[5]
+            target_sdk_version = line[6]
+            version_name = line[7]
+            version_code = line[8]
+            permission_id = line[9]
+            debuggable = line[10]
+            successfully_unpacked = line[11]
 
-                id = line[0]
-                package_name = line[1]
-                project_name = line[2]
-                install_path = line[3]
-                aosp_package = line[4]
-                has_native = line[5]
-                min_sdk_version = line[6]
-                target_sdk_version = line[7]
-                debuggable = line[8]
-                permission_id = line[9]
-                successfully_unpacked = line[10]
-
-                # TODO: remove once newer schema takes action
-                if has_native is None:
-                    has_native = 0
-
+            if not dont_resolve:
                 if permission_id != 0 and permission_id is not None:
                     permission = self.resolvePermissionById(permission_id)
                 else:
                     permission = None
+            else:
+                permission = None
 
-                app_list.append( Application(project_name, min_sdk_version, target_sdk_version,
-                                             debuggable, permission, has_native, id))
-
-            return app_list
+            app_list.append( Application(package_name, project_name, decoded_path,
+                                         has_native, min_sdk_version, target_sdk_version,
+                                         version_name, version_code, permission,
+                                         debuggable, id) )
+        return app_list
 
 
     def getAppById(self, application_id):
+
+        sql = ('SELECT * '
+               'FROM apps '
+               "WHERE id=%d "
+               'ORDER BY id '
+               'LIMIT 1' % application_id)
+
         c = self.app_db.cursor()
 
-        rtn = c.execute("SELECT * FROM apps WHERE id=%i" % application_id)
-
+        rtn = c.execute(sql)
         try:
-            (id, package_name, project_name, install_path, aosp_package, 
-             has_native, min_sdk_version, target_sdk_version, permission_id, debuggable,
+            (id, package_name, project_name, decoded_path, has_native, min_sdk_version, 
+             target_sdk_version, version_name, version_code, permission_id, debuggable,
              successfully_unpacked) = c.fetchone()
-
-            # TODO: remove once newer schema takes action
-            if has_native is None:
-                has_native = 0
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
             else:
                 permission = None
 
-            return Application(project_name, min_sdk_version, target_sdk_version, debuggable, permission, has_native, id)
-
+            return Application(package_name, project_name, decoded_path,
+                                         has_native, min_sdk_version, target_sdk_version,
+                                         version_name, version_code, permission,
+                                         debuggable, id)
+        # TODO the fuck is this?
         except IOError:
             pass
         #except TypeError:
@@ -699,43 +718,38 @@ class AppDb(object):
             return 0
 
     def getAppByName(self, name):
+
+        print name
+
+        sql = ('SELECT * '
+               'FROM apps '
+               "WHERE project_name='%s' "
+               'ORDER BY id '
+               'LIMIT 1' % name)
+
         c = self.app_db.cursor()
 
-        _id = ""
-        package_name = ""
-        project_name = ""
-        install_path = ""
-        aosp_package = ""
-        has_native = ""
-        min_sdk_version = ""
-        target_sdk_version = ""
-        permission_id = ""
-        debuggable = ""
-        successfully_unpacked = ""
-
-        rtn = c.execute("SELECT * FROM apps WHERE project_name='%s'" % name)
+        rtn = c.execute(sql)
         try:
-
-            (id, package_name, project_name, install_path, aosp_package,
-             has_native, min_sdk_version, target_sdk_version, permission_id, debuggable,
+            (id, package_name, project_name, decoded_path, has_native, min_sdk_version,
+             target_sdk_version, version_name, version_code, permission_id, debuggable,
              successfully_unpacked) = c.fetchone()
-
-            # TODO: remove once newer schema takes action
-            if has_native is None:
-                has_native = 0
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
             else:
                 permission = None
 
-            return Application(project_name, min_sdk_version, target_sdk_version, debuggable, permission, has_native, id)
-
-        except TypeError:
-            log.e(_TAG, "Unable to resolve application name : %s!" % name)
-            return None
-
-
+            return Application(package_name, project_name, decoded_path,
+                                         has_native, min_sdk_version, target_sdk_version,
+                                         version_name, version_code, permission,
+                                         debuggable, id)
+        # TODO the fuck is this?
+        except IOError:
+            pass
+        #except TypeError:
+            log.e(_TAG, "Unable to resolve application ID %d!" % id)
+            return 0
 
     def resolveGroupByName(self, permission_group_name):
         c = self.app_db.cursor()
@@ -1054,35 +1068,22 @@ class AppDb(object):
         return receiver_list
 
 ########### Update Methods ########################
-    def updateApplication(self, application):
+    def updateApplication(self, a):
 
-        print "UpdateApplication called!"
-
-        _id = application._id
-        project_name =  application.project_name
-        min_sdk_version = application.min_sdk_version
-        target_sdk_version = application.target_sdk_version
-        debuggable = application.debuggable
-        has_native = application.has_native
-
-        print debuggable, application.debuggable
-
-        if application.permission is None:
-            permission = 0
+        if a.permission is None:
+            permission_id = 0
         else:
-            permission = application.permission._id
+            permission_id = a.permission._id
 
-        sql = ("UPDATE apps SET id=?, project_name=?, min_sdk_version=?, "
-               "target_sdk_version=?, debuggable=?, permission=?, has_native=? "
+        sql = ("UPDATE apps SET id=?, package_name=?, project_name=?, decoded_path=?, "
+               "has_native=?, min_sdk_version=?, target_sdk_version=?, version_name=?, " 
+               "version_code=?, debuggable=?, permission=?, successfully_unpacked=? "
                "WHERE id=?")
 
-        return self.app_db.execute(sql, (_id, project_name, min_sdk_version, target_sdk_version, 
-                                         debuggable, permission, has_native, _id))
-
-#        return self.app_db.execute(sql)
-        return self.app_db.execute(sql)
-
-
+        return self.app_db.execute(sql, (a._id, a.package_name, a.project_name, a.decoded_path,
+                                         a.has_native, a.min_sdk_version, a.target_sdk_version,
+                                         a.version_name, a.version_code, a.debuggable, permission_id,
+                                         a.successfully_unpacked, a._id))
 # End class AppDb
 
 # Fix Permission, if a numerical is present
