@@ -21,7 +21,7 @@
 
 usage()
 {
-   echo "Usage $0 OPTIONS <package_name>"
+   echo "Usage apkget OPTIONS <package_name>"
    echo "       OPTIONS:"
    echo "            -o    Pull package's ODEX"
    echo "            -s    Search for package"
@@ -50,9 +50,6 @@ do
    esac
 done
 
-
-
-echo -n "Waiting for device..."
 adb wait-for-device
 
 if [ $search ]; then
@@ -83,4 +80,7 @@ elif [ $odex ]; then
       echo "No packages match the string \"${odex}\" or ODEX does not exist"
       exit 1
    fi
+else
+    echo "[ERROR] You must specify -p or -s!"
+    usage
 fi

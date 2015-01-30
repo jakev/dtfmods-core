@@ -30,9 +30,13 @@ vmtype=$(dtf prop get Info vmtype)
 
 unframework_dir=unframework
 
-if [ -d $unframework_dir ]; then
-    echo "Unframework dir already exists.  Run with -f to override."
-    exit -1
+if [ -d ${unframework_dir} ]; then
+    if [ "$1" = "-f" ]; then
+        rm -rf ${unframework_dir}
+    else
+        echo "Unframework dir already exists.  Run with -f to override."
+        exit -1
+    fi
 fi
 
 mkdir ${unframework_dir} 2> /dev/null

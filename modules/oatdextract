@@ -44,6 +44,8 @@ dtf_module = { "About" : "Extract DEX files from an OAT file.",
 OAT_DATA_SYMBOL = "oatdata"
 P_TYPE_PHDR = "PHDR"
 
+#log.LOG_LEVEL_STDOUT=5
+
 TAG="oatdextract"
 
 
@@ -65,13 +67,14 @@ def readString(f, offset, len):
     return struct.unpack("%is" % len, f.read(len))[0]
 
 class OatElf(object):
-    def __init__(self, file, out_dir, base_name):
+    def __init__(self, file, out_dir, base_name, samsung_mode):
 
         self.file = file
         self.elffile = ELFFile(file)
         self._versioninfo = None
         self.out_dir = out_dir
         self.base_name = base_name
+        self.samsung_mode = samsung_mode
         self.i = 0
 
     def get_oatdata_offset(self):
@@ -160,21 +163,31 @@ class OatElf(object):
     def carve_dex_header(self, oat_start, dex_header_start):
         off = dex_header_start
 
+        log.d(TAG, "Starting OatDexHeader @ 0x%4x" % off)
+
         dex_file_location_size = readUInt32(self.file, off)
         off += 4
+
+        log.d(TAG, "Length of location name string : %i" % dex_file_location_size)
 
         dex_file_location_data = readString(self.file, off,
                                             dex_file_location_size)
         off += dex_file_location_size
 
+        log.d(TAG, "Dex file location string : %s" % dex_file_location_data)
+
         dex_file_location_checksum = readUInt32(self.file, off)
         off += 4
+
+        log.d(TAG, "Dex file location checksum : 0x%4x" % dex_file_location_checksum)
 
         dex_file_pointer = readUInt32(self.file, off) 
         off += 4
 
+        log.d(TAG, "Dex file pointer : %i" % dex_file_pointer)
+
         # beginning of "oatdata" section + offset is the dex file.
-        dex_offset = dex_file_pointer +oat_start
+        dex_offset = dex_file_pointer + oat_start
 
         out_file_name = dex_file_location_data.split('/')[-1]
 
@@ -185,10 +198,10 @@ class OatElf(object):
         # Weird "file.jar:classes#.dex"
         elif out_file_name[-4:] == ".dex":
             offset = out_file_name[-5]
-            out_file_name = "%s%s.odex" % (out_file_name.split(":")[0][:-4],                                                    offset)
+            out_file_name = "%s%s.odex" % (out_file_name.split(":")[0][:-4], offset)
 
         if self.base_name != None:
-            num = self.i if self.i != 0 else ''             
+            num = self.i if self.i != 0 else ''
 
             out_file_path = "%s/%s%s.odex" % (self.out_dir, self.base_name, num)
         else:
@@ -203,10 +216,20 @@ class OatElf(object):
         self.carve_dex(dex_offset, out_file_path)
 
         # We still need to finish processing the OatDexHeader
+
+        # Samsung added methods_offsets_, which is uint32_t
+        if (self.samsung_mode):
+            off += 4
+
         class_defs_size = readUInt32(self.file, dex_offset + (96))
+        class_offset_size = (class_defs_size * 4)
+        off += class_offset_size
+
+        log.d(TAG, "Class defs size: %i" % class_defs_size)
+        log.d(TAG, "Class offset size : %i" % class_offset_size)
 
         # Return offset to next OatDexHeader
-        return off + (class_defs_size * 4)
+        return off
 
 
     def carve_dex(self, dex_offset, out_file_path):
@@ -252,15 +275,25 @@ def processOat(args):
     oat_name = args.oat_file
     out_dir = args.out_dir
     base_name = args.base_name
+    samsung_mode = args.samsung_mode
 
     with open(oat_name, 'rb') as file:
         try:
-            oatfile = OatElf(file, out_dir, base_name)
+            oatfile = OatElf(file, out_dir, base_name, samsung_mode)
 
             oat_header_start = oatfile.get_oatdata_offset()
+            log.d(TAG, "OAT Data offset: %s" % oat_header_start)
+
+            magic = readString(file, oat_header_start, 4)
+            version = readString(file, oat_header_start + 4, 4)
+
+            log.d(TAG, "Magic: %s" % magic)
+            log.d(TAG, "Version: %s" % version)
 
             dex_file_count = readUInt32(file, oat_header_start + 20)
             key_value_store_size = readUInt32(file, oat_header_start + 80)
+
+            log.d(TAG, "KV %i" % key_value_store_size)
 
             start = key_value_store_size + oat_header_start + 84
 
@@ -284,7 +317,8 @@ def cmdProcess(args):
                         help='Output files to this directory.')
     parser.add_argument('--base-name', metavar="base_name", type=str, 
                         default=None, help='The name of the output file (appends if multiple)')
-
+    parser.add_argument('--samsung-mode', dest='samsung_mode', action='store_const', const=True,
+                        default=False, help='Parse with Samsung\'s modified OatDexFile format.')
     args = parser.parse_args()
 
     return processOat(args)
