@@ -21,20 +21,11 @@
     <Item type="module"
           name="appdexdb"
           majorVersion="1"
-          minorVersion="2"
+          minorVersion="3"
           health="stable"
           author="Jake Valletta (jakev)"
           about="Create dexdb for an application or all AOSP applications."
           localName="modules/appdexdb" />
-
-    <Item type="module"
-          name="appdexdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Compare the DEX code of a local application to the AOSP equivalent."
-          localName="modules/appdexdiff" />
 
     <Item type="module"
           name="appdiff"
@@ -350,6 +341,15 @@
           author="Jake Valletta (jakev)"
           about="Unpack all framework files, and unODEX framework files (if present)."
           localName="modules/unframework" />
+
+    <Item type="module"
+          name="userapps"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="aGet list of applications installed by a user (JB+)."
+          localName="modules/userapps" />
 
     <Item type="module"
           name="usesperm"

@@ -64,17 +64,20 @@ LOCAL_DB_NAME=${db_dir}/frameworks.db
 
 # TODO: temp fix until python frameworkdb is created.
 if [ "$1" = "--aosp-db" ]; then
-
     AOSP_DB_NAME=$2
-
+# No argument, check for prop.
 else
-    AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
+    aosp_prop_db=$(dtf prop get Local aosp-data-dir)
+    if [ "${aosp_prop_db}" = "" ]; then
+        AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
+    else
+        AOSP_DB_NAME=${aosp_prop_db}/frameworks.db
+    fi
 
+    # Check if DB exists
     if [ ! -f "${AOSP_DB_NAME}" ]; then
-
-        echo "[ERROR] Unable to find AOSP framework database for API ${sdk}, did you install it?"
+        echo "[ERROR] Unable to find framework database '${AOSP_DB_NAME}.' Exiting."
         exit -4
-
     fi
 fi
 

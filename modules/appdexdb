@@ -18,9 +18,9 @@
 from argparse import ArgumentParser
 from os import mkdir
 from os.path import isdir, isfile
-from pydtf import dtfglobals
-from pydtf import dtfconfig
 from pydtf.dtfcore import launch_binary
+from pydtf.dtfglobals import DTF_PACKAGES
+from pydtf import dtfconfig
 from pydtf import dtflog as log
 from sys import argv, exit
 
@@ -28,7 +28,7 @@ import AppDb
 
 import sqlite3
 
-__VERSION__ = "1.2"
+__VERSION__ = "1.3"
 
 # dtf Python Module declaration
 dtf_module = { "About" : "Create dexdb for an application or all applications.",
@@ -36,12 +36,36 @@ dtf_module = { "About" : "Create dexdb for an application or all applications.",
                "Health" : "stable",
                "Version" : __VERSION__ }
 
-PROJECT_DB = ''
 AOSP_DB = ''
+PROJECT_DB = ''
+APP_DEX_DBS_DIR = ''
 
 log.LOG_LEVEL_STDOUT = 5
-                                   
+
 TAG="appdexdb"
+
+def usage():
+    print "AppDexDb dtf Module Version %s" % __VERSION__
+    print ""
+    print "Submodules:"
+    print "    create       Create DEX db for AOSP application(s)."
+    print "    diff         Diff the DEX for AOSP application(s)."
+    print ""
+    exit(0)
+
+# Lookup the property associated with AOSP Databases
+def getAospAppDbsDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/appdexdbs"
+    except:
+        return None
+
+def runDiff(local_dex_db, aosp_dex_db):
+    out, err, rtn = launch_binary("dexdiff.py", "%s %s" % (local_dex_db,
+                                                                   aosp_dex_db))
+    # Hack
+    print "\n".join(out)
+    return rtn
 
 class AppDexDb():
 
@@ -57,7 +81,7 @@ class AppDexDb():
 
     def processApplication(self, in_file, out_file):
         
-        out, err, rtn = launch_binary("dexdumpsql.jar", "%s %s %s" % (in_file, out_file, self.sdk), launcher="java -jar")
+        out, err, rtn = launch_binary("dexdumpsql.jar", "-i %s -o %s -a %s" % (in_file, out_file, self.sdk), launcher="java -jar")
         log.d(TAG, "Processing completed : %d" % rtn)
         return rtn
 
@@ -105,25 +129,25 @@ class AppDexDb():
 
         aosp_app_list = [ i.project_name for i in self.aosp_appdb.getApps(dont_resolve=True) ]
 
-        return [ i for i in self.local_appdb.getApps() if i.project_name not in aosp_app_list ]
+        return [ i for i in self.local_appdb.getApps() if i.project_name in aosp_app_list ]
 
-def main(args):
+def cmdCreate(args):
 
-    AOSP_DB = ("%s/%s-%s/dbs/sysapps.db" %
-            (dtfglobals.DTF_PACKAGES, AppDb.AOSP_PACKAGE_PREFIX,
-             dtfconfig.get_prop("Info", "sdk")))
+    global AOSP_DB
 
-    parser = ArgumentParser(prog='appdexdb',
-                            description='Create dexdb for an application or all application.')
+    APP_DEX_DB_DIR = "%s/appdexdbs/" % dtfconfig.get_prop("Local", "db-dir")
+
+    parser = ArgumentParser(prog='appdexdb create',
+                            description='Create DEX db for an application or many applications.')
     parser.add_argument('application_name', metavar="application_name", type=str, nargs='?', default=None,
                         help='Process a single application.')
     parser.add_argument('--all-aosp', dest='aosp_mode', action='store_const', const=True,
                         default=False, help='Convert all AOSP applications.')
     parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
                         default=False, help='Convert all applications.')
-    parser.add_argument('--aosp-db', dest='aosp_db', default=AOSP_DB,
+    parser.add_argument('--aosp-db', dest='aosp_db', default=None,
                         help='Use the specified AOSP database.')
-                
+
     args = parser.parse_args()
 
     appdexdb = AppDexDb()
@@ -132,32 +156,168 @@ def main(args):
     if args.all_mode:
         log.i(TAG, "Doing all applications...")
         return appdexdb.processApplications( appdexdb.getAllApplications() )
+
     # What about only AOSP?
     elif args.aosp_mode:
+
+        # No argument provided
         if args.aosp_db == None:
-            aosp_db = AOSP_DB
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
+
+            prop_aosp_db = getAospDirProp()
+            if prop_aosp_db != None:
+                aosp_db = prop_aosp_db
+                if not isfile(aosp_db):
+                    print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                    return -3
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                    return -2
+
+                aosp_db = AOSP_DB
+
+        # Argument provided
         else:
             aosp_db = args.aosp_db
             if not isfile(aosp_db):
                 print "[ERROR] File '%s' not found. Exiting." % aosp_db
                 return -3
 
+        log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
+
         appdexdb.aosp_appdb = AppDb.AppDb(aosp_db, safe=True)
-        log.i(TAG, "Doing all AOSP frameworks...")
+        log.i(TAG, "Doing all AOSP applications...")
         return appdexdb.processApplications( appdexdb.getAllAospApplications() )
+
     # Single
     elif args.application_name != None:
-        app_project = appdexdb.local_appdb.getAppByName(args.application_name)
-        log.i(TAG, "Doing single application '%s'" % app_project)
-        return appdexdb.processApplications( [app_project] )
+        app = appdexdb.local_appdb.getAppByName(args.application_name)
+
+        if app == None:
+            print "[ERROR] Application '%s' not found for local project." % args.application_name
+            return -2
+
+        return appdexdb.processApplications( [app] )
+
     # ERROR
     else:
         print "[ERROR] You must supply an application name or --all/--all-aosp."
         return -1
 
+def cmdDiff(args):
+
+    global AOSP_DB
+    global APP_DEX_DBS_DIR
+
+    rtn = 0
+
+    parser = ArgumentParser(prog='appdexdb diff',
+                            description='Compare the DEX code of the project against AOSP version.')
+    parser.add_argument('application_name', metavar="application_name", type=str, nargs='?', default=None,
+                        help='Diff a single application.')
+    parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
+                        default=False, help='Diff all AOSP applications.')
+    parser.add_argument('--aosp-db', dest='aosp_db', default=None,
+                        help='Use the specified AOSP database.')
+
+    args = parser.parse_args()
+
+    application_name = args.application_name
+
+    appdexdb = AppDexDb()
+
+    # Determine which AOSP DB to use
+
+    # No argument provided
+    if args.aosp_db == None:
+
+        prop_aosp_db = getAospAppDbsDirProp()
+        if prop_aosp_db != None:
+            aosp_db = "%s/%s.db" % (prop_aosp_db, application_name)
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+
+            aosp_db = "%s/%s.db" % (APP_DEX_DBS_DIR, application_name)
+
+    # Argument provided
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            print "[ERROR] File '%s' not found. Exiting." % aosp_db
+            return -3
+
+    log.d(TAG, "Using AOSP app DB '%s'" % aosp_db)
+
+    # Is this all mode?
+    if args.all_mode:
+        log.i(TAG, "Doing all applications...")
+
+        for app in appdexdb.getAllAospApplications():
+
+            app_dex_db = "%s/%s.db" % (APP_DEX_DBS_DIR, app.project_name)
+
+            if not isfile(app_dex_db):
+                log.w(TAG, "No local DEX DB for application '%s'" % app.project_name)
+                continue
+
+            rtn |= runDiff(app_dex_db, aosp_db)
+
+    # Single Application
+    elif application_name != None:
+        app = appdexdb.local_appdb.getAppByName(application_name)
+        if app == None:
+            print "[ERROR] No application with name '%s' found in project!" % (application_name)
+            return -1
+
+        app_dex_db = "%s/%s.db" % (APP_DEX_DBS_DIR, application_name)
+
+        if not isfile(app_dex_db):
+           print "[ERROR] No local DEX DB for application '%s'" % application_name
+           return -2
+
+        rtn |= runDiff(app_dex_db, aosp_db)
+
+    # Nothing provided.
+    else:
+        print "[ERROR] You must supply an application name or --all/--all-aosp."
+        return -3
+
+    # No errors
+    return rtn
+
+def main(argv):
+
+    global AOSP_DB
+    global APP_DEX_DBS_DIR
+
+    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
+                                               dtfconfig.get_prop("Info", "sdk"))
+
+    APP_DEX_DBS_DIR = "%s/appdexdbs" % dtfconfig.get_prop("Local", "db-dir")
+
+    # We can pop the program name off
+    argv.pop(0)
+
+    # Get the mode
+    mode = argv[0]
+
+    if mode == 'create':
+        return cmdCreate(argv)
+    elif mode == "diff":
+        return cmdDiff(argv)
+    else:
+        return usage()
+
 if __name__ == '__main__':
+
+    if len(argv) < 2:
+        exit(usage())
+    else:
         exit(main(argv))

@@ -19,8 +19,8 @@ from pydtf.dtfadb import DtfAdb
 from pydtf.dtfcore import (
         md5_local, apktool, TOP, baksmali, 
         axmlprinter2, launch_module)
+from pydtf.dtfglobals import DTF_PACKAGES
 from pydtf import dtfconfig
-from pydtf import dtfglobals
 from pydtf import dtflog as log
 
 import AppDb
@@ -80,16 +80,21 @@ def usage():
     print "SysAppDb dtf Module Version %s" % __VERSION__
     print ""
     print "Submodules:"
-    print "    diff         Diff an AOSP application(s)."
     print "    exposed      Print all exposed components of application(s)."
     print "    oatextract   Extract DEX from OAT files."
     print "    process      Populate the sysapp database."
-    print "    pull      Pull system applications from the device."
+    print "    pull         Pull system applications from the device."
     print "    unpack       Unpack system applications."
     print "    update       Update the system app databases."
     print ""
     exit(0)
 
+# Lookup the property associated with AOSP Databases
+def getAospDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/sysapps.db"
+    except:
+        return None
 
 # Zip Stuff
 def fileInZip(zip_file, file_name):
@@ -314,10 +319,12 @@ class PullThread(threading.Thread):
 
             # Don't even worry about ODEX under 2.2
             sdk_version = dtfconfig.get_prop("Info", "sdk")
-            if sdk_version > 7:
+            vm_type = dtfconfig.get_prop("Info", "vmtype")
+
+            if int(sdk_version) > 7:
 
                 # Lollipop moved stuff around.
-                if sdk_version > 20:
+                if vm_type == "ART":
                     #TODO : store the arch type
                     odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
                 else:
@@ -402,7 +409,7 @@ def unpackResources(app, unpack_path, report_mode):
     apk_file = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
 
     # First attempt, using the fwres we have locally.
-    log.i(TAG, "Attempting to decode APK using device framework resources.")
+    log.d(TAG, "Attempting to decode APK using device framework resources.")
 
     out, err, rtn = apktool("decode --no-src --force --frame-path %s --frame-tag %s --output %s %s" %
                         (fwres_dir, serial, unpack_path, apk_file))
@@ -570,12 +577,15 @@ def unpackApp(app, appdb, unpack_path, report_mode=False):
 
     rtn = 0
 
+    log.i(TAG, "Unpacking app '%s' to %s" % (app.project_name, unpack_path))
+
     mkdir(unpack_path)
 
     # First lets unpack most of the APK.
     rtn = unpackResources(app, unpack_path, report_mode)
     log.d(TAG, "Resource unpacking rtn : %i" % rtn)
 
+    # Next do the classes
     rtn = unpackClasses(app, unpack_path, report_mode)
     log.d(TAG, "Class unpacking rtn : %i" % rtn)
 
@@ -651,7 +661,7 @@ def parsePermissions(appdb, application_id, manifest_path):
 
 
         if protection_level == "None":
-            log.w(TAG, "This permission doesnt have a protection...hmmmm...")
+            log.w(TAG, "Permission '%s' doesn't have a protection level" % name)
             protection_level = "normal"
 
         if protection_level[0:2] == "0x":
@@ -1040,7 +1050,7 @@ def parseDebuggable(appdb, application_id, manifest_path):
 def parseShared(appdb, application_id, libs_dir):
 
     if isdir(libs_dir):
-        log.i(TAG, "Libs dir exists, finding shared libs!")
+        log.d(TAG, "'libs/' dir exists, finding shared libs!")
 
         arm_files = []
         armv7a_files = []
@@ -1074,7 +1084,7 @@ def parseShared(appdb, application_id, libs_dir):
         appdb.commit()
 
     else:
-        log.v(TAG, "No libs for this package.")
+        log.d(TAG, "No libs for this package.")
         return
 
 # End Process Functionality
@@ -1465,7 +1475,7 @@ def cmdPull(args):
             log.d(TAG, "skipping \'%s\' due to blacklist." % project_name)
             continue
         else:
-            log.i(TAG, "Appending project \'%s\' to list." % project_name)
+            log.d(TAG, "Appending project \'%s\' to list." % project_name)
             apps.append((package_name, project_name))
 
     # Create the database
@@ -1555,13 +1565,22 @@ def cmdUnpack(args):
 
     #Normal mode
     else:
+        # First check if we no arg is set
         if args.aosp_db == None:
-            aosp_db = AOSP_DB
-            
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
+
+            prop_aosp_db = getAospDirProp()
+            if prop_aosp_db != None:
+                aosp_db = prop_aosp_db
+                if not isfile(aosp_db):
+                    print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                    return -3
+            else:
+                aosp_db = AOSP_DB
+
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                    return -2
         else:
             aosp_db = args.aosp_db
             if not isfile(aosp_db):
@@ -1572,9 +1591,6 @@ def cmdUnpack(args):
 
         mkdir(DECODED_AOSP_DIR)
         mkdir(DECODED_OEM_DIR)
-
-        sdk = dtfconfig.get_prop("Info", "sdk")
-        dtf_packages = dtfglobals.DTF_PACKAGES
 
         aosp_appdb = AppDb.AppDb(aosp_db)
         aosp_apps = [ i.project_name for i in aosp_appdb.getApps() ]
@@ -1619,7 +1635,7 @@ def cmdProcess(args):
     appdb.createTables()
 
     # First pass just adds <permission-groups>
-    log.i(TAG, "Doing first pass...")
+    log.i(TAG, "Processing all '<permission-groups>'...")
 
     for app in appdb.getApps():
 
@@ -1627,9 +1643,7 @@ def cmdProcess(args):
         decoded_path = app.decoded_path
         project_id = app._id
 
-        log.i(TAG, "Doing project %s..." % (project_name))
-
-        print decoded_path
+        log.d(TAG, "Doing project %s..." % (project_name))
 
         if decoded_path == None:
             log.e(TAG, "No decoded path for '%s', this package was not decoded successfully. SKIPPING." % project_name)
@@ -1641,14 +1655,14 @@ def cmdProcess(args):
             log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
             continue
 
-        log.i(TAG, "Parsing <permission-group> tags for %s" % project_name)
+        log.d(TAG, "Parsing <permission-group> tags for %s" % project_name)
         parsePermissionGroups(appdb, project_id, manifest_path)
 
     ############################################################################
 
 
     # Second pass does <permissions>
-    log.i(TAG, "Doing second pass...")
+    log.i(TAG, "Processing all '<permissions>' tags...")
 
     for app in appdb.getApps():
 
@@ -1656,7 +1670,7 @@ def cmdProcess(args):
         decoded_path = app.decoded_path
         project_id = app._id
 
-        log.i(TAG, "Doing project %s..." % (project_name))
+        log.d(TAG, "Doing project %s..." % (project_name))
 
         if decoded_path == None:
             log.e(TAG, "No project path for \"%s\", this package was not decoded successfully. SKIPPING." % project_name)
@@ -1668,13 +1682,13 @@ def cmdProcess(args):
             log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
             continue
 
-        log.i(TAG, "Parsing <permission> tags for %s" % project_name)
+        log.d(TAG, "Parsing <permission> tags for %s" % project_name)
         parsePermissions(appdb, project_id, manifest_path)
 
     ############################################################################
 
     # Final pass does the components, <uses-permission>, shared libs
-    log.i(TAG, "Doing the final pass...")
+    log.i(TAG, "Processing components, '<uses-permission>', and shared libraries...")
 
     for app in appdb.getApps():
 
@@ -1682,7 +1696,7 @@ def cmdProcess(args):
         decoded_path = app.decoded_path
         project_id = app._id
 
-        log.i(TAG, "Doing project %s..." % (project_name))
+        log.d(TAG, "Doing project %s..." % (project_name))
 
         if decoded_path == None:
             log.e(TAG, "No project path for \"%s\", this package was not decoded successfully. SKIPPING." % project_name)
@@ -1694,26 +1708,26 @@ def cmdProcess(args):
             log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
             continue
 
-        log.i(TAG, "Parsing <uses-permission> tags for %s" % project_name)
+        log.d(TAG, "Parsing <uses-permission> tags for %s" % project_name)
         parseAppUsesPermissions(appdb, project_id, manifest_path)
 
-        log.i(TAG, "Looking for permission attribute for application %s..." % project_name)
+        log.d(TAG, "Looking for permission attribute for application %s..." % project_name)
         parseAppPermission(appdb, project_id, manifest_path)
 
-        log.i(TAG, "Parsing <activity> tags for %s" % project_name)
+        log.d(TAG, "Parsing <activity> tags for %s" % project_name)
         parseActivities(appdb, project_id, manifest_path)
 
-        log.i(TAG, "Parsing <service> tags for %s" % project_name)
+        log.d(TAG, "Parsing <service> tags for %s" % project_name)
         parseServices(appdb, project_id, manifest_path)
 
-        log.i(TAG, "Parsing <provider> tags for %s" % project_name)
+        log.d(TAG, "Parsing <provider> tags for %s" % project_name)
         parseProviders(appdb, project_id, manifest_path)
 
-        log.i(TAG, "Parsing <reciever> tags for %s" % project_name)
+        log.d(TAG, "Parsing <reciever> tags for %s" % project_name)
         parseReceivers(appdb, project_id, manifest_path)
 
         # Now look for the native code.
-        log.i(TAG, "Looking for shared libraries.")
+        log.d(TAG, "Looking for shared libraries.")
         libs_dir = decoded_path+"/lib/"
         parseShared(appdb, project_id, libs_dir)
 
@@ -1757,12 +1771,22 @@ def cmdExposed(args):
         print "You need to specify an application name (or --all)! Try -h for more information. Exiting."
         exit(-1)
 
+    # No argument provided.  First check if prop is set.
     if args.aosp_db == None:
-        aosp_db = AOSP_DB
-        # Make sure that the AOSP_DB actually exists.
-        if not AppDb.isAOSPDataInstalled():
-            print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-            return -2
+
+        prop_aosp_db = getAospDirProp()
+        if prop_aosp_db != None:
+            aosp_db = prop_aosp_db
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            aosp_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
     else:
         aosp_db = args.aosp_db
         if not isfile(aosp_db):
@@ -1819,9 +1843,8 @@ def main(argv):
     global AOSP_DB
 
     PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
-    AOSP_DB = ("%s/%s-%s/dbs/sysapps.db" %
-            (dtfglobals.DTF_PACKAGES, AppDb.AOSP_PACKAGE_PREFIX, 
-             dtfconfig.get_prop("Info", "sdk")))
+    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
+                                               dtfconfig.get_prop("Info", "sdk"))
 
     # We can pop the program name off
     argv.pop(0)

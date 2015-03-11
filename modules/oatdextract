@@ -20,7 +20,7 @@ import struct
 from argparse import ArgumentParser
 from os import mkdir
 from os.path import isdir
-from sys import argv
+from sys import argv, stderr, exit
 
 from elftools.common.exceptions import ELFError
 from elftools.common.py3compat import  bytes2str
@@ -304,8 +304,8 @@ def processOat(args):
 
         except ELFError as ex:
             # TODO
-            sys.stderr.write('ELF error: %s\n' % ex)
-            sys.exit(1)
+            stderr.write('ELF error: %s\n' % ex)
+            exit(1)
 
 def cmdProcess(args):
 

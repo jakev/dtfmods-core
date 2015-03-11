@@ -116,13 +116,30 @@ exposed_only=0
 # We will eventually have a list of users for a SDK level.
 privileged_users=(root compass media bluetooth vpn system camera wifi input radio audio adb drm graphics mtp usb mount)
 
+# TODO: temp fix until python version is created.
+if [ "$1" = "--aosp-db" ]; then
+    AOSP_DB_NAME=$2
+
+# No argument, check for prop.
+else
+    aosp_prop_db=$(dtf prop get Local aosp-data-dir)
+    if [ "${aosp_prop_db}" = "" ]; then
+        AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/dev.db
+    else
+        AOSP_DB_NAME=${aosp_prop_db}/dev.db
+    fi
+fi
+
+# Check if DB exists
+if [ ! -f "${AOSP_DB_NAME}" ]; then
+    echo "[ERROR] Unable to find framework database '${AOSP_DB_NAME}.' Exiting."
+    exit -4
+fi
+
 LOCAL_DB_NAME=${db_dir}/dev.db
-AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/dev.db
 
 if [ "$1" == "--exposed" ]; then
-
     exposed_only=1
-
 fi
 
 diff 0 "Block"

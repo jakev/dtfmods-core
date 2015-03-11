@@ -697,9 +697,14 @@ class AppDb(object):
 
         rtn = c.execute(sql)
         try:
+
+            fetched = c.fetchone()
+            if fetched == None:
+                return None
+
             (id, package_name, project_name, decoded_path, has_native, min_sdk_version, 
              target_sdk_version, version_name, version_code, permission_id, debuggable,
-             successfully_unpacked) = c.fetchone()
+             successfully_unpacked) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -710,16 +715,11 @@ class AppDb(object):
                                          has_native, min_sdk_version, target_sdk_version,
                                          version_name, version_code, permission,
                                          debuggable, id)
-        # TODO the fuck is this?
-        except IOError:
-            pass
-        #except TypeError:
+        except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
 
     def getAppByName(self, name):
-
-        print name
 
         sql = ('SELECT * '
                'FROM apps '
@@ -731,9 +731,14 @@ class AppDb(object):
 
         rtn = c.execute(sql)
         try:
+
+            fetched = c.fetchone()
+            if fetched == None:
+                return None
+
             (id, package_name, project_name, decoded_path, has_native, min_sdk_version,
              target_sdk_version, version_name, version_code, permission_id, debuggable,
-             successfully_unpacked) = c.fetchone()
+             successfully_unpacked) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -744,10 +749,7 @@ class AppDb(object):
                                          has_native, min_sdk_version, target_sdk_version,
                                          version_name, version_code, permission,
                                          debuggable, id)
-        # TODO the fuck is this?
-        except IOError:
-            pass
-        #except TypeError:
+        except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
 

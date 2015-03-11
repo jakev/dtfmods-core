@@ -26,6 +26,8 @@ from pydtf.dtfcore import launch_module
 from os.path import isfile
 from sys import argv, exit
 
+import AppDb
+
 __VERSION__ = "1.0"
 
 # dtf Python Module declaration
@@ -43,6 +45,12 @@ AOSP_DB = ''
                                    
 TAG="sysservicedb"
 
+# Lookup the property associated with AOSP Databases
+def getAospDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/services.db"
+    except:
+        return None
 
 def usage():
     print "ServiceDb dtf Module Version %s" % __VERSION__
@@ -60,6 +68,7 @@ def dropTables(con):
     log.d(TAG, "Dropping tables...")
 
     with con:
+
         cur = con.cursor()
         cur.execute('DROP TABLE IF EXISTS services')
         cur.execute('DROP TABLE IF EXISTS transactions')
@@ -150,6 +159,8 @@ def parse_transactions(con):
 
                     binder_list.append( (binder_number, binder_interface) )
 
+            log.d(TAG, "Found %d transactions" % len(binder_list))
+
             # Now lets do the Stub.Proxy.smali
             proxy_f = open(proxy_file_path, "r")
             data = proxy_f.read()
@@ -191,7 +202,7 @@ def parse_transactions(con):
     con.commit()
 
 # Diffing Stuff
-def diffService(project_con, diff_con, service_name):
+def diffService(project_con, diff_con, service_name, name_only=False):
 
     log.d(TAG, "Diffing service '%s'" % service_name)
 
@@ -216,13 +227,17 @@ def diffService(project_con, diff_con, service_name):
         # New service
         if d_row == []:
             print "Service %s (%s) [NEW]" % (service_name, project_name)
-            return dumpBinder(project_con, service_id)
-
+            if not name_only:
+                return dumpBinder(project_con, service_id)
+            else:
+                return 0
         # Old, potentially modified
         else:
             print "Service %s (%s)" % (service_name, project_name)
-            return diffTransactions(project_con, diff_con, service_name)
-
+            if not name_only:
+                return diffTransactions(project_con, diff_con, service_name)
+            else:
+                return 0
 def diffTransactions(project_con, diff_con, service_name):
 
     sql = ('SELECT t.number,t.method_name,t.arguments,t.returns '
@@ -347,6 +362,8 @@ def cmdDiff(args):
                         help='Run against all system services.')
     parser.add_argument('--diff-db', metavar="diff_db", type=str, nargs='?', default=None,
                         help='Diff against a custom services.db (override the AOSP db).')
+    parser.add_argument('--name-only', dest='name_only', action='store_const', const=True, default=False,
+                        help='Print just the name of the service (and if it is new).')
 
     args = parser.parse_args()
 
@@ -356,16 +373,25 @@ def cmdDiff(args):
         print "[ERROR] A service name is required (or --all)"
         return -1
 
+    # Check if a argument is provided.
     if args.diff_db == None:
-        diff_db = AOSP_DB
+        prop_aosp_db = getAospDirProp()
+        if prop_aosp_db != None:
+            diff_db = prop_aosp_db
+            if not isfile(diff_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            diff_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
     else:
         diff_db = args.diff_db
+
     log.d(TAG, "Using diff db of '%s'" % diff_db)
-
-
-    if not isfile(diff_db):
-        print "[ERROR] Database '%s' not found. Exiting" % diff_db
-        return -2
 
     if not isfile(PROJECT_DB):
         print "[ERROR] Project services database does not exist. Exiting."
@@ -386,7 +412,7 @@ def cmdDiff(args):
             rtn = 0
             for row in rows:
                 service_name = row[0]
-                rtn |= diffService(project_con, diff_con, service_name)       
+                rtn |= diffService(project_con, diff_con, service_name, name_only=args.name_only)
             return rtn 
 
     # Do a single service diff

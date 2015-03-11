@@ -60,8 +60,6 @@ do
         echo -n "[WARNING] There is already a resource with this ID isntalled.  Continue? [y/N] "
         read input
 
-        echo $input
-
         if [ "$input" != "y" ] && [ "$input" != "Y" ]; then
             log_w "Skipping installation of \"${res}\""
             continue

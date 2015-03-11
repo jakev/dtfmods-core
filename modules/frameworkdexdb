@@ -41,6 +41,15 @@ log.LOG_LEVEL_STDOUT = 5
                                    
 TAG="frameworkdexdb"
 
+def usage():
+    print "FrameworkDexDb dtf Module Version %s" % __VERSION__
+    print ""
+    print "Submodules:"
+    print "    create       Create DEX db for AOSP framework(s)."
+    print "    diff         Diff the DEX for AOSP framework(s)."
+    print ""
+    exit(0)
+
 class FrameworkDexDb():
 
     def __init__(self):
@@ -49,11 +58,16 @@ class FrameworkDexDb():
                         dtfconfig.get_prop("Local", "db-dir") + "/frameworks.db")
         self.sdk = dtfconfig.get_prop("Info", "sdk")
         self.framework_dir =  dtfconfig.get_prop("Local", "framework-dir")
-        self.fwdex_dir = dtfconfig.get_prop("Local", "db-dir") + "/frameworkdexdbs"
+        self.fwdex_dir = ("%s/frameworkdexdbs" %
+                                    dtfconfig.get_prop("Local", "db-dir"))
 
     def processFramework(self, in_file, out_file):
  
-        out, err, rtn = launch_binary("dexdumpsql.jar", "%s %s %s" % (in_file, out_file, self.sdk), launcher="java -jar")
+        if not isfile(in_file):
+            print "[ERROR] framework file '%s' does not exist." % in_file
+            return -1
+
+        out, err, rtn = launch_binary("dexdumpsql.jar", "-i %s -o %s -a %s" % (in_file, out_file, self.sdk), launcher="java -jar")
         log.d(TAG, "Processing completed : %d" % rtn)
         return rtn
 
@@ -107,11 +121,11 @@ class FrameworkDexDb():
             cur.execute(sql)
             return [ i[0] for i in cur.fetchall() ]
 
-def main(args):
+def cmdCreate(args):
 
-    parser = ArgumentParser(prog='frameworkdexdb',
-                            description='Create dexdb for a framework file or all frameworks.')
-    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='?', default=None,
+    parser = ArgumentParser(prog='frameworkdexdb create',
+                    description='Create dexdb for a framework file or all frameworks.')
+    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='*', default=None,
                         help='Process a single framework file.')
     parser.add_argument('--all-aosp', dest='aosp_mode', action='store_const', const=True,
                         default=False, help='Convert all AOSP framework files.')
@@ -132,13 +146,34 @@ def main(args):
         return fwdexdb.processFrameworks( fwdexdb.getAllAospFrameworks() )
     # Single
     elif args.framework_name != None:
-        framework_jar = "%s.jar" % args.framework_name
-        log.i(TAG, "Doing single framework '%s'" % args.framework_name)
-        return fwdexdb.processFrameworks( [framework_jar] )
+        
+        framework_jars = map(lambda x: "%s.jar" % x, args.framework_name)
+
+        return fwdexdb.processFrameworks( framework_jars )
     # ERROR
     else:
         print "[ERROR] You must supply a framework name or --all/--all-aosp."
         return -1
 
+def main(argv):
+
+    # We can pop the program name off
+    argv.pop(0)
+
+    # Get the mode
+    mode = argv[0]
+
+    if mode == 'create':
+        return cmdCreate(argv)
+    elif mode == "diff":
+        return cmdDiff(argv)
+    else:
+        return usage()
+
 if __name__ == '__main__':
+
+    if len(argv) < 2:
+        exit(usage())
+    else:
         exit(main(argv))
+
