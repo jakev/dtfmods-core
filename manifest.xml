@@ -82,6 +82,15 @@
           localName="modules/drozer" />
 
     <Item type="module"
+          name="findimp"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Attempt to find the implementation of a system service."
+          localName="modules/findimp" />
+
+    <Item type="module"
           name="framework2jar"
           majorVersion="1"
           minorVersion="1"

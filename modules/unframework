@@ -24,6 +24,9 @@
 
 cd $TOP
 
+# XZ is required.
+command -v xz > /dev/null 2>&1 || { echo >&2 "[ERROR] Unable to find 'xz', is it installed? Aborting."; exit 1; }
+
 framework_dir=$(dtf prop get Local framework-dir)
 sdk=$(dtf prop get Info sdk)
 vmtype=$(dtf prop get Info vmtype)
@@ -96,17 +99,42 @@ for fwjar in `ls ${framework_dir}/*.jar`; do
 done
 
 # Lollipop uses ART
-if [ "$vmtype" = "ART" ]; then
+if [[ "$vmtype" == "ART"* ]]; then
     # First we can extract from each JAR ODEX
 
     log_i "Extracting ODEX from each JAR file.."
+    args=""
 
-    for oatelf in `ls ${framework_dir}/arm/*.odex`; do
+    # Check for Samsung ODEX
+    if [ "$vmtype" = "ART-Samsung" ]; then
+        args="--samsung-mode"
+    fi
+
+    # Confirm CPU bitness
+    cpu_bits=$(dtf prop get Info cpu-bits)
+
+    if [ "$cpu_bits" = "32" ]; then
+        arm_dir=arm
+    elif [ "$cpu_bits" = "64" ]; then
+        arm_dir=arm64
+    else
+        echo "[ERROR] Unable to determine CPU type from config."
+        exit -2
+    fi
+
+    # We need to check for both .odex and .odex.xz.
+    log_i "Looking for XZ compressed ODEX files..."
+    for xz_oatelf in `ls ${framework_dir}/${arm_dir}/*.odex.xz 2>/dev/null`; do
+        xz -d "$xz_oatelf"
+    done
+
+    log_i "Doing DEX extraction from ART ELF files..."
+    for oatelf in `ls ${framework_dir}/${arm_dir}/*.odex`; do
         tmp=${oatelf%.*}
         fwname=${tmp##*/}
 
         # Extract each DEX
-        dtf oatdextract --out-dir ${unframework_dir}/${fwname} $oatelf
+        dtf oatdextract ${args} --out-dir ${unframework_dir}/${fwname} $oatelf
         cp ${unframework_dir}/${fwname}/${fwname}.odex ${framework_dir}/              
         # baksmali
         dtf_baksmali -a ${sdk} -o ${unframework_dir}/${fwname}/ ${unframework_dir}/${fwname}/${fwname}.odex
@@ -116,7 +144,7 @@ if [ "$vmtype" = "ART" ]; then
 
     log_i "Extracting the remaining ODEX from boot.oat"
     tmp_dir=$(mktemp -d)
-    dtf oatdextract --out-dir ${tmp_dir} ${framework_dir}/arm/boot.oat
+    dtf oatdextract ${args} --out-dir ${tmp_dir} ${framework_dir}/arm/boot.oat
 
     for odex in `ls $tmp_dir`; do
         tmp=${odex%.*}                                                        

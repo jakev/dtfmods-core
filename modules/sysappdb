@@ -166,6 +166,16 @@ def dropTables(con):
 
     return 1
 
+# XZ Compression
+def decompressXZ(file_name):
+
+        cmd = ("xz -d %s" % file_name).split(' ')
+
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
+        p.wait()
+
+        return p.returncode
+# End XZ Compression
 
 # TODO: move to AppDb
 def createTables(con):
@@ -317,36 +327,73 @@ class PullThread(threading.Thread):
                 if md5_before != md5_after:
                     log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
 
-            # Don't even worry about ODEX under 2.2
+            # ODEX Section ######################################################
             sdk_version = dtfconfig.get_prop("Info", "sdk")
             vm_type = dtfconfig.get_prop("Info", "vmtype")
 
+            # Don't even worry about ODEX under 2.2
             if int(sdk_version) > 7:
 
                 # Lollipop moved stuff around.
-                if vm_type == "ART":
-                    #TODO : store the arch type
-                    odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
+                if vm_type[:3] == "ART":
+                    # New phones are using 64-bits. That means that files *may* be
+                    # in the arm/ OR arm64/ directory if 64-bit is used.  If the
+                    # phone is using 32-bit, its going to be arm/.
+                    cpu_bits = dtfconfig.get_prop("Info", "cpu-bits")
+
+                    if cpu_bits == "32":
+                        # Sometimes the ODEXs are XZ compressed. Annoying.
+                        xz_odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex.xz", package_name)
+                        odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
+
+                        if self.adb.is_file(xz_odex_name):
+                            log.d(TAG, "XZ ODEX exists.")
+                            self.pullXzOdex(xz_odex_name, project_name)
+                        elif self.adb.is_file(odex_name):
+                            log.d(TAG, "Regular ART ODEX exists.")
+                            self.pullOdex(odex_name, project_name)
+                        else:
+                            log.w(TAG, "No ODEX for ART found.")
+
+                    # 64-bit
+                    else:
+                        # We'll check the arm64/ directory first, then arm/.  For
+                        # For each of these checks, we'll have to also account
+                        # for the possibility of there being a XZ or not.
+                        xz_odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex.xz", package_name)
+                        odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
+                        xz_odex_name_64 = re.sub("\/([^\/]*)\.apk$", "/arm64/\\1.odex.xz", package_name)
+                        odex_name_64 = re.sub("\/([^\/]*)\.apk$", "/arm64/\\1.odex", package_name)
+
+                        if self.adb.is_file(xz_odex_name):
+                            log.d(TAG, "XZ ART ODEX exists.")
+                            self.pullXzOdex(xz_odex_name, project_name)
+
+                        elif self.adb.is_file(odex_name):
+                            log.d(TAG, "Regular ART ODEX exists.")
+                            self.pullOdex(odex_name, project_name)
+
+                        elif self.adb.is_file(xz_odex_name_64):
+                            log.d(TAG, "XZ ART 64-bit ODEX exists.")
+                            self.pullOdex(xz_odex_name_64, project_name)
+
+                        elif self.adb.is_file(odex_name_64):
+                            log.d(TAG, "Regular ART 64-bit ODEX exists.")
+                            self.pullOdex(odex_name_64, project_name)
+
+                        else:
+                            log.w(TAG, "No ODEX for ART found.")
+
+                # Not Lollipop
                 else:
                     odex_name = re.sub("\.apk$", '.odex', package_name)
 
-                if self.adb.is_file(odex_name):
-                    log.i(TAG, "%s Getting ODEX file for \'%s\'" % (self.logString(), project_name))
+                    if self.adb.is_file(odex_name):
+                        log.d(TAG, "Regular Dalvik ODEX exists.")
 
-                    if not self.no_md5:
-                        self.adb.busybox("md5sum %s" % odex_name)
-                        md5_before = self.adb.get_output()[0].split(' ')[0]
-
-                    local_odex_name = "%s/%s.odex" % (SYSTEM_APPS_DIR, project_name)
-                    self.adb.pull(odex_name, local=local_odex_name)
-
-                    if not self.no_md5:
-                        md5_after = md5_local(local_odex_name)
-                        if md5_before != md5_after:
-                            log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
-                else:
-                    log.w(TAG, "%s ODEX file for \'%s\' not found. Skipping." % 
-                            (self.logString(), project_name))
+                        self.pullOdex(odex_name, project_name)
+                    else:
+                        log.w(TAG, "No ODEX found.")
             # End ODEX
 
             apk_data = (package_name, project_name, local_apk_name)
@@ -354,6 +401,40 @@ class PullThread(threading.Thread):
             # Tell our DbThread that there is another app ready
             self.db_queue.put(apk_data)
             self.pull_queue.task_done()
+
+    def pullOdex(self, odex_name, project_name):
+
+        if not self.no_md5:
+            self.adb.busybox("md5sum %s" % odex_name)
+            md5_before = self.adb.get_output()[0].split(' ')[0]
+
+        local_odex_name = "%s/%s.odex" % (SYSTEM_APPS_DIR, project_name)
+        self.adb.pull(odex_name, local=local_odex_name)
+
+        if not self.no_md5:
+            md5_after = md5_local(local_odex_name)
+            if md5_before != md5_after:
+                log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
+
+    def pullXzOdex(self, odex_name, project_name):
+
+        if not self.no_md5:
+            self.adb.busybox("md5sum %s" % odex_name)
+            md5_before = self.adb.get_output()[0].split(' ')[0]
+
+        local_odex_name = "%s/%s.odex.xz" % (SYSTEM_APPS_DIR, project_name)
+        self.adb.pull(odex_name, local=local_odex_name)
+
+        if not self.no_md5:
+            md5_after = md5_local(local_odex_name)
+            if md5_before != md5_after:
+                log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
+
+        # Now decompress with XZ
+        rtn = decompressXZ(local_odex_name)
+        if rtn != 0:
+            log.e(TAG, "Error decompressing XZ archive '%s'" %
+                                    (local_odex_name))
 
     def logString(self):
         return "[PullThread tid=%s]" % self.tid
@@ -1386,7 +1467,7 @@ def cmdOatExtract(args):
     args = parser.parse_args()
 
     vm_type = dtfconfig.get_prop("Info", "vmtype")
-    if not vm_type == "ART":
+    if not vm_type[:3] == "ART":
         print "[ERROR] This is not a ART device, this step is not required."
         return -1
 
@@ -1402,18 +1483,29 @@ def cmdOatExtract(args):
 
         project_name = app.project_name
 
+        log.i(TAG, "Doing project '%s'..." % project_name)
+
         odex_name = "%s/%s.odex" % (system_apps_dir, project_name)
 
         if isfile(odex_name) and getFileType(odex_name) == TYPE_ELF:
-            print "Found an ART ELF"
             art_name = "%s/%s.art" % (system_apps_dir, project_name)
-            log.i(TAG, "Moving ODEX to ART...")
+            log.d(TAG, "Moving ODEX to ART...")
             move(odex_name, art_name)
 
-            log.i(TAG, "Extracting DEX from ART file...")
-            our, err, rtn = launch_module("oatdextract","--base-name %s --out-dir %s %s" %
-                                            (project_name, system_apps_dir, art_name))
+            log.d(TAG, "Extracting DEX from ART file...")
+
+            oat_cmd = ""
+            if vm_type == "ART-Samsung":
+                log.d(TAG, "Samsung mode enabled")
+                oat_cmd += "--samsung-mode "
+
+            oat_cmd += ("--base-name %s --out-dir %s %s" %
+                                  (project_name, system_apps_dir, art_name))
+
+            out, err, rtn = launch_module("oatdextract", oat_cmd)
+
             if rtn != 0:
+                print out
                 log.e(TAG, "Error extracting DEX from OAT file: %d" % rtn)
             
 def cmdPull(args):
@@ -1470,7 +1562,14 @@ def cmdPull(args):
     for line in adb.get_output():
         if line == "": continue
         line = line.replace("package:",'')
-        package_name, project_name = line.split('=')
+
+        try:
+            package_name, project_name = line.split('=')
+        except ValueError:
+            # Something is wrong with this line.
+            log.w(TAG, "Malformed line: '%s'. Skipping!" % line)
+            continue
+
         if project_name in blacklist:
             log.d(TAG, "skipping \'%s\' due to blacklist." % project_name)
             continue

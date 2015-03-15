@@ -43,6 +43,7 @@ dtf_module = { "About" : "Extract DEX files from an OAT file.",
 
 OAT_DATA_SYMBOL = "oatdata"
 P_TYPE_PHDR = "PHDR"
+MAX_FILE_LOCATION_DATA = 256
 
 #log.LOG_LEVEL_STDOUT=5
 
@@ -174,6 +175,11 @@ class OatElf(object):
                                             dex_file_location_size)
         off += dex_file_location_size
 
+        # Check to make sure we're starting on the correct offset.
+        if len(dex_file_location_data) > MAX_FILE_LOCATION_DATA:
+            log.e(TAG, "Unusually large location name detected, Stopping! Is this a Samsung ART file?")
+            return -1
+
         log.d(TAG, "Dex file location string : %s" % dex_file_location_data)
 
         dex_file_location_checksum = readUInt32(self.file, off)
@@ -300,6 +306,9 @@ def processOat(args):
             i = 0
             while i < dex_file_count:
                 start = oatfile.carve_dex_header(oat_header_start, start)
+                if start == -1:
+                    log.i(TAG, "DEX carving aborted.")
+                    exit(-1)
                 i+=1
 
         except ELFError as ex:
