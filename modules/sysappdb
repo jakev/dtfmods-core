@@ -758,6 +758,25 @@ def parsePermissions(appdb, application_id, manifest_path):
 
     appdb.commit()
 
+def parseProtectedBroadcasts(appdb, application_id, manifest_path):
+
+    manifest_f = open(manifest_path)
+
+    try:
+        root = etree.XML(manifest_f.read())
+    except etree.XMLSyntaxError:
+        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
+        return -4
+
+    for pb in root.findall(".//protected-broadcast"):
+        name = getAttrib(pb, "name")
+
+        if (appdb.addProtectedBroadcast(name, application_id)):
+            log.d(TAG, "Protected broadcast added!")
+        else:
+            log.e(TAG, "Error adding protected broadcast")
+
+    appdb.commit()
 
 def parseActivities(appdb, application_id, manifest_path):
 
@@ -1533,7 +1552,7 @@ def cmdPull(args):
     blacklist = list()
 
     if isfile(PROJECT_DB):
-        inpt = raw_input("[WARNING] A system application datebase already exists.  "
+        inpt = raw_input("[WARNING] A system application database already exists.  "
                          "Do you want to recreate the DB? [y/N] ").lower()
         if inpt != 'y':
             print "Exiting."
@@ -1733,8 +1752,8 @@ def cmdProcess(args):
     # Create new ones!
     appdb.createTables()
 
-    # First pass just adds <permission-groups>
-    log.i(TAG, "Processing all '<permission-groups>'...")
+    # First pass adds <permission-groups>, <protected-broadcasts>
+    log.i(TAG, "Processing '<permission-groups>' and '<protected-broadcasts>...")
 
     for app in appdb.getApps():
 
@@ -1757,6 +1776,8 @@ def cmdProcess(args):
         log.d(TAG, "Parsing <permission-group> tags for %s" % project_name)
         parsePermissionGroups(appdb, project_id, manifest_path)
 
+        log.d(TAG, "Parsing <protected-broadcast> tags for %s" % project_name)
+        parseProtectedBroadcasts(appdb, project_id, manifest_path)
     ############################################################################
 
 

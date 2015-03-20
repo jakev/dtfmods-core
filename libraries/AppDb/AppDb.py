@@ -305,35 +305,39 @@ class AppDb(object):
     def createTables(self):
 
         if (not self.createPermissionsTable()):
-            log.e(_TAG, "failed to create Permissions Table!")
+            log.e(_TAG, "failed to create permissions table!")
             return -1
 
         if (not self.createPermissionGroupsTable()):
-            log.e(_TAG, "failed to create Permission Groups Table!")
+            log.e(_TAG, "failed to create permission Groups table!")
             return -1
 
         if (not self.createActivitiesTable()):
-            log.e(_TAG, "failed to create Activities Table!")
+            log.e(_TAG, "failed to create activities table!")
             return -1
 
         if (not self.createServicesTable()):
-            log.e(_TAG, "failed to create Services Table!")
+            log.e(_TAG, "failed to create services table!")
             return -1
 
         if (not self.createProvidersTable()):
-            log.e(_TAG, "failed to create Providers Table!")
+            log.e(_TAG, "failed to create providers table!")
             return -1
 
         if (not self.createReceiversTable()):
-            log.e(_TAG, "failed to create Receivers Table!")
+            log.e(_TAG, "failed to create receivers table!")
             return -1
 
         if (not self.createAppUsesPermissionsTable()):
-            log.e(_TAG, "failed to create App Uses Permissions Table!")
+            log.e(_TAG, "failed to create app uses permissions table!")
             return -1
  
         if (not self.createSharedLibrariesTable()):
-            log.e(_TAG, "failed to create Shared libraries Table!")
+            log.e(_TAG, "failed to create Shared libraries table!")
+            return -1
+
+        if (not self.createProtectedBroadcastsTable()):
+            log.e(_TAG, "failed to create protected broadcasts table!")
             return -1
 
         return 0
@@ -471,6 +475,18 @@ class AppDb(object):
                ')')
 
         return self.app_db.execute(sql)
+
+    def createProtectedBroadcastsTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS protected_broadcasts'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'name TEXT NOT NULL,'
+               'application_id INTEGER,'
+               'FOREIGN KEY(application_id) REFERENCES apps(id)'
+               ')')
+
+        return self.app_db.execute(sql)
     # End Table Creation
 
 #### Table Deletion Methods ############################
@@ -486,6 +502,7 @@ class AppDb(object):
         self.app_db.execute('''DROP TABLE IF EXISTS activities''')
         self.app_db.execute('''DROP TABLE IF EXISTS permission_groups''')
         self.app_db.execute('''DROP TABLE IF EXISTS permissions''')
+        self.app_db.execute('''DROP TABLE IF EXISTS protected_broadcasts''')
 
     # End Table Deletion
 
@@ -640,6 +657,13 @@ class AppDb(object):
         
         sql = ( 'INSERT INTO shared_libraries(name, application_id)'
             "VALUES( '%s',%i)" % (name, application_id))
+
+        return self.app_db.execute(sql)
+
+    def addProtectedBroadcast(self, name, application_id):
+
+        sql = ('INSERT INTO protected_broadcasts(name, application_id) '
+               "VALUES ('%s', %i)"  % (name, application_id))
 
         return self.app_db.execute(sql)
 
@@ -1068,6 +1092,20 @@ class AppDb(object):
                                             application_id, id=_id) )
 
         return receiver_list
+
+    def isProtectedAction(self, name):
+
+        c = self.app_db.cursor()
+
+        sql = ('SELECT * FROM protected_broadcasts '
+               "WHERE name='%s'" % name)
+
+        c.execute(sql)
+
+        if c.fetchone() == None:
+            return False
+        else:
+            return True
 
 ########### Update Methods ########################
     def updateApplication(self, a):
