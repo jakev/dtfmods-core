@@ -19,6 +19,10 @@
 #@Health: working
 #@Version: 1.1
 
+. dtf_core.sh
+
+cd $TOP
+
 permission=$1
 
-sqlite3 .dbs/sysapps.db "select permissions.id,permissions.name, permissions.protection_level, apps.project_name, apps.package_name from permissions join apps on permissions.application_id=apps.id" |grep "$permission"
+sqlite3 -separator '|' .dbs/sysapps.db "select permissions.id,permissions.name, permissions.protection_level, apps.project_name, apps.package_name from permissions join apps on permissions.application_id=apps.id" |grep "$permission"

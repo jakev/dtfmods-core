@@ -32,12 +32,18 @@ do_framework()
     dtf_smali -o ${dex_full_path} -a ${sdk} ${unframework_dir}/${fw}/ >/dev/null 2>&1
 
     rtn=$?
-    log_d "Smali out : $rtn"
+    if [ "$rtn" != "0" ]; then
+        log_e "Error smali'ing framework! rtn = ${rtn}"
+        exit -1
+    fi
 
     dtf_dex2jar -o ${java_framework_dir}/${fw}.jar ${dex_full_path} >/dev/null 2>&1
 
     rtn=$?
-    log_d "Dex2Jar out : $rtn"
+    if [ "$rtn" != "0" ]; then
+        log_e "Error using dex2jar on framework DEX! rtn = ${rtn}"
+        exit -2
+    fi
 
     # Clean up.
     rm ${dex_full_path}

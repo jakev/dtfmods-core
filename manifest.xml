@@ -237,7 +237,7 @@
     <Item type="module"
           name="permissions"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="working"
           author="Jake Valletta (jakev)"
           about="Simple permision printer."

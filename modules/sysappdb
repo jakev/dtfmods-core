@@ -58,7 +58,9 @@ AOSP_DB = ""
 
 # Additional logging settings. Uncomment for more debug.
 TAG = "sysappdb"
-log.LOG_LEVEL_STDOUT = 5
+
+# Debug
+#log.LOG_LEVEL_STDOUT = 5
 
 SYSTEM_APPS_DIR = "system-apps"
 DECODED_AOSP_DIR = "decoded-aosp"
@@ -797,10 +799,9 @@ def parseActivities(appdb, application_id, manifest_path):
 
         log.d(TAG, "Adding <activity> : %s" % (name))
 
-        intent_filter_data = ""
-
-        for intent_filter in a.findall(".//intent-filter"):
-            intent_filter_data += etree.tostring(intent_filter)
+        intent_filters = AppDb.parseIntentFiltersFromXML(a)
+        if len(intent_filters) == 0:
+            intent_filters = None
 
         if enabled == None:
             pass
@@ -831,13 +832,23 @@ def parseActivities(appdb, application_id, manifest_path):
             if permission is None:
                 log.w(TAG, "[addActivity] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
 
-        activity = AppDb.Activity(name, enabled, exported, permission, intent_filter_data,
+        activity = AppDb.Activity(name, enabled, exported, permission,
                                   application_id)
 
+        # Add the activity.
         if (appdb.addActivity(activity)):
             log.d(TAG, "Activity added!")
         else:
             log.e(TAG, "Error adding activity!")
+
+        # Now we need to get the ID of the activity we just added,
+        # and add the intent_filters.
+        _id = appdb._getLastId("activities")
+
+        # Add the intent filter data.
+        if intent_filters != None:
+            for intent_filter in intent_filters:
+                appdb.addActivityIntentFilter(intent_filter, _id)
 
     appdb.commit()
 
@@ -860,10 +871,9 @@ def parseServices(appdb, application_id, manifest_path):
 
         log.d(TAG, "Adding <service> : %s" % (name))
 
-        intent_filter_data = ""
-
-        for intent_filter in s.findall(".//intent-filter"):
-            intent_filter_data += etree.tostring(intent_filter)
+        intent_filters = AppDb.parseIntentFiltersFromXML(s)
+        if len(intent_filters) == 0:
+            intent_filters = None
 
         if enabled == None:
             pass
@@ -894,13 +904,23 @@ def parseServices(appdb, application_id, manifest_path):
             if permission is None:
                 log.w(TAG, "[addService] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
 
-        service = AppDb.Service(name, enabled, exported, permission, intent_filter_data,
+        service = AppDb.Service(name, enabled, exported, permission,
                                 application_id)
 
+        # Add the service.
         if (appdb.addService(service)):
             log.d(TAG, "Service added!")
         else:
             log.e(TAG, "Error adding service!")
+
+        # Now we need to get the ID of the activity we just added,
+        # and add the intent_filters.
+        _id = appdb._getLastId("services")
+
+        # Add the intent filter data.
+        if intent_filters != None:
+            for intent_filter in intent_filters:
+                appdb.addServiceIntentFilter(intent_filter, _id)
 
     appdb.commit()
 
@@ -1015,10 +1035,9 @@ def parseReceivers(appdb, application_id, manifest_path):
         exported = getAttrib(r, "exported", default=None)
         permission_name = getAttrib(r, "permission")
 
-        intent_filter_data = ""
-
-        for intent_filter in r.findall(".//intent-filter"):
-            intent_filter_data += etree.tostring(intent_filter)
+        intent_filters = AppDb.parseIntentFiltersFromXML(r)
+        if len(intent_filters) == 0:
+            intent_filters = None
 
         log.d(TAG, "Adding <receiver> : %s" % (name))
 
@@ -1051,13 +1070,23 @@ def parseReceivers(appdb, application_id, manifest_path):
             if permission is None:
                 log.w(TAG, "[addReceiver] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
 
-        receiver = AppDb.Receiver(name, enabled, exported, permission, intent_filter_data,
+        receiver = AppDb.Receiver(name, enabled, exported, permission,
                                   application_id)
 
+        # Add the receiver.
         if (appdb.addReceiver(receiver)):
             log.d(TAG, "Receiver added!")
         else:
             log.e(TAG, "Error adding receiver!")
+
+        # Now we need to get the ID of the activity we just added,
+        # and add the intent_filters.
+        _id = appdb._getLastId("receivers")
+
+        # Add the intent filter data.
+        if intent_filters != None:
+            for intent_filter in intent_filters:
+                appdb.addReceiverIntentFilter(intent_filter, _id)
 
     appdb.commit()
 
@@ -1190,26 +1219,23 @@ def parseShared(appdb, application_id, libs_dir):
 # End Process Functionality
 
 # Exposed Functionality
-def printActivity(activity):
+def printActivity(appdb, activity, intent_filters):
 
     print "   %s" % (activity.name)
     print "       Permission: %s" % str(activity.permission)
     print "       Enabled: %s" % str(activity.enabled)
     print "       Exported: %s" % str(activity.exported)
 
-    if len(activity.intent_data) != 0:
-        print "       Intent Data:"
-        print "       %s" % activity.intent_data
+    printIntentFilters(appdb, intent_filters)
 
-def printService(service):
+def printService(appdb, service, intent_filters):
 
     print "   %s" % (service.name)
     print "       Permission: %s" % str(service.permission)
     print "       Enabled: %s" % str(service.enabled)
     print "       Exported: %s" % str(service.exported)
-    if len(service.intent_data) != 0:
-        print "       Intent Data:"
-        print "       %s" % service.intent_data
+
+    printIntentFilters(appdb, intent_filters)
 
 def printProvider(provider):
 
@@ -1230,15 +1256,28 @@ def printProvider(provider):
         print "       Path Permissions:"
         print "       %s" % provider.path_permission_data
 
-def printReceiver(receiver):
+def printReceiver(appdb, receiver, intent_filters):
 
     print "   %s" % (receiver.name)
     print "       Permission: %s" % str(receiver.permission)
     print "       Enabled: %s" % str(receiver.enabled)
     print "       Exported: %s" % str(receiver.exported)
-    if len(receiver.intent_data) != 0:
-        print "       Intent Data:"
-        print "       %s" % receiver.intent_data
+
+    printIntentFilters(appdb, intent_filters)
+
+def printIntentFilters(appdb, intent_filters):
+
+    if len(intent_filters) != 0:
+        print "       Intent Filter Data:"
+        i = 0
+
+        for intent_filter in intent_filters:
+            print "         Filter #%i:" % i
+            for a in intent_filter.getActions():
+                print "           Action=%s %s" % (a, ("[PROTECTED]" if appdb.isProtectedAction(a) else ""))
+            for c in intent_filter.getCategories():
+                print "           Category=%s" % c
+            i+=1
 
 def doExposed(appdb, app, config):
 
@@ -1275,14 +1314,16 @@ def doExposed(appdb, app, config):
         for activity in appdb.getAppActivities(application_id):
             enabled = activity.enabled
             exported = activity.exported
-            intent_data = activity.intent_data
+
+            intent_filters = appdb.getIntentFilters(activity)
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
                 if csv_mode: csvActivity(config['activity_csv_f'], app_name, activity, "Debuggable Flag")
                 else: 
                     print "   [EXP] Activity exported due to debuggable flag!"
-                    printActivity(activity)
+                    printActivity(appdb, activity, intent_filters)
+
             else:
                 # Debuggable isnt set.
                 # First, lets make sure there is a permission that we can work with. No sig|sys.
@@ -1304,15 +1345,15 @@ def doExposed(appdb, app, config):
                                              activity, "Explicit Export")
                     else:
                         print "   [EXP] Explicit export flag!"
-                        printActivity(activity)
+                        printActivity(appdb, activity, intent_filters)
 
                 # Ok, this is the weird case.
-                elif exported is None and len(intent_data) != 0:
+                elif exported is None and len(intent_filters) != 0:
                     if csv_mode: csvActivity(config['activity_csv_f'], app_name, 
                                              activity, "Implicit Export")
                     else:
                         print "   [EXP] Implicit export by intent-filter!"
-                        printActivity(activity)
+                        printActivity(appdb, activity, intent_filters)
 
     if FILTER_SERVICES in filter:
 
@@ -1321,12 +1362,14 @@ def doExposed(appdb, app, config):
         for service in appdb.getAppServices(application_id):
             enabled = service.enabled
             exported = service.exported
-            intent_data = service.intent_data
+
+            intent_filters = appdb.getIntentFilters(service)
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
                 print "   [EXP] Service exported due to debuggable flag!"
-                print printService(service)
+                printService(appdb, service, intent_filters)
+
             else:
                 # Debuggable isnt set.
                 # First, lets make sure there is a permission that we can work with. No sig|sys.
@@ -1345,12 +1388,12 @@ def doExposed(appdb, app, config):
                 # How about an explicit export?
                 elif exported is True:
                     print "   [EXP] Explicit export flag!"
-                    printService(service)
+                    printService(appdb, service, intent_filters)
 
                 # Ok, this is the weird case.
-                elif exported is None and len(intent_data) != 0:
+                elif exported is None and len(intent_filters) != 0:
                     print "   [EXP] Implicit export by intent-filter!"
-                    printService(service)
+                    printService(appdb, service, intent_filters)
 
     if FILTER_PROVIDERS in filter:
 
@@ -1442,12 +1485,13 @@ def doExposed(appdb, app, config):
         for receiver in appdb.getAppReceivers(application_id):
             enabled = receiver.enabled
             exported = receiver.exported
-            intent_data = receiver.intent_data
+
+            intent_filters = appdb.getIntentFilters(receiver)
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
                 print "   [EXP] Receiver exported due to debuggable flag!"
-                print printReceiver(receiver)
+                printReceiver(appdb, receiver, intent_filters)
             else:
                 # Debuggable isnt set.
                 # First, lets make sure there is a permission that we can work with. No sig|sys.
@@ -1466,12 +1510,12 @@ def doExposed(appdb, app, config):
                 # How about an explicit export?
                 elif exported is True:
                     print "   [EXP] Explicit export flag!"
-                    printReceiver(receiver)
+                    printReceiver(appdb, receiver, intent_filters)
 
                 # Ok, this is the weird case.
-                elif exported is None and len(intent_data) != 0:
+                elif exported is None and len(intent_filters) != 0:
                     print "   [EXP] Implicit export by intent-filter!"
-                    printReceiver(receiver)
+                    printReceiver(appdb, receiver, intent_filters)
 
 # End Exposed Functionality
 

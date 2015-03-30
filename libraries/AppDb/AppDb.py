@@ -163,20 +163,16 @@ class Activity(object):
     permission = None
     enabled = None
     exported = None
-    intent_data = ""
 
-    def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
+    def __init__(self, name, enabled, exported, permission, application_id, id=None):
 
         # EDIT : Constructor expects True/False/NoneType as exported and enabled.
-        # Note - Constrctor expects intent_data as a string.
         self.name = name
         self.permission = permission
 
         self.exported = exported
         self.enabled = enabled
 
-        # A object should store the String representaiton of the intent_data.
-        self.intent_data = intent_data
         self.application_id = application_id
  
         if id is not None:
@@ -190,19 +186,16 @@ class Service(object):
     permission = None
     enabled = None
     exported = None
-    intent_data = ""
 
-    def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
+    def __init__(self, name, enabled, exported, permission, application_id, id=None):
 
         # EDIT : Constructor expects True/False/NoneType as exported and enabled.
-        # Note - Constrctor expects intent_data as a string.
         self.name = name
         self.permission = permission
 
         self.exported = exported
         self.enabled = enabled
 
-        self.intent_data = intent_data
         self.application_id = application_id
 
         if id is not None:
@@ -261,12 +254,10 @@ class Receiver(object):
     permission = None
     enabled = None
     exported = None
-    intent_data = ""
 
-    def __init__(self, name, enabled, exported, permission, intent_data, application_id, id=None):
+    def __init__(self, name, enabled, exported, permission, application_id, id=None):
 
         # EDIT : Constructor expects True/False/NoneType as exported and enabled.
-        # Note - Constrctor expects intent_data as a string.
         # Note - Construtor expects 0/1/NoneType as exported/enabled
         self.name = name
         self.permission = permission
@@ -274,14 +265,76 @@ class Receiver(object):
         self.exported = exported
         self.enabled = enabled
 
-        self.intent_data = intent_data
         self.application_id = application_id
 
         if id is not None:
             self._id = id
 
-# End Component Class Declarations
+class IntentFilter(object):
 
+    _id = 0
+    _actions = None
+    _categories = None
+    _datas = None
+    _priority = 0
+
+    def __init__(self, priority, actions, categories, datas, id=None):
+
+        if len(actions) == 0:
+            self._actions = None
+        else:
+            self._actions = actions
+
+        if len(categories) == 0:
+            self._categories = None
+        else:
+            self._categories = categories
+
+        if len(datas) == 0:
+            self._datas = None
+        else:
+            self._datas = datas
+
+        self._priority = priority
+
+        if id is not None:
+            self._id = id
+
+    def getActions(self):
+        if self._actions == None:
+            return []
+        else:
+            return self._actions
+
+    def getCategories(self):
+        if self._categories == None:
+            return []
+        else:
+            return self._categories
+
+    def getDatas(self):
+        if self._datas == None:
+            return []
+        else:
+            return self._datas
+
+    def getPriority(self):
+        return self._priority
+
+class IntentData(object):
+
+    scheme = ""
+    host = ""
+    port = ""
+    path = ""
+    ath_pattern = ""
+    path_prefix = ""
+    mime_type = ""
+
+    def __init__(self):
+        return 
+
+# End Component Class Declarations
 
 #### Class AppDb ########################################
 class AppDb(object):
@@ -303,6 +356,8 @@ class AppDb(object):
 
 #### Table Creation Methods ############################
     def createTables(self):
+
+        log.d(_TAG, "Creating tables!")
 
         if (not self.createPermissionsTable()):
             log.e(_TAG, "failed to create permissions table!")
@@ -338,6 +393,34 @@ class AppDb(object):
 
         if (not self.createProtectedBroadcastsTable()):
             log.e(_TAG, "failed to create protected broadcasts table!")
+            return -1
+
+        if (not self.createIntentFiltersTable()):
+            log.e(_TAG, "failed to create intent filters table!")
+            return -1
+
+        if (not self.createIntentFilterToActivityTable()):
+            log.e(_TAG, "failed to create activity to intent filter table!")
+            return -1
+
+        if (not self.createIntentFilterToServiceTable()):
+            log.e(_TAG, "failed to create service to intent filter table!")
+            return -1
+
+        if (not self.createIntentFilterToReceiverTable()):
+            log.e(_TAG, "failed to create receiver to intent filter table!")
+            return -1
+
+        if (not self.createIntentCategorysTable()):
+            log.e(_TAG, "failed to create intent categorys table!")
+            return -1
+
+        if (not self.createIntentActionsTable()):
+            log.e(_TAG, "failed to create intent actions table!")
+            return -1
+
+        if (not self.createIntentDatasTable()):
+            log.e(_TAG, "failed to create intent datas table!")
             return -1
 
         return 0
@@ -386,7 +469,6 @@ class AppDb(object):
                'permission INTEGER,'
                'exported TEXT,'
                'enabled TEXT,'
-               'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id),'
                'FOREIGN KEY(permission) REFERENCES permissions(id)'
@@ -403,7 +485,6 @@ class AppDb(object):
                'permission INTEGER,'
                'exported TEXT,'
                'enabled TEXT,'
-               'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id),'
                'FOREIGN KEY(permission) REFERENCES permissions(id)'
@@ -444,7 +525,6 @@ class AppDb(object):
                'permission INTEGER,'
                'exported TEXT,'
                'enabled TEXT,'
-               'intent_data TEXT,'
                'application_id INTEGER,'
                'FOREIGN KEY(application_id) REFERENCES apps(id)'
                ')')
@@ -487,12 +567,103 @@ class AppDb(object):
                ')')
 
         return self.app_db.execute(sql)
+
+    # Intent Tables
+    def createIntentFiltersTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_filters'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'priority INTEGER'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentFilterToActivityTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_filter_to_activity'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'intent_filter_id INTEGER,'
+               'activity_id INTEGER,'
+               'FOREIGN KEY(activity_id) REFERENCES activities(id),'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentFilterToServiceTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_filter_to_service'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'intent_filter_id INTEGER,'
+               'service_id INTEGER,'
+               'FOREIGN KEY(service_id) REFERENCES services(id),'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentFilterToReceiverTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_filter_to_receiver'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'intent_filter_id INTEGER,'
+               'receiver_id INTEGER,'
+               'FOREIGN KEY(receiver_id) REFERENCES receivers(id),'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentCategorysTable(self):
+ 
+        sql = ('CREATE TABLE IF NOT EXISTS intent_categories'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'name STRING,'
+               'intent_filter_id INTEGER,'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentActionsTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_actions'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'name STRING,'
+               'intent_filter_id INTEGER,'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createIntentDatasTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS intent_datas'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'port STRING,'
+               'host STRING,'
+               'mime_type STRING,'
+               'path STRING,'
+               'path_pattern STRING,'
+               'path_prefix STRING,'
+               'scheme STRING,'
+               'intent_filter_id INTEGER,'
+               'FOREIGN KEY(intent_filter_id) REFERENCES intent_filters(id)'
+               ')')
+
+        return self.app_db.execute(sql)
+
     # End Table Creation
 
 #### Table Deletion Methods ############################
     def dropTables(self):
-
-        global app_db
 
         self.app_db.execute('''DROP TABLE IF EXISTS shared_libraries''')
         self.app_db.execute('''DROP TABLE IF EXISTS app_uses_permissions''')
@@ -503,8 +674,27 @@ class AppDb(object):
         self.app_db.execute('''DROP TABLE IF EXISTS permission_groups''')
         self.app_db.execute('''DROP TABLE IF EXISTS permissions''')
         self.app_db.execute('''DROP TABLE IF EXISTS protected_broadcasts''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_filters''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_filter_to_activity''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_filter_to_service''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_filter_to_receiver''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_categories''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_actions''')
+        self.app_db.execute('''DROP TABLE IF EXISTS intent_datas''')
 
     # End Table Deletion
+
+#### Private Methods #####################################
+    def _getLastId(self, table_name):
+
+        sql = ("SELECT seq FROM SQLITE_SEQUENCE WHERE name='%s'" % table_name)
+        cur = self.app_db.cursor()
+        cur.execute(sql)
+
+        try:
+            return cur.fetchone()[0]
+        except:
+            return 0
 
 #### Table Modification Methods ############################
     def addPermissionGroup(self, permission_group):
@@ -548,7 +738,6 @@ class AppDb(object):
         name = activity.name
         enabled = activity.enabled
         exported = activity.exported
-        intent_data = base64.b64encode(activity.intent_data)
         application_id = activity.application_id
 
         permission = activity.permission
@@ -557,10 +746,10 @@ class AppDb(object):
             permission_id = permission._id
         else:
             permission_id = 0
- 
-        sql = ('INSERT INTO activities(name, permission, exported, enabled, intent_data, application_id) '
-               "VALUES ('%s',%i,'%s','%s','%s',%i)"  % (name, permission_id, exported, enabled, 
-                                                        intent_data, application_id))
+
+        sql = ('INSERT INTO activities(name, permission, exported, enabled, application_id) '
+               "VALUES ('%s',%i,'%s','%s',%i)"  % (name, permission_id, exported, enabled, 
+                                                        application_id))
 
         return self.app_db.execute(sql)
 
@@ -569,7 +758,6 @@ class AppDb(object):
         name = service.name
         enabled = service.enabled
         exported = service.exported
-        intent_data = base64.b64encode(service.intent_data)
         application_id = service.application_id
 
         permission = service.permission
@@ -579,9 +767,9 @@ class AppDb(object):
         else:
             permission_id = 0
 
-        sql = ('INSERT INTO services(name, permission, exported, enabled, intent_data, application_id) '
-               "VALUES ('%s',%i,'%s','%s','%s',%i)"  % (name, permission_id, exported, enabled,
-                                                        intent_data, application_id))
+        sql = ('INSERT INTO services(name, permission, exported, enabled, application_id) '
+               "VALUES ('%s',%i,'%s','%s',%i)"  % (name, permission_id, exported, enabled,
+                                                        application_id))
 
         return self.app_db.execute(sql)
 
@@ -637,7 +825,6 @@ class AppDb(object):
         name = receiver.name
         enabled = receiver.enabled
         exported = receiver.exported
-        intent_data = base64.b64encode(receiver.intent_data)
         application_id = receiver.application_id
 
         permission = receiver.permission
@@ -647,9 +834,9 @@ class AppDb(object):
         else:
             permission_id = 0
 
-        sql = ('INSERT INTO receivers(name, permission, exported, enabled, intent_data, application_id) '
-               "VALUES ('%s',%i,'%s','%s','%s',%i)"  % (name, permission_id, exported, enabled,
-                                                        intent_data, application_id))
+        sql = ('INSERT INTO receivers(name, permission, exported, enabled, application_id) '
+               "VALUES ('%s',%i,'%s','%s',%i)"  % (name, permission_id, exported, enabled,
+                                                        application_id))
 
         return self.app_db.execute(sql)
 
@@ -667,8 +854,135 @@ class AppDb(object):
 
         return self.app_db.execute(sql)
 
-    # End Table Modification
+    def addActivityIntentFilter(self, intent_filter, activity_id):
 
+        priority = int(intent_filter.getPriority())
+
+        # First we add to intent_filter table
+        sql = ('INSERT INTO intent_filters(priority) '
+               'VALUES (%i)' % (priority))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter!")
+            return -3
+
+        # Next we map intent --> activity
+        _id = self._getLastId("intent_filters")
+
+        sql = ('INSERT INTO intent_filter_to_activity'
+               '(activity_id, intent_filter_id) '
+               'VALUES(%i, %i)' % (activity_id, _id))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter mapping!")
+            return -3
+
+        # Last we add the action, category, and data.
+        for action in intent_filter.getActions():
+            self.addIntentAction(action, _id)
+
+        for category in intent_filter.getCategories():
+            self.addIntentCategory(category, _id)
+
+        for data in intent_filter.getDatas():
+            self.addIntentData(data, _id)
+
+    def addServiceIntentFilter(self, intent_filter, service_id):
+
+        priority = int(intent_filter.getPriority())
+
+        # First we add to intent_filter table
+        sql = ('INSERT INTO intent_filters(priority) '
+               'VALUES (%i)' % (priority))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter!")
+            return -3
+
+        # Next we map intent --> service
+        _id = self._getLastId("intent_filters")
+
+        sql = ('INSERT INTO intent_filter_to_service'
+               '(service_id, intent_filter_id) '
+               'VALUES(%i, %i)' % (service_id, _id))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter mapping!")
+            return -3
+
+        # Last we add the action, category, and data.
+        for action in intent_filter.getActions():
+            self.addIntentAction(action, _id)
+
+        for category in intent_filter.getCategories():
+            self.addIntentCategory(category, _id)
+
+        for data in intent_filter.getDatas():
+            self.addIntentData(data, _id)
+
+    def addReceiverIntentFilter(self, intent_filter, receiver_id):
+
+        priority = int(intent_filter.getPriority())
+
+        # First we add to intent_filter table
+        sql = ('INSERT INTO intent_filters(priority) '
+               'VALUES (%i)' % (priority))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter!")
+            return -3
+
+        # Next we map intent --> receiver
+        _id = self._getLastId("intent_filters")
+
+        sql = ('INSERT INTO intent_filter_to_receiver'
+               '(receiver_id, intent_filter_id) '
+               'VALUES(%i, %i)' % (receiver_id, _id))
+
+        if (not self.app_db.execute(sql)):
+            log.e(_TAG, "Error adding intent filter mapping!")
+            return -3
+
+        # Last we add the action, category, and data.
+        for action in intent_filter.getActions():
+            self.addIntentAction(action, _id)
+
+        for category in intent_filter.getCategories():
+            self.addIntentCategory(category, _id)
+
+        for data in intent_filter.getDatas():
+            self.addIntentData(data, _id)
+
+
+    def addIntentAction(self, action_name, intent_filter_id):
+
+        sql = ('INSERT INTO intent_actions'
+               '(name, intent_filter_id) '
+               "VALUES('%s', %i)" % (action_name, intent_filter_id))
+
+        return self.app_db.execute(sql)
+
+    def addIntentCategory(self, category_name, intent_filter_id):
+
+        sql = ('INSERT INTO intent_categories'
+               '(name, intent_filter_id) '
+               "VALUES('%s', %i)" % (category_name, intent_filter_id))
+
+        return self.app_db.execute(sql)
+
+
+    def addIntentData(self, data, intent_filter_id):
+
+        sql = ('INSERT INTO intent_datas'
+               '(scheme, host, port, path, path_pattern, '
+               ' path_prefix, mime_type, intent_filter_id) '
+               "VALUES('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i)"
+                 % (data.scheme, data.host, data.port, data.path,
+                    data.path_pattern, data.path_prefix, 
+                    data.mime_type, intent_filter_id))
+
+        return self.app_db.execute(sql)
+    # End Table Modification
 
 #### Table Querying Methods ############################
     def getApps(self,dont_resolve=False):
@@ -901,8 +1215,7 @@ class AppDb(object):
              permission_id = line[2]
              exported = line[3]
              enabled = line[4]
-             intent_data = base64.b64decode(line[5])
-             application_id = line[6]
+             application_id = line[5]
 
              if exported == "None":
                  exported = None
@@ -927,7 +1240,7 @@ class AppDb(object):
              else:
                  permission = None
 
-             activity_list.append( Activity(name, enabled, exported, permission, intent_data, 
+             activity_list.append( Activity(name, enabled, exported, permission, 
                                             application_id, id=_id) )
 
         return activity_list
@@ -949,8 +1262,7 @@ class AppDb(object):
              exported = line[3]
 
              enabled = line[4]
-             intent_data = base64.b64decode(line[5])
-             application_id = line[6]
+             application_id = line[5]
 
              if exported == "None":
                  exported = None
@@ -975,7 +1287,7 @@ class AppDb(object):
              else:
                  permission = None
 
-             service_list.append( Service(name, enabled, exported, permission, intent_data,
+             service_list.append( Service(name, enabled, exported, permission,
                                             application_id, id=_id) )
 
         return service_list
@@ -1062,8 +1374,7 @@ class AppDb(object):
              permission_id = line[2]
              exported = line[3]
              enabled = line[4]
-             intent_data = base64.b64decode(line[5])
-             application_id = line[6]
+             application_id = line[5]
 
              if exported == "None":
                  exported = None
@@ -1088,7 +1399,7 @@ class AppDb(object):
              else:
                  permission = None
 
-             receiver_list.append( Receiver(name, enabled, exported, permission, intent_data,
+             receiver_list.append( Receiver(name, enabled, exported, permission,
                                             application_id, id=_id) )
 
         return receiver_list
@@ -1106,6 +1417,86 @@ class AppDb(object):
             return False
         else:
             return True
+
+    def getIntentFilters(self, component):
+
+        intent_filters = list()
+
+        # Determine the type
+        if type(component) is Activity:
+            component_table = "activities"
+            id_name = "activity_id"
+            join_table = "intent_filter_to_activity"            
+
+        elif type(component) is Service:
+            component_table = "services"           
+            id_name = "service_id"
+            join_table = "intent_filter_to_service"
+ 
+        elif type(component) is Receiver:
+            component_table = "receivers"           
+            id_name = "receiver_id"
+            join_table = "intent_filter_to_receiver"
+
+        else:
+            log.e(_TAG, "Unknown component type, returning!")
+            return None
+
+        # Get a list of intent_filter references
+        sql = ('SELECT if.id, if.priority FROM intent_filters if '
+               'JOIN %s iftx ON if.id=iftx.intent_filter_id '
+               'JOIN %s x ON iftx.%s=x.id '
+               'WHERE x.id=%i' % (join_table, component_table, id_name, component._id))
+
+        for row in self.app_db.execute(sql):
+
+            tmp_actions = list()
+            tmp_categories = list()
+            tmp_datas = list()
+
+            intent_filter_id = row[0]
+            priority = row[1]
+
+            # Actions first.
+            sql = ('SELECT ia.name from intent_actions ia '
+                   'JOIN intent_filters if ON if.id=ia.intent_filter_id '
+                   'WHERE if.id=%i' % intent_filter_id)
+
+            for action in self.app_db.execute(sql):
+                tmp_actions.append(action[0])
+            
+            # Categories.
+            sql = ('SELECT ic.name from intent_categories ic '
+                   'JOIN intent_filters if ON if.id=ic.intent_filter_id '
+                   'WHERE if.id=%i' % intent_filter_id)
+
+            for category in self.app_db.execute(sql):
+                tmp_categories.append(category[0])
+
+            # Datas last.
+            sql = ('SELECT * from intent_datas id '
+                   'JOIN intent_filters if ON if.id=id.intent_filter_id '
+                   'WHERE if.id=%i' % intent_filter_id)
+
+            for data in self.app_db.execute(sql):
+
+                tmp_data = IntentData()
+
+                tmp_data.port = data[1]
+                tmp_data.host  = data[2]
+                tmp_data.mime_type = data[3]
+                tmp_data.path = data[4]
+                tmp_data.path_pattern = data[5]
+                tmp_data.path_prefix = data[6]
+                tmp_data.scheme = data[7]
+
+                tmp_datas.append(tmp_data)
+
+            # Now that we have a list of IDs, lets build the IF objects.
+            intent_filters.append(IntentFilter(priority,
+                        tmp_actions, tmp_categories, tmp_datas))
+
+        return intent_filters
 
 ########### Update Methods ########################
     def updateApplication(self, a):
@@ -1125,6 +1516,61 @@ class AppDb(object):
                                          a.version_name, a.version_code, a.debuggable, permission_id,
                                          a.successfully_unpacked, a._id))
 # End class AppDb
+
+# Helpers
+def getAttrib(element, attrib, default="None"):
+
+    try:
+        return element.attrib['{http://schemas.android.com/apk/res/android}'+attrib]
+    except KeyError:
+        return default
+
+
+def parseIntentFiltersFromXML(component_xml):
+
+    intent_filters = list()
+
+    for intent_filter in component_xml.findall(".//intent-filter"):
+
+        tmp_actions = list()
+        tmp_categories = list()
+        tmp_data = list()
+        tmp_priority = 0
+
+        # Parse the actions
+        for action in intent_filter.findall(".//action"):
+            tmp_actions.append(getAttrib(action, 'name'))
+
+        # Parse the categories
+        for category in intent_filter.findall(".//category"):
+            tmp_categories.append(getAttrib(category, 'name'))
+
+        # Parse the datas
+        for data in intent_filter.findall(".//data"):
+            tmp_data.append(parseIntentDataFromXML(data))
+
+        # Priority?
+        tmp_priority = getAttrib(intent_filter, "priority", default=0)
+
+        # Add new IntentFilter
+        intent_filters.append(IntentFilter(tmp_priority, 
+                            tmp_actions, tmp_categories, tmp_data))
+
+    return intent_filters
+
+def parseIntentDataFromXML(data_xml):
+
+    tmp_data = IntentData()
+
+    tmp_data.scheme = getAttrib(data_xml, "scheme")
+    tmp_data.host = getAttrib(data_xml, "host")
+    tmp_data.port = getAttrib(data_xml, "port")
+    tmp_data.path = getAttrib(data_xml, "path")
+    tmp_data.path_pattern = getAttrib(data_xml, "pathPattern")
+    tmp_data.path_prefix = getAttrib(data_xml, "pathPrefix")
+    tmp_data.mime_type = getAttrib(data_xml, "mimeType")
+
+    return tmp_data
 
 # Fix Permission, if a numerical is present
 # Shamelessly rewritten from AOSP

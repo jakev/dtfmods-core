@@ -60,11 +60,18 @@ db_dir=$(dtf prop get Local db-dir)
 framework_dir=$(dtf prop get Local framework-dir)
 sdk=$(dtf prop get Info sdk)
 
+AOSP_MODE=0
 LOCAL_DB_NAME=${db_dir}/frameworks.db
 
 # TODO: temp fix until python frameworkdb is created.
 if [ "$1" = "--aosp-db" ]; then
     AOSP_DB_NAME=$2
+
+# TODO: This is another hack to make AOSP databases.
+elif [ "$1" = "--aosp-mode" ]; then
+    AOSP_DB_NAME=""
+    AOSP_MODE=1
+
 # No argument, check for prop.
 else
     aosp_prop_db=$(dtf prop get Local aosp-data-dir)
@@ -102,10 +109,15 @@ for framework in `ls ${framework_dir}/*.jar`; do
     framework_name=${framework##*/}
 
     # First we determine if it is an AOSP framework file
-    rtn=$(sqlite3 "$AOSP_DB_NAME" "select id from frameworks where name=\"${framework_name}\";")
+    # If we are creating an AOSP DB, we skip this.
+    if [ $AOSP_MODE = 1 ]; then
+        is_aosp=1
+    else
+        rtn=$(sqlite3 "$AOSP_DB_NAME" "select id from frameworks where name=\"${framework_name}\";")
 
-    if [ -z $rtn ]; then
-        is_aosp=0
+        if [ -z $rtn ]; then
+            is_aosp=0
+        fi
     fi
 
     # Now we see if it is a bootlasspath jar.

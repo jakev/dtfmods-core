@@ -29,16 +29,25 @@ dtf sysappdb pull --threads 10
 dtf getframeworks
 dtf getpermissions
 dtf getsyslibs
+dtf frameworkres
 
 # Unpack, process
-dtf frameworkres
+# Applications
+dtf sysappdb oatextract
 dtf sysappdb unpack --aosp-mode
-dtf appdexdb --all
-dtf frameworkdexdb --all
-dtf aosp_frameworkdb
+dtf sysappdb process
+dtf appdexdb create --all
+
+# Frameworks
+dtf frameworkdb --aosp-mode
 dtf unframework
-dtf devdb create
+dtf frameworkdexdb create --all
+
+# System Services
 dtf sysservicedb create
+
+# Devices
+dtf devdb create
 
 sdk=$(dtf prop get Info sdk)
 permissions_dir=$(dtf prop get Local permissions-dir)
