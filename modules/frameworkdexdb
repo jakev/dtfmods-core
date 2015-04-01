@@ -20,6 +20,7 @@ from os import mkdir
 from os.path import isdir, isfile
 from pydtf import dtfconfig
 from pydtf.dtfcore import launch_binary
+from pydtf.dtfglobals import DTF_PACKAGES
 from pydtf import dtflog as log
 from sys import argv, exit
 
@@ -34,8 +35,9 @@ dtf_module = { "About" : "Create dexdb for a framework file or all frameworks.",
                "Health" : "stable",
                "Version" : __VERSION__ }
 
-PROJECT_DB = ''
 AOSP_DB = ''
+FW_DEX_DBS_DIR = ''
+PROJECT_DB = ''
 
 log.LOG_LEVEL_STDOUT = 5
                                    
@@ -49,6 +51,20 @@ def usage():
     print "    diff         Diff the DEX for AOSP framework(s)."
     print ""
     exit(0)
+
+# Lookup the property associated with AOSP Databases
+def getAospDataDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir")
+    except:
+        return None
+
+def runDiff(local_dex_db, aosp_dex_db):
+    out, err, rtn = launch_binary("dexdiff.py", "%s %s" % (local_dex_db,
+                                                                   aosp_dex_db))
+    # Hack
+    print "\n".join(out)
+    return rtn
 
 class FrameworkDexDb():
 
@@ -155,7 +171,77 @@ def cmdCreate(args):
         print "[ERROR] You must supply a framework name or --all/--all-aosp."
         return -1
 
+def cmdDiff(args):
+
+    global AOSP_DB
+    global FW_DEX_DBS_DIR
+
+    rtn = 0
+
+    parser = ArgumentParser(prog='frameworkdexdb diff',
+                            description='Compare the DEX code of framework against AOSP version.')
+    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='?', default=None,
+                        help='Diff a single framework.')
+    parser.add_argument('--aosp-db', dest='aosp_db', default=None,
+                        help='Use the specified AOSP database.')
+
+    args = parser.parse_args()
+
+    framework_name = args.framework_name
+
+    # Do the diffing
+    if framework_name == None:
+        print "[ERROR] You must supply a framework name!"
+        return -3
+
+    # Determine which AOSP DB to use
+    # No argument provided
+    if args.aosp_db == None:
+
+        aosp_data_dir = getAospDataDirProp()
+        if aosp_data_dir != None:
+            aosp_db = "%s/frameworkdexdbs/%s.db" % (aosp_data_dir, framework_name)
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+
+            aosp_db = "%s/%s.db" % (FW_DEX_DBS_DIR, framework_name)
+
+    # Argument provided
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            print "[ERROR] File '%s' not found. Exiting." % aosp_db
+            return -3
+
+    log.d(TAG, "Using AOSP app DB '%s'" % aosp_db)
+
+    # Do the diffing
+    fw_dex_db = "%s/%s.db" % (FW_DEX_DBS_DIR, framework_name)
+
+    if not isfile(fw_dex_db):
+       print "[ERROR] No local DEX DB for framework '%s'" % framework_name
+       return -2
+
+    rtn |= runDiff(fw_dex_db, aosp_db)
+
+    # No errors
+    return rtn
+
 def main(argv):
+
+    global AOSP_DB
+    global FW_DEX_DBS_DIR
+
+    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
+                                               dtfconfig.get_prop("Info", "sdk"))
+
+    FW_DEX_DBS_DIR = "%s/frameworkdexdbs" % dtfconfig.get_prop("Local", "db-dir")
 
     # We can pop the program name off
     argv.pop(0)

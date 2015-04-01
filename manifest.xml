@@ -357,7 +357,7 @@
           minorVersion="0"
           health="beta"
           author="Jake Valletta (jakev)"
-          about="aGet list of applications installed by a user (JB+)."
+          about="Get list of applications installed by a user (JB+)."
           localName="modules/userapps" />
 
     <Item type="module"

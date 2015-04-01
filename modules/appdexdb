@@ -210,14 +210,10 @@ def cmdDiff(args):
     global AOSP_DB
     global APP_DEX_DBS_DIR
 
-    rtn = 0
-
     parser = ArgumentParser(prog='appdexdb diff',
                             description='Compare the DEX code of the project against AOSP version.')
     parser.add_argument('application_name', metavar="application_name", type=str, nargs='?', default=None,
                         help='Diff a single application.')
-    parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
-                        default=False, help='Diff all AOSP applications.')
     parser.add_argument('--aosp-db', dest='aosp_db', default=None,
                         help='Use the specified AOSP database.')
 
@@ -227,8 +223,11 @@ def cmdDiff(args):
 
     appdexdb = AppDexDb()
 
-    # Determine which AOSP DB to use
+    if application_name == None:
+        print "[ERROR] You must supply an application name!"
+        return -3
 
+    # Determine which AOSP DB to use
     # No argument provided
     if args.aosp_db == None:
 
@@ -255,42 +254,19 @@ def cmdDiff(args):
 
     log.d(TAG, "Using AOSP app DB '%s'" % aosp_db)
 
-    # Is this all mode?
-    if args.all_mode:
-        log.i(TAG, "Doing all applications...")
+    # Do the diffing.
+    app = appdexdb.local_appdb.getAppByName(application_name)
+    if app == None:
+        print "[ERROR] No application with name '%s' found in project!" % (application_name)
+        return -1
 
-        for app in appdexdb.getAllAospApplications():
+    app_dex_db = "%s/%s.db" % (APP_DEX_DBS_DIR, application_name)
 
-            app_dex_db = "%s/%s.db" % (APP_DEX_DBS_DIR, app.project_name)
+    if not isfile(app_dex_db):
+       print "[ERROR] No local DEX DB for application '%s'" % application_name
+       return -2
 
-            if not isfile(app_dex_db):
-                log.w(TAG, "No local DEX DB for application '%s'" % app.project_name)
-                continue
-
-            rtn |= runDiff(app_dex_db, aosp_db)
-
-    # Single Application
-    elif application_name != None:
-        app = appdexdb.local_appdb.getAppByName(application_name)
-        if app == None:
-            print "[ERROR] No application with name '%s' found in project!" % (application_name)
-            return -1
-
-        app_dex_db = "%s/%s.db" % (APP_DEX_DBS_DIR, application_name)
-
-        if not isfile(app_dex_db):
-           print "[ERROR] No local DEX DB for application '%s'" % application_name
-           return -2
-
-        rtn |= runDiff(app_dex_db, aosp_db)
-
-    # Nothing provided.
-    else:
-        print "[ERROR] You must supply an application name or --all/--all-aosp."
-        return -3
-
-    # No errors
-    return rtn
+    return runDiff(app_dex_db, aosp_db)
 
 def main(argv):
 
