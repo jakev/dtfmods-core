@@ -118,15 +118,6 @@
           localName="modules/frameworkdexdb" />
 
     <Item type="module"
-          name="frameworkdexdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Compare the DEX code of a local framework to the AOSP equivalent."
-          localName="modules/frameworkdexdiff" />
-
-    <Item type="module"
           name="frameworkdiff"
           majorVersion="1"
           minorVersion="0"

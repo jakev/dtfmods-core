@@ -1277,6 +1277,9 @@ def printIntentFilters(appdb, intent_filters):
                 print "           Action=%s %s" % (a, ("[PROTECTED]" if appdb.isProtectedAction(a) else ""))
             for c in intent_filter.getCategories():
                 print "           Category=%s" % c
+            for d in intent_filter.getDatas():
+                print "           Data=%s" % str(d)
+
             i+=1
 
 def doExposed(appdb, app, config):

@@ -327,12 +327,49 @@ class IntentData(object):
     host = ""
     port = ""
     path = ""
-    ath_pattern = ""
+    path_pattern = ""
     path_prefix = ""
     mime_type = ""
 
     def __init__(self):
         return 
+
+    def __str__(self):
+
+        tmp = ""
+
+        # "If a scheme is not specified for the intent filter, 
+        # all the other URI attributes are ignored."
+        if self.scheme == u"None":
+
+            # MIME type has nothing to do with the URI
+            if self.mime_type != u"None":
+                return "(mime-type=%s)" % self.mime_type
+        else:
+            tmp += "%s://" % self.scheme
+            
+            # "If a host is not specified for the filter, the 
+            # port attribute and all the path attributes are ignored."
+            if self.host != u"None":
+                tmp += str(self.host)
+
+                if self.port != u"None":
+                    tmp += ":%s " % self.port
+                else:
+                    tmp += " "
+
+                if self.path != u"None":
+                    tmp += "[path=%s]" % self.path
+                if self.path_pattern != u"None":
+                    tmp += "[pathPattern=%s]" % self.path_pattern
+                if self.path_prefix != u"None":
+                    tmp += "[pathPrefix=%s]" % self.path_prefix
+
+        # MIME type has nothing to do with the URI
+        if self.mime_type != u"None":
+            return  "%s (mime-type=%s)" % (tmp, self.mime_type)
+        else:
+            return tmp
 
 # End Component Class Declarations
 
