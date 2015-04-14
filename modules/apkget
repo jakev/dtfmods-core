@@ -17,21 +17,24 @@
 #@About: Get an APK (optionally with DEX) from device.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
+
+. dtf_core.sh
+. dtf_log.sh
 
 usage()
 {
-   echo "Usage apkget OPTIONS <package_name>"
-   echo "       OPTIONS:"
-   echo "            -o    Pull package's ODEX"
-   echo "            -s    Search for package"
-   echo "            -p    Pull package"
-   echo "            -h    Prints this menu"
-   exit 1
+    echo "Usage apkget OPTIONS <package_name>"
+    echo "       OPTIONS:"
+    echo "            -o    Pull package's ODEX"
+    echo "            -s    Search for package"
+    echo "            -p    Pull package"
+    echo "            -h    Prints this menu"
+    exit 1
 }
 
 if [ $# -lt 1 ] ; then
-   usage
+    usage
 fi
 
 package=""
@@ -41,45 +44,70 @@ odex=""
 #Process the arguments
 while getopts hdeo:p:s: opt
 do
-   case "$opt" in
-      h) usage;;
-      o) odex=$OPTARG;;
-      p) package=$OPTARG;;
-      s) search=$OPTARG;;
-      \?) usage;;
-   esac
+    case "$opt" in
+        h) usage;;
+        o) odex=$OPTARG;;
+        p) package=$OPTARG;;
+        s) search=$OPTARG;;
+        \?) usage;;
+    esac
 done
 
 adb wait-for-device
 
 if [ $search ]; then
-   echo "Searching for \"${search}\"..."
-   adb shell "pm list packages"|grep -i "$search"|awk '{print $1}'
-   exit 0
+    echo "Searching for \"${search}\"..."
+    adb shell "pm list packages"|grep -i "$search"|awk '{print $1}'
+    exit 0
+
 elif [ $package ]; then
-   echo "Attempting to pull \"${package}\"..."
-   package_path=$(adb shell pm path ${package} | tr -d '\r' |awk -F":" '{print $2}')
+    log_i "Attempting to pull APK for \"${package}\"..."
+    package_path=$(adb shell pm path ${package} | tr -d '\r' |awk -F":" '{print $2}')
 
-   if [ $package_path ]; then
-      echo "Found match \"${package_path}\""
-      adb pull $package_path
-      exit 0
-   else
-      echo "No packages match the string \"${package}\""
-      exit 1
-   fi
+    if [ $package_path ]; then
+        log_i "Found match for \"${package}\""
+        adb pull $package_path > /dev/null 2>&1
+        exit 0
+    else
+        log_e "No packages match the string \"${package}\""
+        exit 1
+    fi
+
 elif [ $odex ]; then
-   echo "Attempting to pull \"${odex}\"'s ODEX file..."
-   package_path=$(adb shell pm path ${odex} | tr -d '\r' |awk -F":" '{print $2}'|sed 's/\.apk/\.odex/g')
 
-   if [ $package_path ]; then
-      echo "Found match \"${package_path}\""
-      adb pull $package_path
-      exit 0
-   else
-      echo "No packages match the string \"${odex}\" or ODEX does not exist"
-      exit 1
-   fi
+    log_i "Attempting to pull ODEX for \"${odex}\"..."
+    apk_path=$(adb shell pm path ${odex} | tr -d '\r' |awk -F":" '{print $2}')
+
+    if [ $apk_path ]; then
+        log_i "Found match for \"${odex}\""
+
+        package_path=$(dirname $apk_path)
+        odex_name=$(basename $apk_path| sed 's/\.apk$/.odex/')
+
+        # Need to act differently depending on Dalvik/ART
+        vm_type=$(dtf prop get Info vmtype)
+
+        # Device is using ART/ART64
+        if [[ "$vm_type" == "ART"* ]]; then
+
+            # It's not with checking the bits, as both can exist.
+            log_i "Attempting to pull 32-bit ODEX..."
+            adb pull ${package_path}/arm/${odex_name} > /dev/null 2>&1
+
+            log_i "Attempting to pull 64-bit ODEX..."
+            adb pull ${package_path}/arm64/${odex_name} > /dev/null 2>&1
+
+        # Dalvik, so path is easy.
+        else
+            package_path=$(dirname $apk_path)
+            odex_name=$(basename $apk_path| sed 's/\.apk$/.odex/')
+            log_i "Attempting to pull 32-bit ODEX..."
+            adb pull ${package_path}/${odex_name} > /dev/null 2>&1
+        fi
+    else
+        log_e "No packages match the string \"${odex}\""
+        exit 1
+    fi
 else
     echo "[ERROR] You must specify -p or -s!"
     usage
