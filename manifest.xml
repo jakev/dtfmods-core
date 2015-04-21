@@ -1,19 +1,10 @@
 <Items>
     <!-- Module Content -->
     <Item type="module"
-          name="activitydiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="beta"
-          author="Jake Valletta (jakev)"
-          about="Get all activities that were added to the AOSP version of the package."
-          localName="modules/activitydiff" />
-
-    <Item type="module"
           name="apkget"
           majorVersion="1"
-          minorVersion="0"
-          health="beta"
+          minorVersion="1"
+          health="stable"
           author="Jake Valletta (jakev)"
           about="Pull or search for a package on the device."
           localName="modules/apkget" />
@@ -26,15 +17,6 @@
           author="Jake Valletta (jakev)"
           about="Create dexdb for an application or all AOSP applications."
           localName="modules/appdexdb" />
-
-    <Item type="module"
-          name="appdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="beta"
-          author="Jake Valletta (jakev)"
-          about="Get all components that were added to the AOSP version of the package."
-          localName="modules/appdiff" />
 
     <Item type="module"
           name="bindiff"
@@ -244,24 +226,6 @@
           localName="modules/platformdiff" />
 
     <Item type="module"
-          name="providerdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="beta"
-          author="Jake Valletta (jakev)"
-          about="Get all components that were added to the AOSP version of the package."
-          localName="modules/providerdiff" />
-
-    <Item type="module"
-          name="receiverdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Get all receivers that were added to the AOSP version of the package."
-          localName="modules/providerdiff" />
-
-    <Item type="module"
           name="secretcode"
           majorVersion="1"
           minorVersion="1"
@@ -269,15 +233,6 @@
           author="Jake Valletta (jakev)"
           about="Send an android_secret_code broadcast."
           localName="modules/secretcode" />
-
-    <Item type="module"
-          name="servicediff"
-          majorVersion="1"
-          minorVersion="0"
-          health="beta"
-          author="Jake Valletta (jakev)"
-          about="Get all services that were added to the AOSP version of the package."
-          localName="modules/servicediff" />
 
     <Item type="module"
           name="sharedid"
@@ -296,15 +251,6 @@
           author="Jake Valletta (jakev)"
           about="System application database manipulation."
           localName="modules/sysappdb" />
-
-    <Item type="module"
-          name="sysappdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="broken"
-          author="Jake Valletta (jakev)"
-          about="Get a listing of OEM added system applications (diff the AOSP)."
-          localName="modules/sysappdiff" />
 
     <Item type="module"
           name="syslibdiff"
@@ -380,14 +326,6 @@
           localName="libraries/PyElfTools" />
 
    <!-- Binary Content -->
-    <Item type="binary"
-          name="appdiff.py"
-          majorVersion="1"
-          minorVersion="0"
-          health="broken"
-          author="Jake Valletta (jakev)"
-          localName="binaries/appdiff.py" />
-
     <Item type="binary"
           name="classsearch.py"
           majorVersion="1"

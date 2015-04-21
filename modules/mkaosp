@@ -33,8 +33,13 @@ dtf frameworkres
 
 # Unpack, process
 # Applications
-dtf sysappdb oatextract
-dtf sysappdb unpack --aosp-mode
+vm_type=$(dtf prop get Info vmtype)
+
+if [ "${vm_type:0:3}" = "ART" ]; then
+  dtf sysappdb oatextract
+fi
+
+dtf sysappdb unpack --aosp-mode --report
 dtf sysappdb process
 dtf appdexdb create --all
 

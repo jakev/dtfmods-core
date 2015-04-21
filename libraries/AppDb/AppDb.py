@@ -1589,6 +1589,10 @@ def parseIntentFiltersFromXML(component_xml):
         # Priority?
         tmp_priority = getAttrib(intent_filter, "priority", default=0)
 
+        # Handle hex priorities
+        if type(tmp_priority) is str and tmp_priority[0:2] == "0x":
+            tmp_priority = int(tmp_priority, 16)
+
         # Add new IntentFilter
         intent_filters.append(IntentFilter(tmp_priority, 
                             tmp_actions, tmp_categories, tmp_data))

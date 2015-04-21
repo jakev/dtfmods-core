@@ -311,6 +311,10 @@ class PullThread(threading.Thread):
     def run(self):
         self.tid = threading.currentThread().name
         while True:
+
+            # Pull thread needs to wait for the device to be available.
+            self.adb.wait_for_device()
+
             package_name, project_name = self.pull_queue.get()
             log.i(TAG, "%s Starting \'%s\'" % (self.logString(), project_name))
 

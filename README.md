@@ -17,4 +17,4 @@ The dtf core content is licensed under the Apache License, Version 2.0, but cont
 
 Questions & Comments
 --------------------
-Any bug reports, questions, comments, frustrations, please direct them to javallet[at]gmail[dot].com.  I'll do my best to help! Also be sure to check any updates on www.thecobraden.com.
+Any bug reports, questions, comments, frustrations, please direct them to javallet[at]gmail[dot]com.  I'll do my best to help! Also be sure to check any updates on www.thecobraden.com.
