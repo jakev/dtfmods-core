@@ -1,143 +1,659 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
-# Copyright 2013-2014 Jake Valletta (@jake_valletta)
-# 
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Framework Manipulation
+from pydtf.dtfadb import DtfAdb
+from pydtf.dtfcore import (
+        baksmali, launch_module)
+from pydtf.dtfglobals import DTF_PACKAGES
+from pydtf import dtfconfig
+from pydtf import dtflog as log
 
-#@About: Create and manipulate a database containing Android framework data.
-#@Author: Jake Valletta (jakev)
-#@Health: beta
-#@Version: 1.1
+import FrameworkDb
 
-. dtf_core.sh
-. dtf_log.sh
+import sqlite3
+import time
 
-create_db()
-{
-    log_i "Creating database table..."
+from argparse import ArgumentParser
+from os import (devnull, listdir, mkdir,
+               remove)
+from os.path import isdir, isfile
+from shutil import move, rmtree
+from subprocess import Popen, PIPE
+from sys import argv
+from tempfile import mkdtemp
 
-    sql='CREATE TABLE IF NOT EXISTS frameworks
-         (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT NOT NULL,
-         is_aosp INTEGER,
-         is_bcp INTEGER,
-         successfully_unpacked INTEGER
-         );'
+__VERSION__ = "1.2"
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
-}
+# dtf Python Module declaration
+dtf_module = {"About" : "Framwork database manipulation.",
+              "Author" : "Jake Valletta (jakev)",
+              "Health" : "beta",
+              "Version" : __VERSION__}
+
+PROJECT_DB = ""
+AOSP_DB = ""
+
+# Additional logging settings. Uncomment for more debug.
+TAG = "frameworkdb"
+
+# Debug
+#log.LOG_LEVEL_STDOUT = 5
+
+FRAMEWORKS_DIR = "framework"
+UNFRAMEWORKS_DIR = "unframework"
+
+unpack_report = None
+
+def usage():
+    print "FrameworkDb dtf Module Version %s" % __VERSION__
+    print ""
+    print "Submodules:"
+    print "    diff         Compare frameworks to another DB."
+    print "    list         List framework information."
+    print "    oatextract   Extract DEX from OAT files."
+    print "    process      Process frameworks to database."
+    print "    pull         Pull frameworks from the device."
+    print "    unpack       Unpack frameworks."
+    print ""
+    exit(0)
+
+# Lookup the property associated with AOSP Databases
+def getAospDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir")
+    except:
+        return None
+
+# XZ Compression
+def testXz():
+
+    cmd = ("command -v xz").split(' ')
+
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
+    p.wait()
+
+    if p.returncode == 0:
+        return True
+    else:
+        return False
+
+def decompressXZ(file_name):
+
+    cmd = ("xz -d %s" % file_name).split(' ')
+
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
+    p.wait()
+
+    return p.returncode
+# End XZ Compression
+
+# Zip Stuff
+def extractFromZipTo(zip_file, extract_path, file_name=None):
+
+    FNULL = open(devnull, 'w')
+
+    if file_name == None:
+        cmd = ("unzip -u %s -d %s" % (zip_file, extract_path)).split(' ')
+    else:
+        cmd = ("unzip -u %s %s -d %s" %
+                (zip_file, file_name, extract_path)).split(' ')
+
+    p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=False)
+    p.wait()
+
+    FNULL.close()
+
+    return p.returncode
+# End Zip Stuff
+
+# Other File
+def rmfile(path):
+
+    try:
+        remove(path)
+    except OSError as e:
+        log.d(TAG, "Error attempting to delete '%s': %s" % (path, e.strerror))
+# End other
+
+# Reporting Class
+class UnpackReport(object):
+
+    def __init__(self):
+        self._completed_frameworks = list()
+        self._failed_frameworks = list()
+
+    def addCompleted(self, name):
+        self._completed_frameworks.append(name)
+
+    def addFailed(self, name):
+        self._failed_frameworks.append(name)
+
+    def showReport(self):
+        log.i(TAG, "Unpack Report:")
+        log.i(TAG, " Successfully Unpacked (%d)" %
+                    len(self._completed_frameworks))
+        for framework in self._completed_frameworks:
+            log.i(TAG, "  %s" % framework)
+
+        log.i(TAG, " Unpack Failed (%d)" %
+                    len(self._failed_frameworks))
+        for framework in self._failed_frameworks:
+            log.i(TAG, "  %s" % framework)
+
+def doDiff(local_db, diff_db, bootclasspath=0):
+
+    local_frameworks = list()
+    diff_frameworks = list()
+    tmp_frameworks = list()
+
+    if bootclasspath == 0:
+        local_frameworks = local_db.getFrameworks(bcp_only=True)
+        diff_frameworks = diff_db.getFrameworks(bcp_only=True)
+    else:
+        local_frameworks = local_db.getFrameworks(non_bcp_only=True)
+        diff_frameworks = diff_db.getFrameworks(non_bcp_only=True)
+
+    for lcl in local_frameworks:
+        if lcl not in diff_frameworks:
+            tmp_frameworks.append(lcl)
+
+    return tmp_frameworks
+
+# Commands #
+def cmdOatExtract():
+
+    global PROJECT_DB
+
+    vm_type = dtfconfig.get_prop("Info", "vmtype")
+    if not vm_type[:3] == "ART":
+        log.e(TAG, "This is not a ART device, this step is not required.")
+        return -1
+
+    frameworks_dir = dtfconfig.get_prop("Local", "framework-dir")
+
+    if not isdir(frameworks_dir):
+        log.e(TAG, "Framework directory does not exist. Pull first!")
+        return -2
+
+    oat_cmd = ""
+    additional_args = ""
+
+    # Is this a Samsung ART device?
+    if vm_type == "ART-Samsung":
+        log.d(TAG, "Activiting Samsung ART mode")
+        additional_args = "--samsung-mode "
+
+    # Get the CPU bits.
+    cpu_bits = dtfconfig.get_prop("Info", "cpu-bits")
+    if cpu_bits == "32":
+        arm_dir = "%s/arm" % FRAMEWORKS_DIR
+    elif cpu_bits == "64":
+        arm_dir = "%s/arm64" % FRAMEWORKS_DIR
+    else:
+        log.e(TAG, "Unable to determin CPU type from config. Exiting!")
+        exit(-2)
+
+    # First, we extract from each ODEX
+
+    # We need to check for both .odex and .odex.xz.
+    log.i(TAG, "Looking for XZ compressed ODEX files...")
+
+    for filename in listdir(arm_dir):
+
+        if filename[-5:] == ".odex.xz":
+            # Decompress with XZ
+            rtn = decompressXZ(filename)
+            if rtn != 0:
+                log.e(TAG, "Error decompressing XZ archive '%s'" % (filename))
+
+    log.i(TAG, "Doing DEX extraction from ART ELF files...")
+    for filename in listdir(arm_dir):
+
+        if filename[-5:] != ".odex":
+            continue
+
+        log.d(TAG, "Extracting framework '%s'" % filename)
+
+        oat_cmd = ("%s--out-dir %s %s/%s" %
+                       (additional_args, frameworks_dir, arm_dir, filename))
+
+        out, err, rtn = launch_module("oatdextract", oat_cmd)
+        if rtn != 0:
+            print err
+            log.e(TAG, "Error extracting DEX from OAT file: %d" % rtn)
 
 
-drop_db()
-{
-    log_i "Dropping database table..."
+    # Next, we extract the rest from the boot.oat
+    log.i(TAG, "Extracting ODEX from 'boot.oat'...")
 
-    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE frameworks" 2> /dev/null
-}
+    tmp_dir = mkdtemp()
 
-. dtf_core.sh
-. dtf_log.sh
+    # NOTE: We're going to hardcode "arm".  64-bit phones have both.
+    oat_cmd = ("%s--out-dir %s %s/arm/boot.oat" %
+                    (additional_args, tmp_dir, frameworks_dir))
 
-log_i "Performing database additions for Jar files"
+    out, err, rtn = launch_module("oatdextract", oat_cmd)
+    if rtn != 0:
+        print err
+        log.e(TAG, "Error extracting DEX from OAT file: %d" % rtn)
 
-if [ "$(dtf prop test Local framework-dir)" == "0" ]; then
-    echo "[ERROR] You need to set the Local\\framework-dir property if you want to use this module! Exiting."
-    exit -2
-fi
+    for tmp_odex_name in listdir(tmp_dir):
 
-db_dir=$(dtf prop get Local db-dir)
-framework_dir=$(dtf prop get Local framework-dir)
-sdk=$(dtf prop get Info sdk)
+        tmp_odex = "%s/%s" % (tmp_dir, tmp_odex_name)
+        move(tmp_odex, frameworks_dir)
 
-AOSP_MODE=0
-LOCAL_DB_NAME=${db_dir}/frameworks.db
+    # Clean the tmp dir.
+    rmtree(tmp_dir)
 
-# TODO: temp fix until python frameworkdb is created.
-if [ "$1" = "--aosp-db" ]; then
-    AOSP_DB_NAME=$2
+    return 0
 
-# TODO: This is another hack to make AOSP databases.
-elif [ "$1" = "--aosp-mode" ]; then
-    AOSP_DB_NAME=""
-    AOSP_MODE=1
+def cmdPull():
 
-# No argument, check for prop.
-else
-    aosp_prop_db=$(dtf prop get Local aosp-data-dir)
-    if [ "${aosp_prop_db}" = "" ]; then
-        AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/frameworks.db
-    else
-        AOSP_DB_NAME=${aosp_prop_db}/frameworks.db
-    fi
+    global PROJECT_DB
 
-    # Check if DB exists
-    if [ ! -f "${AOSP_DB_NAME}" ]; then
-        echo "[ERROR] Unable to find framework database '${AOSP_DB_NAME}.' Exiting."
-        exit -4
-    fi
-fi
+    if isdir(FRAMEWORKS_DIR):
+        log.e(TAG, "Framework directory exists. Delete it before continuing.")
+        exit(-1)
 
-if [ -f ${LOCAL_DB_NAME} ]; then
-    drop_db
-fi
+    # Make output dir
+    mkdir(FRAMEWORKS_DIR)
 
-create_db
+    adb = DtfAdb()
+    adb.wait_for_device()
 
-# Get Bootclasspaths into Arrays
-local_bcp_delimited=$(dtf prop get Info bootclasspath-jars |sed 's/\/system\/framework\///g')
+    log.i(TAG, "Pulling framework files from device...")
+    start = time.time()
 
-IFS=':'
-read -a local_bcp <<< "${local_bcp_delimited}"
+    # Do the pulling.
+    adb.pull("/system/framework/", local=FRAMEWORKS_DIR)
 
-unset IFS
-i=1
-for framework in `ls ${framework_dir}/*.jar`; do
+    log.i(TAG, "Framework pull complete! Elapsed Time: %s" %
+            (time.time() - start))
 
-    is_aosp=1
-    is_bcp=0
-    framework_name=${framework##*/}
+    # Set the property
+    dtfconfig.set_prop("Local", "framework-dir", FRAMEWORKS_DIR)
 
-    # First we determine if it is an AOSP framework file
-    # If we are creating an AOSP DB, we skip this.
-    if [ $AOSP_MODE = 1 ]; then
-        is_aosp=1
-    else
-        rtn=$(sqlite3 "$AOSP_DB_NAME" "select id from frameworks where name=\"${framework_name}\";")
+    return 0
 
-        if [ -z $rtn ]; then
-            is_aosp=0
-        fi
-    fi
+def cmdUnpack():
 
-    # Now we see if it is a bootlasspath jar.
-    rtn=$(containsElement $framework_name "${local_bcp[@]}")
+    global PROJECT_DB
 
-    if [ "${rtn}" == "1" ]; then
-        is_bcp=1
-    fi
+    parser = ArgumentParser(prog='frameworkdb unpack',
+                            description='Unpack frameworks.')
+    parser.add_argument('--report', dest='reporting', action='store_const',
+                            const=True, default=False,
+                            help='Produce a report that shows unpack status.')
 
-    # Finally, insert it into the database
-    sqlite3 "$LOCAL_DB_NAME" "insert into frameworks(id, name, is_aosp, is_bcp) values (${i}, '${framework_name}', $is_aosp, $is_bcp);"
+    args = parser.parse_args()
 
-    # Did it fail?
-    ret=$?
-    if [ "$ret" -ne "0" ]; then
-        log_e "Error inserting framework data for \"${framework_name}\" into database: ${ret}"
-        continue
-    fi
+    reporting = args.reporting
 
-    i=`expr $i + 1`
+    if reporting:
+        report = UnpackReport()
 
-done
+    if not testXz():
+        log.e(TAG, "xz is not installed! Please install it.")
+        return -1
 
+    if not isfile(PROJECT_DB):
+        log.e(TAG, "Framework datebase does not exist, please process it!")
+        return -2
+
+    if isdir(UNFRAMEWORKS_DIR):
+        log.e(TAG, "Uframework directory exists. Delete it before continuing.")
+        return -3
+
+    frameworks_dir = dtfconfig.get_prop("Local", "framework-dir")
+    sdk = dtfconfig.get_prop("Info", "sdk")
+
+    mkdir(UNFRAMEWORKS_DIR)
+
+    fwdb = FrameworkDb.FrameworkDb(PROJECT_DB)
+
+    log.i(TAG, "Unpacking all framework files...")
+
+    for framework in fwdb.getFrameworks():
+
+        log.i(TAG, "Unframeworking '%s'..." % framework)
+
+        framework_jar = "%s/%s.jar" % (frameworks_dir, framework)
+        framework_odex = "%s/%s.odex" % (frameworks_dir, framework)
+
+        out_dir = "%s/%s" % (UNFRAMEWORKS_DIR, framework)
+        out_framework_dex = "%s/classes.dex" % out_dir
+        out_framework_meta = "%s/META-INF" % out_dir
+
+        # There should be a JAR, but there might not be.
+        if isfile(framework_jar):
+            # There is a JAR, so unzip first.
+            if extractFromZipTo(framework_jar, out_dir) != 0:
+                log.e(TAG, "Unable to extact ZIP '%s'" % framework_jar)
+
+                # Mark Failed
+                if reporting: report.addFailed(framework)
+                continue
+
+            # Now, check for ODEX, and handle that.
+            if isfile(framework_odex):
+
+                log.d(TAG, "Found ODEX files for this framework")
+                out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
+                                (sdk, out_dir, frameworks_dir, framework_odex))
+
+                if rtn != 0:
+                    log.e(TAG, "Error unpacking framework ODEX (%d)" % rtn)
+
+                    # Mark Failed
+                    if reporting: report.addFailed(framework)
+                    continue
+
+                # Mark complete and add to report.
+                fwdb.markUnpacked(framework)
+                if reporting: report.addCompleted(framework)
+
+                # Cleanup
+                rmfile(out_framework_dex)
+                rmtree(out_framework_meta, ignore_errors=True)
+
+            # No ODEX, use classes.dex.
+            elif isfile(out_framework_dex):
+
+                log.d(TAG, "No ODEX, looking for classes.dex")
+                out, err, rtn = baksmali("-a %s -o %s %s" %
+                                (sdk, out_dir, out_framework_dex))
+
+                if rtn != 0:
+                    log.e(TAG, "Error unpacking framework DEX (%d)" % rtn)
+
+                    # Mark Failed
+                    if reporting: report.addFailed(framework)
+                    continue
+
+                # Mark complete and add to report.
+                fwdb.markUnpacked(framework)
+                if reporting: report.addCompleted(framework)
+
+                # Cleanup
+                rmfile(out_framework_dex)
+                rmtree(out_framework_meta, ignore_errors=True)
+
+            # No classes.dex or ODEX?
+            else:
+                log.w(TAG, "No ODEX or classes.dex found (might be a problem)")
+                continue
+        else:
+            # Without a JAR, we're forced to just use the ODEX.
+            if not isfile(framework_odex):
+                log.e(TAG, "No JAR or ODEX, how is this even possible?")
+
+                # Mark Failed
+                if reporting: report.addFailed(framework)
+                continue
+
+            log.d(TAG, "Found ODEX files for this framework")
+            out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
+                            (sdk, out_dir, frameworks_dir, framework_odex))
+
+            if rtn != 0:
+                log.e(TAG, "Error unpacking framework (%d)" % rtn)
+
+                # Mark Failed
+                if reporting: report.addFailed(framework)
+                continue
+
+            # Mark complete and add to report.
+            fwdb.markUnpacked(framework)
+            if reporting: report.addCompleted(framework)
+
+            # Cleanup$
+            rmfile(out_framework_dex)
+            rmtree(out_framework_meta, ignore_errors=True)
+
+    # If reporting is enabled, show it.
+    if reporting: report.showReport()
+
+    fwdb.close()
+
+    # Set the property.
+    dtfconfig.set_prop("Local", "unframework-dir", UNFRAMEWORKS_DIR)
+
+    return 0
+
+def cmdProcess():
+
+    global PROJECT_DB
+
+    if isfile(PROJECT_DB):
+        inpt = raw_input("[WARNING] A framework database already exists.  "
+                         "Do you want to recreate the DB? [y/N] ").lower()
+        if inpt != 'y':
+            print "Exiting."
+            exit(0)
+
+    # Drop database and rebuild.
+    fwdb = FrameworkDb.FrameworkDb(PROJECT_DB)
+
+    if fwdb.dropTables() != 0:
+        log.e(TAG, "Error dropping tables. Exiting.")
+        exit(-1)
+
+    if fwdb.createTables() != 0:
+        log.e(TAG, "[ERROR] Database creation failed. Exiting")
+        exit(-2)
+
+    # For devices without ODEX, we can just list JARs.  For devices WITH
+    # ODEX files AND are not ART, there should be more JARs than ODEX, but
+    # ART screws it up, and there could potentially be gaps.
+    #
+    # The solution? Create lists for both JAR + ODEX, unique, and use that.
+    # It's a little redundant, but it works!
+    frameworks_dir = dtfconfig.get_prop("Local", "framework-dir")
+    bcp_jars = dtfconfig.get_prop("Info", "bootclasspath-jars")
+
+    bcp_jars = bcp_jars.replace('.jar', '').replace('/system/framework/', '')
+
+    bootclasspath = bcp_jars.split(':')
+
+    framework_list = list()
+
+    log.i(TAG, "Processing framework database...")
+
+    for filename in listdir(frameworks_dir):
+
+        if filename[-5:] == ".odex" or filename[-4:] == ".jar":
+
+            cropped = filename.replace('.jar', '').replace('.odex', '')
+            if cropped not in [x[0] for x in framework_list]:
+
+                # Determine if $BCP
+                if cropped in bootclasspath:
+                    framework_list.append((cropped, 1))
+                else:
+                    framework_list.append((cropped, 0))
+
+    # We have our list. Now we do a bulk insert and commit!
+    fwdb.addFrameworks(framework_list)
+    fwdb.close()
+
+def cmdDiff(args):
+
+    global AOSP_DB
+    global PROJECT_DB
+
+    parser = ArgumentParser(prog='frameworkdb diff',
+                            description='List framework information.')
+    parser.add_argument('--non-boot', dest='boot', action='store_const',
+                            const=False, default=True,
+                            help='Print only non-$BOOTCLASSPATH frameworks.')
+    parser.add_argument('--boot', dest='non_boot', action='store_const',
+                            const=False, default=True,
+                            help='Print only $BOOTCLASSPATH frameworks.')
+    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?',
+                            default=None,
+                            help='Use the specified database for diffing.')
+
+    args = parser.parse_args()
+
+    non_boot = args.non_boot
+    boot = args.boot
+
+    # Setup our databases.
+    # First check if we no arg is set
+    if args.aosp_db == None:
+
+        aosp_data_dir = getAospDirProp()
+        if aosp_data_dir != None:
+            aosp_db = "%s/frameworks.db" % aosp_data_dir
+            if not isfile(aosp_db):
+                log.e(TAG, "File '%s' not found. Exiting." % aosp_db)
+                return -3
+        else:
+            aosp_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not FrameworkDb.isAOSPDataInstalled():
+                log.e(TAG, "AOSP data for this API level is not installed!")
+                return -2
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            log.e(TAG, "File '%s' not found. Exiting." % aosp_db)
+            return -3
+
+    log.i(TAG, "Using diffing DB '%s'" % aosp_db)
+
+    # Can't both be negative.
+    if not boot and not non_boot:
+        log.e(TAG, "You cannot specify both --non-boot and --boot!")
+        return -4
+
+    if not isfile(PROJECT_DB):
+        log.e(TAG, "Framework datebase does not exist, please process it!")
+        return -5
+
+    local_fwdb = FrameworkDb.FrameworkDb(PROJECT_DB)
+    diff_fwdb = FrameworkDb.FrameworkDb(aosp_db)
+
+    if non_boot:
+
+        print "Non-BootClassPath Frameworks:"
+        for framework in  doDiff(local_fwdb, diff_fwdb, bootclasspath=0):
+            print "   %s" % framework
+
+    if boot:
+
+        print "BootClassPath Frameworks:"
+        for framework in doDiff(local_fwdb, diff_fwdb, bootclasspath=1):
+            print "   %s" % framework
+
+    local_fwdb.close()
+    diff_fwdb.close()
+
+    return 0
+
+def cmdList(args):
+
+    global PROJECT_DB
+
+    parser = ArgumentParser(prog='frameworkdb list',
+                            description='List framework information.')
+    parser.add_argument('--non-boot', dest='boot', action='store_const',
+                            const=False, default=True,
+                            help='Print only non-$BOOTCLASSPATH frameworks.')
+    parser.add_argument('--boot', dest='non_boot', action='store_const',
+                            const=False, default=True,
+                            help='Print only $BOOTCLASSPATH frameworks.')
+
+    args = parser.parse_args()
+
+    non_boot = args.non_boot
+    boot = args.boot
+
+    # Can't both be negative.
+    if not boot and not non_boot:
+        log.e(TAG, "You cannot specify both --non-boot and --boot!")
+        return -1
+
+    if not isfile(PROJECT_DB):
+        log.e(TAG, "Framework datebase does not exist, please process it!")
+        return -2
+
+    fwdb = FrameworkDb.FrameworkDb(PROJECT_DB)
+
+    if non_boot:
+        print "Non-BootClassPath Frameworks:"
+        for framework in fwdb.getFrameworks(non_bcp_only=True):
+
+            unpack_status = ""
+
+            if not fwdb.isUnpacked(framework):
+                unpack_status = " [NOT UNPACKED]"
+
+            print "   %s%s" % (framework, unpack_status)
+
+    if boot:
+        print "BootClassPath Frameworks:"
+        for framework in fwdb.getFrameworks(bcp_only=True):
+
+            unpack_status = ""
+
+            if not fwdb.isUnpacked(framework):
+                unpack_status = " [NOT UNPACKED]"
+
+            print "   %s%s" % (framework, unpack_status)
+
+    fwdb.close()
+    return 0
+
+def main(argv):
+
+    global PROJECT_DB
+    global AOSP_DB
+
+    PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/frameworks.db"
+    AOSP_DB = ("%s/aosp-data-%s/dbs/frameworks.db" %
+                (DTF_PACKAGES, dtfconfig.get_prop("Info", "sdk")))
+
+    # We can pop the program name off
+    argv.pop(0)
+
+    # Get the mode
+    mode = argv[0]
+
+    if mode == 'diff':
+        rtn = cmdDiff(argv)
+    elif mode == 'list':
+        rtn = cmdList(argv)
+    elif mode == 'oatextract':
+        rtn = cmdOatExtract()
+    elif mode == "pull":
+        rtn = cmdPull()
+    elif mode == "process":
+        rtn = cmdProcess()
+    elif mode == "unpack":
+        rtn = cmdUnpack()
+    else:
+        rtn = usage()
+
+    return rtn
+if __name__ == '__main__':
+
+    if len(argv) < 2:
+        exit(usage())
+    else:
+        exit(main(argv))

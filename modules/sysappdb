@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # DTF Core Content
-# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ except ImportError:
     exit(-5)
 
 
-__VERSION__ = "1.0"
+__VERSION__ = "1.1"
 
 # dtf Python Module declaration
 dtf_module = { "About" : "System application database manipulation.",
@@ -74,6 +74,8 @@ FILTER_ACTIVITIES = "activities"
 FILTER_SERVICES = "services"
 FILTER_PROVIDERS = "providers"
 FILTER_RECEIVERS = "receivers"
+FILTER_PERMISSIONS = "permissions"
+FILTER_USES_PERMISSIONS = "uses-permissions"
 # End Exposed Stuff
 
 unpack_report = None
@@ -82,6 +84,8 @@ def usage():
     print "SysAppDb dtf Module Version %s" % __VERSION__
     print ""
     print "Submodules:"
+    print "    diff         Diff an application against another database."
+    print "    dump         Dump information about application."
     print "    exposed      Print all exposed components of application(s)."
     print "    oatextract   Extract DEX from OAT files."
     print "    process      Populate the sysapp database."
@@ -1286,6 +1290,52 @@ def printIntentFilters(appdb, intent_filters):
 
             i+=1
 
+
+def doDump(appdb, app, config):
+
+    filter = config['filter']
+
+    app_name = app.project_name
+
+    log.i(TAG, "app_name : %s" % app_name)
+
+    application_id = app._id
+
+    # Parse Filters
+    if FILTER_ACTIVITIES in filter:
+        for activity in appdb.getAppActivities(application_id):
+
+            intent_filters = appdb.getIntentFilters(activity)
+            printActivity(appdb, activity, intent_filters)
+
+    if FILTER_SERVICES in filter:
+        for service in appdb.getAppServices(application_id):
+
+            intent_filters = appdb.getIntentFilters(service)
+            printService(appdb, service, intent_filters)
+
+    if FILTER_RECEIVERS in filter:
+        for receiver in appdb.getAppReceivers(application_id):
+
+            intent_filters = appdb.getIntentFilters(receiver)
+            printReceiver(appdb, receiver, intent_filters)
+
+    if FILTER_PROVIDERS in filter:
+        for provider in appdb.getAppProviders(application_id):
+
+            printProvider(provider)
+
+    if FILTER_PERMISSIONS in filter:
+        print "Permission Definitions:"
+        for permission in appdb.getAppPermissions(application_id):
+            print "   %s" % permission
+
+
+    if FILTER_USES_PERMISSIONS in filter:
+        print "Uses Permissions:"
+        for uses_permission in appdb.getAppUsesPermissions(application_id):
+            print "   %s" % uses_permission
+
 def doExposed(appdb, app, config):
 
     filter = config['filter']
@@ -1293,14 +1343,10 @@ def doExposed(appdb, app, config):
     csv_mode = config['csv_mode']
     no_google = config['no_google']
 
-    if app is None:
-        print "[ERROR] Unable to find application '%s' in DB. Exiting." % app_name
-        return -1
-
     app_name = app.project_name
 
     if no_google and AppDb.isGoogleApp(app_name):
-        log.i(TAG, "Skipping Google app '%s'" % app_name)
+        log.d(TAG, "Skipping Google app '%s'" % app_name)
         return
 
     log.i(TAG, "app_name : %s" % app_name)
@@ -1905,6 +1951,58 @@ def cmdProcess(args):
     # Write it all out
     appdb.commit()
 
+def cmdDiff(args):
+    pass
+
+def cmdDump(args):
+
+    global AOSP_DB
+    global PROJECT_DB
+
+    DEFAULT_FILTERS = ['activities','services','providers','receivers',
+                       'permissions', 'uses-permissions']
+    config = dict()
+
+    parser = ArgumentParser(prog='sysappdb dump',
+                            description='Dump information about an application.')
+    parser.add_argument('app_name', metavar="app_name", type=str, nargs='?', default=None,
+                        help='The application to check.')
+    parser.add_argument('--filter', dest='filter', default=None,
+                        help='Filter by component type(comma seperated).')
+
+    args = parser.parse_args()
+
+    app_name = args.app_name
+    filter = args.filter
+
+    if app_name is None:
+        print "You need to specify an application name. Exiting."
+        exit(-1)
+
+    if filter is None:
+        filter = DEFAULT_FILTERS
+    else:
+        filter = filter.split(',')
+
+        # Validate filter
+        for f in filter:
+            if f not in DEFAULT_FILTERS:
+                print "[ERROR] Invalid filter option: %s" % f
+                exit(-7)
+
+    config['filter'] = filter
+
+    # Get a handle to our db
+    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
+
+    app = appdb.getAppByName(app_name)
+
+    if app is None:
+        print "[ERROR] Unable to find application '%s' in DB. Exiting." % app_name
+        return -1
+
+    doDump(appdb, app, config)
+
 def cmdExposed(args):
 
     global AOSP_DB
@@ -1914,7 +2012,7 @@ def cmdExposed(args):
 
     config = dict()
 
-    parser = ArgumentParser(prog='appdb exposed',
+    parser = ArgumentParser(prog='sysappdb exposed',
                             description='Get exposed components of an application.')
     parser.add_argument('app_name', metavar="app_name", type=str, nargs='?', default=None,
                         help='The application to check.')
@@ -1971,6 +2069,12 @@ def cmdExposed(args):
     else:
         filter = filter.split(',')
 
+        # Validate filter
+        for f in filter:
+            if f not in DEFAULT_FILTERS:
+                print "[ERROR] Invalid filter option: %s" % f
+                exit(-7)
+
     config['filter'] = filter
 
     if csv_name_base != None:
@@ -2023,7 +2127,11 @@ def main(argv):
     # Get the mode
     mode = argv[0]
 
-    if mode == 'oatextract':
+    if mode == 'diff':
+        return cmdDiff(argv)
+    elif mode == 'dump':
+        return cmdDump(argv)
+    elif mode == 'oatextract':
         return cmdOatExtract(argv)
     elif mode == "pull":
         return cmdPull(argv)

@@ -1,11 +1,15 @@
-DTF Core Content
+dtf Core Content
 ================
 
 About
 -----
 This is the core content developed to help individuals perform Android device testing.  This code comes AS IS and may be broken, dangerous, or incomplete. It very much so represents a work in progress, and may not work perfectly (or at all) in some environments.  For more information regarding dtf, see the project homepage at:
 
-http://www.thecobraden.com/projects/dtf  
+https://www.thecobraden.com/projects/dtf
+
+For more information regarding what each of modules can do for you, see:
+
+https://www.thecobraden.com/projects/dtf/mods
 
 Installing
 ----------

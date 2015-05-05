@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # DTF Core Content
-# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -103,12 +103,16 @@ class AppDexDb():
 
             vm_type = dtfconfig.get_prop("Info", "vmtype")
 
-            if vm_type == "ART":
+            if vm_type[:3] == "RT":
+                # Most likely there is an ODEX, BUT it might be in the APK
                 if isfile(odex_name):
                     log.d(TAG, "ART ODEX mode selected.")
                     rtn |= self.processApplication(odex_name, out_name)            
+                elif isfile(apk_name):
+                    log.d(TAG, "ART APK mode selected.")
+                    rtn |= self.processApplication(apk_name, out_name)
                 else:
-                    log.w(TAG, "[WARNING] No ODEX for this application. '%s'" % project_name)
+                    log.w(TAG, "[WARNING] No ODEX/APK for this application. '%s'" % project_name)
 
             elif isfile(odex_name):
                 log.d(TAG, "ODEX mode selected.")

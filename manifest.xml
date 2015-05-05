@@ -19,6 +19,15 @@
           localName="modules/appdexdb" />
 
     <Item type="module"
+          name="autosign"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Sign an application with a test key."
+          localName="modules/autosign" />
+
+    <Item type="module"
           name="bindiff"
           majorVersion="1"
           minorVersion="0"
@@ -84,7 +93,7 @@
     <Item type="module"
           name="frameworkdb"
           majorVersion="1"
-          minorVersion="1"
+          minorVersion="2"
           health="beta"
           author="Jake Valletta (jakev)"
           about="Create and manipulate a database containing Android framework data."
@@ -93,20 +102,11 @@
     <Item type="module"
           name="frameworkdexdb"
           majorVersion="1"
-          minorVersion="2"
+          minorVersion="3"
           health="stable"
           author="Jake Valletta (jakev)"
           about="Create dexdb for a framework file or all frameworks."
           localName="modules/frameworkdexdb" />
-
-    <Item type="module"
-          name="frameworkdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Get a listing of OEM added framework files."
-          localName="modules/frameworkdiff" />
 
     <Item type="module"
           name="frameworkres"
@@ -125,15 +125,6 @@
           author="Jake Valletta (jakev)"
           about="Pull all system binaries (/bin/sh) to project directory."
           localName="modules/getbins" />
-
-    <Item type="module"
-          name="getframeworks"
-          majorVersion="1"
-          minorVersion="1"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Pull all framework JARs (and ODEX files) and framework resources to project directory."
-          localName="modules/getframeworks" />
 
     <Item type="module"
           name="getpermissions"
@@ -183,8 +174,8 @@
     <Item type="module"
           name="mkaosp"
           majorVersion="1"
-          minorVersion="0"
-          health="beta"
+          minorVersion="1"
+          health="stable"
           author="Jake Valletta (jakev)"
           about="Generates data needed for comparing projects."
           localName="modules/mkaosp" />
@@ -280,15 +271,6 @@
           localName="modules/testperm" />
 
     <Item type="module"
-          name="unframework"
-          majorVersion="1"
-          minorVersion="1"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Unpack all framework files, and unODEX framework files (if present)."
-          localName="modules/unframework" />
-
-    <Item type="module"
           name="userapps"
           majorVersion="1"
           minorVersion="0"
@@ -315,6 +297,15 @@
           health="stable"
           author="Jake Valletta (jakev)"
           localName="libraries/AppDb" />
+
+    <Item type="library"
+          name="FrameworkDb"
+          about="Framework Database API"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          localName="libraries/FrameworkDb" />
 
     <Item type="library"
           name="PyElfTools"
@@ -359,6 +350,14 @@
           localName="binaries/platform-diff.py" />
 
     <!-- Package Content -->
+    <Item type="package"
+          name="Autosign"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="packages/Autosign" />
+
     <Item type="package"
           name="Drozer"
           majorVersion="1"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DTF Core Content
-# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ fi
 
 # Check if DB exists
 if [ ! -f "${AOSP_DB_NAME}" ]; then
-    echo "[ERROR] Unable to find framework database '${AOSP_DB_NAME}.' Exiting."
+    echo "[ERROR] Unable to find device database '${AOSP_DB_NAME}.' Exiting."
     exit -4
 fi
 

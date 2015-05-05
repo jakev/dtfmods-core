@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # DTF Core Content
-# Copyright 2013-2014 Jake Valletta (@jake_valletta)
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 #@About: Generates data needed for comparing projects.
 #@Author: Jake Valletta (jakev)
-#@Health: beta
-#@Version: 1.0
+#@Health: stable
+#@Version: 1.1
 
 . dtf_core.sh
 . dtf_log.sh
@@ -26,7 +26,7 @@ log_i "Creating AOSP data..."
 
 # Get Data
 dtf sysappdb pull --threads 10
-dtf getframeworks
+dtf frameworkdb pull
 dtf getpermissions
 dtf getsyslibs
 dtf frameworkres
@@ -37,6 +37,7 @@ vm_type=$(dtf prop get Info vmtype)
 
 if [ "${vm_type:0:3}" = "ART" ]; then
   dtf sysappdb oatextract
+  dtf frameworkdb oatextract
 fi
 
 dtf sysappdb unpack --aosp-mode --report
@@ -44,8 +45,8 @@ dtf sysappdb process
 dtf appdexdb create --all
 
 # Frameworks
-dtf frameworkdb --aosp-mode
-dtf unframework
+dtf frameworkdb process
+dtf frameworkdb unpack --report
 dtf frameworkdexdb create --all
 
 # System Services
