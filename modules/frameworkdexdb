@@ -275,7 +275,7 @@ def main(argv):
     global AOSP_DB
     global FW_DEX_DBS_DIR
 
-    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
+    AOSP_DB = "%s/aosp-data-%s/dbs/frameworks.db" % (DTF_PACKAGES,
                                                dtfconfig.get_prop("Info", "sdk"))
 
     FW_DEX_DBS_DIR = "%s/frameworkdexdbs" % dtfconfig.get_prop("Local", "db-dir")
