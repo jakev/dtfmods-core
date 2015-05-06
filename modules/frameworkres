@@ -35,7 +35,7 @@ if [ "$1" == "-r" ]; then
     rm ${fwres_dir}/.* 2>/dev/null
 fi 
 
-for res in `ls ${framework_dir}/*.apk`;
+for res in `find ${framework_dir} -type f -regex ".*\.apk$" 2>/dev/null`;
 do
     log_i "Installing framework resource \"${res}\"...."
 
