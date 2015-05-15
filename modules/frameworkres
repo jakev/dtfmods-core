@@ -57,7 +57,7 @@ do
 
     # Check if this file already exists
     if [ -a ${fwres_dir}/${fwres_file} ]; then
-        echo -n "[WARNING] There is already a resource with this ID isntalled.  Continue? [y/N] "
+        echo -n "[WARNING] There is already a resource with this ID installed.  Continue? [y/N] "
         read input
 
         if [ "$input" != "y" ] && [ "$input" != "Y" ]; then

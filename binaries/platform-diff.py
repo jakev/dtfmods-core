@@ -51,7 +51,6 @@ def getProtectionLevel(db, permission_name):
            'WHERE p.name="%s" '
            'LIMIT 1' % (permission_name))
 
-
     rtn = c.execute(sql)
 
     try:
@@ -62,8 +61,6 @@ def getProtectionLevel(db, permission_name):
 
 def parseXML(db, root):
 
-
-
     group_mappings = {}
     account_perms = {}
 
@@ -72,9 +69,14 @@ def parseXML(db, root):
 
         permission_name = element.attrib['name']
 
-        gid_name = element.xpath("group")[0].attrib['gid']
+        for group in element.xpath("group"):
 
-        group_mappings[permission_name] = gid_name
+            gid_name = group.attrib['gid']
+
+            if permission_name not in group_mappings:
+                group_mappings[permission_name] = list()
+
+            group_mappings[permission_name].append(gid_name)
 
     # Now the permission assigns
     for element in root.findall(".//assign-permission"):
@@ -92,7 +94,6 @@ def parseXML(db, root):
     return group_mappings, account_perms
 
 TAG = "platformdiff"
-
 
 try:
     project_db = safeSqlite3Connect('.dbs/sysapps.db')
@@ -118,13 +119,25 @@ project_group_mappings, project_account_perms = parseXML(project_db, project_pla
 aosp_group_mappings, aosp_account_perms = parseXML(project_db, aosp_platform_root)
 
 print "[+] OEM Added mappings:"
-for name, gid in project_group_mappings.iteritems():
+for name, gids in project_group_mappings.iteritems():
 
+    # Name is completely new.
     if name not in aosp_group_mappings:
 
         protection_level = getProtectionLevel(project_db, name)
 
-        print "\t%s [%s] ---> %s" % (name,protection_level, gid)
+        for gid in gids:
+            print "\t%s [%s] ---> %s" % (name,protection_level, gid)
+
+    # Name might still be there
+    else:
+        aosp_gids = aosp_group_mappings[name]
+
+        protection_level = getProtectionLevel(project_db, name)
+
+        for gid in gids:
+            if gid not in aosp_gids:
+                print "\t%s [%s] ---> %s" % (name,protection_level, gid)
 
 print ""
 print "[+] OEM Added <assign-permission> tags:"
