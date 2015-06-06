@@ -154,7 +154,6 @@ class Permission(object):
     def __repr__(self):
         return "%s [%s]" % (self.name, self.protection_level)
 
-
 class Activity(object):
 
     _id = 0
@@ -371,6 +370,18 @@ class IntentData(object):
         else:
             return tmp
 
+# Signature class
+class Signature(object):
+
+    _id = 0
+    owner = ""
+    issuer = ""
+    serial = ""
+    fingerprint = ""
+
+    def __init__(self):
+        return
+
 # End Component Class Declarations
 
 #### Class AppDb ########################################
@@ -458,6 +469,14 @@ class AppDb(object):
 
         if (not self.createIntentDatasTable()):
             log.e(_TAG, "failed to create intent datas table!")
+            return -1
+
+        if (not self.createSignaturesTable()):
+            log.e(_TAG, "failed to create signatures table!")
+            return -1
+
+        if (not self.createAppUsesSignaturesTable()):
+            log.e(_TAG, "failed to create app uses signatures table!")
             return -1
 
         return 0
@@ -697,6 +716,31 @@ class AppDb(object):
 
         return self.app_db.execute(sql)
 
+    def createSignaturesTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS signatures'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'owner STRING,'
+               'issuer STRING,'
+               'serial STRING,'
+               'fingerprint STRING'
+               ')')
+
+        return self.app_db.execute(sql)
+
+    def createAppUsesSignaturesTable(self):
+
+        sql = ('CREATE TABLE IF NOT EXISTS app_uses_signatures'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'application_id INTEGER,'
+               'signature_id INTEGER,'
+               'FOREIGN KEY(application_id) REFERENCES apps(id),'
+               'FOREIGN KEY(signature_id) REFERENCES signatures(id)'
+               ')')
+
+        return self.app_db.execute(sql)
     # End Table Creation
 
 #### Table Deletion Methods ############################
@@ -718,6 +762,8 @@ class AppDb(object):
         self.app_db.execute('''DROP TABLE IF EXISTS intent_categories''')
         self.app_db.execute('''DROP TABLE IF EXISTS intent_actions''')
         self.app_db.execute('''DROP TABLE IF EXISTS intent_datas''')
+        self.app_db.execute('''DROP TABLE IF EXISTS signatures''')
+        self.app_db.execute('''DROP TABLE IF EXISTS app_uses_signatures''')
 
     # End Table Deletion
 
@@ -767,6 +813,14 @@ class AppDb(object):
 
         sql = ('INSERT INTO app_uses_permissions(application_id, permission_id) '
                "VALUES (%i,%i)" % (application_id, permission_id))
+
+        return self.app_db.execute(sql)
+
+    def addAppUsesSignature(self, application_id, signature_id):
+
+        sql = ('INSERT INTO app_uses_signatures'
+               '(application_id, signature_id) '
+               "VALUES (%i,%i)" % (application_id, signature_id))
 
         return self.app_db.execute(sql)
 
@@ -1019,6 +1073,16 @@ class AppDb(object):
                     data.mime_type, intent_filter_id))
 
         return self.app_db.execute(sql)
+
+    def addSignature(self, signature):
+
+        sql = ('INSERT INTO signatures'
+               '(owner, issuer, serial, fingerprint) '
+               "VALUES('%s', '%s', '%s', '%s')"
+                 % (signature.owner, signature.issuer,
+                    signature.serial, signature.fingerprint))
+
+        return self.app_db.execute(sql)
     # End Table Modification
 
 #### Table Querying Methods ############################
@@ -1026,7 +1090,10 @@ class AppDb(object):
 
         app_list = list()
 
-        sql = ('SELECT * '
+        sql = ('SELECT id, package_name, project_name, '
+               'decoded_path, has_native, min_sdk_version, '
+               'target_sdk_version, version_name, version_code, '
+               'permission, debuggable, successfully_unpacked '
                'FROM apps '
                'ORDER BY id')
 
@@ -1061,8 +1128,11 @@ class AppDb(object):
 
 
     def getAppById(self, application_id):
-
-        sql = ('SELECT * '
+        
+        sql = ('SELECT id, package_name, project_name, '
+               'decoded_path, has_native, min_sdk_version, '
+               'target_sdk_version, version_name, version_code, '
+               'permission, debuggable, successfully_unpacked '
                'FROM apps '
                "WHERE id=%d "
                'ORDER BY id '
@@ -1096,7 +1166,10 @@ class AppDb(object):
 
     def getAppByName(self, name):
 
-        sql = ('SELECT * '
+        sql = ('SELECT id, package_name, project_name, '
+               'decoded_path, has_native, min_sdk_version, '
+               'target_sdk_version, version_name, version_code, '
+               'permission, debuggable, successfully_unpacked '
                'FROM apps '
                "WHERE project_name='%s' "
                'ORDER BY id '
@@ -1128,10 +1201,70 @@ class AppDb(object):
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
 
+    def getAppsBySignature(self, signature):
+
+        c = self.app_db.cursor()
+
+        app_list = list()
+
+        serial = signature.serial
+        fingerprint = signature.fingerprint
+
+        sql = ('SELECT a.id '
+               'FROM apps a '
+               'JOIN app_uses_signatures aus '
+               'ON aus.application_id = a.id '
+               'JOIN signatures s '
+               'ON aus.signature_id = s.id '
+               "WHERE (s.serial='%s' "
+               "AND s.fingerprint='%s')" %
+                    (serial, fingerprint))
+
+        for line in c.execute(sql):
+            _id = line[0]
+            app_list.append( self.getAppById(_id))
+
+        return app_list
+
+    def getAppSignature(self, app):
+
+        c = self.app_db.cursor()
+        project_name = app.project_name
+        signature = Signature()
+        
+        rtn = c.execute('SELECT s.id, s.owner, s.issuer, s.serial, '
+                        's.fingerprint '
+                        'FROM signatures s '
+                        'JOIN app_uses_signatures aus '
+                        'ON aus.signature_id = s.id '
+                        'JOIN apps a '
+                        'ON aus.application_id = a.id '
+                        "WHERE a.project_name='%s'" %
+                                    (project_name))
+
+        try:
+            _id, owner, issuer, serial, fingerprint = c.fetchone()
+
+            signature._id = _id
+            signature.owner = owner
+            signature.issuer = issuer
+            signature.serial = serial
+            signature.fingerprint = fingerprint
+
+            return signature
+
+        except TypeError:
+            log.e(_TAG, "Unable to find app signature for '%s'" %
+                            project_name)
+            return None
+
     def resolveGroupByName(self, permission_group_name):
         c = self.app_db.cursor()
 
-        rtn = c.execute("SELECT * FROM permission_groups WHERE name=\"%s\"" % permission_group_name)
+        #rtn = c.execute("SELECT * FROM permission_groups WHERE name=\"%s\"" % permission_group_name)
+        rtn = c.execute('SELECT id, name, application_id '
+                        'FROM permission_groups '
+                        "WHERE name=\"%s\"" % permission_group_name)
 
         try:
             id, name, application_id = c.fetchone()
@@ -1145,7 +1278,10 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        rtn = c.execute("SELECT * FROM permission_groups WHERE id=%i" % permission_group_id)
+        #rtn = c.execute("SELECT * FROM permission_groups WHERE id=%i" % permission_group_id)
+        rtn = c.execute('SELECT id, name, application_id '
+                        'FROM permission_groups '
+                        "WHERE id=%i" % permission_group_id)
 
         try:
             id, name, application_id = c.fetchone()
@@ -1159,7 +1295,11 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        rtn = c.execute("SELECT * FROM permissions WHERE name=\"%s\"" % permission_name)
+        #rtn = c.execute("SELECT * FROM permissions WHERE name=\"%s\"" % permission_name)
+        rtn = c.execute('SELECT id, name, permission_group, protection_level, '
+                        'application_id '
+                        'FROM permissions '
+                        "WHERE name=\"%s\"" % permission_name)
 
         try:
             id, name, permission_group_id, protection_level, application_id = c.fetchone()
@@ -1179,7 +1319,11 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        rtn = c.execute("SELECT * FROM permissions WHERE id=%d" % permission_id)
+        #rtn = c.execute("SELECT * FROM permissions WHERE id=%d" % permission_id)
+        rtn = c.execute('SELECT id, name, permission_group, protection_level, '
+                        'application_id '
+                        'FROM permissions '
+                        "WHERE id=%d" % permission_id)
 
         try:
             id, name, permission_group_id, protection_level, application_id = c.fetchone()
@@ -1195,12 +1339,36 @@ class AppDb(object):
             log.e(_TAG, "Unable to resolve permission by id %d!" % permission_id)
             return None
 
+    def resolveSignature(self, signature):
+
+        c = self.app_db.cursor()
+
+        serial = signature.serial
+        fingerprint = signature.fingerprint
+
+        c.execute('SELECT id '
+               'FROM signatures '
+               "WHERE (serial='%s' "
+               "AND fingerprint='%s')" 
+                        % (serial, fingerprint))
+
+        # If we can fetch one, we already know about this signature.
+        try:
+            _id = c.fetchone()[0]
+            signature._id = _id
+            return signature
+
+        # This means it doesnt exist, return None
+        except TypeError:
+            return None
+
     def getAppPermissions(self, application_id):
-      
+ 
         perm_list = list()
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM permissions '
+        sql = ('SELECT id, name, permission_group, protection_level '
+               'FROM permissions '
                'WHERE application_id=%d' % application_id) 
         
         for line in c.execute(sql):
@@ -1242,7 +1410,9 @@ class AppDb(object):
         activity_list = list()
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM activities '
+        sql = ('SELECT id, name, permission, exported, '
+               'enabled, application_id '
+               'FROM activities '
                'WHERE application_id=%d' % application_id)
 
         for line in c.execute(sql):
@@ -1288,7 +1458,9 @@ class AppDb(object):
         service_list = list()
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM services '
+        sql = ('SELECT id, name, permission, exported, '
+               'enabled, application_id '
+               'FROM services '
                'WHERE application_id=%d' % application_id)
 
         for line in c.execute(sql):
@@ -1334,7 +1506,12 @@ class AppDb(object):
         provider_list = list()
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM providers '
+        sql = ('SELECT id, authorities, name, permission, '
+               'read_permission, write_permission, '
+               'exported, enabled, grant_uri_permissions, '
+               'path_permission_data, grant_uri_permission_data, '
+               'application_id '
+               'FROM providers '
                'WHERE application_id=%d' % application_id)
 
         for line in c.execute(sql):
@@ -1401,9 +1578,11 @@ class AppDb(object):
         receiver_list = list()
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM receivers '
+        sql = ('SELECT id, name, permission, exported, '
+               'enabled, application_id '
+               'FROM receivers '
                'WHERE application_id=%d' % application_id)
-        
+
         for line in c.execute(sql):
 
              _id = line[0]
@@ -1445,7 +1624,7 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        sql = ('SELECT * FROM protected_broadcasts '
+        sql = ('SELECT id FROM protected_broadcasts '
                "WHERE name='%s'" % name)
 
         c.execute(sql)
@@ -1495,7 +1674,7 @@ class AppDb(object):
             priority = row[1]
 
             # Actions first.
-            sql = ('SELECT ia.name from intent_actions ia '
+            sql = ('SELECT ia.name FROM intent_actions ia '
                    'JOIN intent_filters if ON if.id=ia.intent_filter_id '
                    'WHERE if.id=%i' % intent_filter_id)
 
@@ -1503,7 +1682,7 @@ class AppDb(object):
                 tmp_actions.append(action[0])
             
             # Categories.
-            sql = ('SELECT ic.name from intent_categories ic '
+            sql = ('SELECT ic.name FROM intent_categories ic '
                    'JOIN intent_filters if ON if.id=ic.intent_filter_id '
                    'WHERE if.id=%i' % intent_filter_id)
 
@@ -1511,7 +1690,10 @@ class AppDb(object):
                 tmp_categories.append(category[0])
 
             # Datas last.
-            sql = ('SELECT * from intent_datas id '
+            #sql = ('SELECT * '
+            sql = ('SELECT port, host, mime_type, path, path_pattern, '
+                   'path_prefix, scheme '
+                   'FROM intent_datas id '
                    'JOIN intent_filters if ON if.id=id.intent_filter_id '
                    'WHERE if.id=%i' % intent_filter_id)
 
@@ -1519,13 +1701,13 @@ class AppDb(object):
 
                 tmp_data = IntentData()
 
-                tmp_data.port = data[1]
-                tmp_data.host  = data[2]
-                tmp_data.mime_type = data[3]
-                tmp_data.path = data[4]
-                tmp_data.path_pattern = data[5]
-                tmp_data.path_prefix = data[6]
-                tmp_data.scheme = data[7]
+                tmp_data.port = data[0]
+                tmp_data.host  = data[1]
+                tmp_data.mime_type = data[2]
+                tmp_data.path = data[3]
+                tmp_data.path_pattern = data[4]
+                tmp_data.path_prefix = data[5]
+                tmp_data.scheme = data[6]
 
                 tmp_datas.append(tmp_data)
 
@@ -1534,6 +1716,33 @@ class AppDb(object):
                         tmp_actions, tmp_categories, tmp_datas))
 
         return intent_filters
+
+    def getPermissions(self):
+   
+        sql = ('SELECT id, name, permission_group, '
+               'protection_level, application_id '
+               'FROM permissions '
+               'ORDER BY name')
+
+        perm_list = list()
+        c = self.app_db.cursor()
+        
+        for line in c.execute(sql):
+            _id = line[0]
+            name = line[1]
+            permission_group_id = line[2]
+            protection_level = line[3]
+            application_id = line[4]
+
+            if permission_group_id != 0:
+                permission_group = self.resolveGroupById(permission_group_id)
+            else:
+                permission_group = None
+
+            perm_list.append( Permission(name, protection_level, permission_group,
+                               application_id, id=_id) )
+
+        return perm_list
 
 ########### Update Methods ########################
     def updateApplication(self, a):

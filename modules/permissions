@@ -1,28 +1,318 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
 # Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Permission searching and lookups
+from pydtf.dtfglobals import DTF_PACKAGES
+from pydtf import dtfconfig
+from pydtf import dtflog as log
 
-#@About: Simple permision printer.
-#@Author: Jake Valletta (jakev)
-#@Health: working
-#@Version: 1.1
+import sqlite3
+import AppDb
 
-. dtf_core.sh
+from argparse import ArgumentParser
+from os.path import isfile
+from sys import exit, argv
 
-cd $TOP
+__VERSION__ = "1.2"
 
-permission=$1
+# dtf Python Module declaration
+dtf_module = {"About" : "Permission searching and lookups.",
+              "Author" : "Jake Valletta (jakev)",
+              "Health" : "beta",
+              "Version" : __VERSION__}
 
-sqlite3 -separator '|' .dbs/sysapps.db "select permissions.id,permissions.name, permissions.protection_level, apps.project_name, apps.package_name from permissions join apps on permissions.application_id=apps.id" |grep "$permission"
+PROJECT_DB = ""
+AOSP_DB = ""
+
+# Additional logging settings. Uncomment for more debug.
+TAG = "permissions"
+
+# Debug
+#log.LOG_LEVEL_STDOUT = 5
+
+def usage():
+    print "Permissions dtf Module Version %s" % __VERSION__
+    print ""
+    print "Submodules:"
+    print "    appuses      List applications that use a permission."
+    print "    diff         Compare permissions to another DB."
+    print "    list         List permission information."
+    print "    lookup       Lookup where a permission is used."
+    print ""
+    exit(0)
+
+# Lookup the property associated with AOSP Databases
+def getAospDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/sysapps.db"
+    except:
+        return None
+
+def getAppsUsingPermission(appdb, permission):
+
+    sql = ('SELECT a.project_name '
+           'FROM apps a '
+           'JOIN app_uses_permissions aup '
+           'ON aup.application_id=a.id '
+           "WHERE aup.permission_id=%s "
+           'ORDER BY a.project_name' % permission._id)
+
+    cur = appdb.app_db.cursor()
+
+    cur.execute(sql)
+
+    print ("Applications requesting access to '%s'..." %
+            (permission))
+
+    for row in cur.fetchall():
+        application_name = row[0]
+        print "  %s" % application_name
+
+def getComponentsUsingPermission(appdb, permission):
+
+    activity_list = list()
+    service_list = list()
+    receiver_list = list()
+    read_provider_list = list()
+    write_provider_list = list()
+
+    for app in appdb.getApps():
+
+        for activity in appdb.getAppActivities(app._id):
+
+            if activity.permission == None: continue
+
+            if activity.permission.name == permission.name:
+                activity_list.append((app.project_name, activity))
+
+        for service in appdb.getAppServices(app._id):
+
+            if service.permission == None: continue
+
+            if service.permission.name == permission.name:
+                service_list.append((app.project_name, service))
+
+        for receiver in appdb.getAppReceivers(app._id):
+
+            if receiver.permission == None: continue
+            
+            if receiver.permission.name == permission.name:
+                receiver_list.append((app.project_name, receiver))
+
+        for provider in appdb.getAppProviders(app._id):
+
+            if provider.permission is None and provider.read_permission is None:
+                read_permission = None
+            elif provider.permission is None and provider.read_permission is not None:
+                read_permission = provider.read_permission
+            elif provider.permission is not None and provider.read_permission is None:
+                read_permission = provider.permission
+            elif provider.permission is not None and provider.read_permission is not None:
+                read_permission = provider.read_permission
+
+            # Same thing for write_permission.
+            if provider.permission is None and provider.write_permission is None:
+                write_permission = None
+            elif provider.permission is None and provider.write_permission is not None:
+                write_permission = provider.write_permission
+            elif provider.permission is not None and provider.write_permission is None:
+                write_permission = provider.permission
+            elif provider.permission is not None and provider.write_permission is not None:
+                write_permission = provider.write_permission
+            
+            if read_permission != None and read_permission.name == permission.name:
+                read_provider_list.append((app.project_name, provider))
+
+            if write_permission != None and write_permission.name == permission.name:
+                write_provider_list.append((app.project_name, provider))
+
+    print ("Components that require the permission '%s'..." %
+            (permission))
+
+    # Show
+    print "Activities:"
+    for project_name, activity in activity_list:
+        print "  %s (%s)" % (activity.name, project_name)
+    print "Services:"
+    for project_name, service in service_list:
+        print "  %s (%s)" % (service.name, project_name)
+    print "Receievers:"
+    for project_name, receiver in receiver_list:
+        print "  %s (%s)" % (receiver.name, project_name)
+    print "Providers (readable):"
+    for project_name, provider in read_provider_list:
+        print "  %s (%s)" % (provider.name, project_name)
+    print "Providers (writable):"
+    for project_name, provider in write_provider_list:
+        print "  %s (%s)" % (provider.name, project_name)
+
+
+def cmdAppUses():
+
+    global PROJECT_DB
+
+    parser = ArgumentParser(prog='permissions appuses',
+                        description='List apps that request a permission.')
+    parser.add_argument('permission_name', metavar="permission_name", 
+                        type=str, default=None,
+                        help='The permission to check.')
+
+    args = parser.parse_args()
+
+    permission_name = args.permission_name
+
+    appdb = AppDb.AppDb(PROJECT_DB)
+
+    permission = appdb.resolvePermissionByName(permission_name)
+
+    if permission == None:
+        log.e(TAG, "Permission '%s' not found!" % permission_name)
+        return -1
+
+    getAppsUsingPermission(appdb, permission)
+
+def cmdDiff():
+
+    global AOSP_DB
+    global PROJECT_DB
+
+    parser = ArgumentParser(prog='permissions diff',
+                            description='Diff the permissions against another device.')
+    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, default=None,
+                        help='Use the specified AOSP database.')
+
+    args = parser.parse_args()
+
+    if args.aosp_db == None:
+
+        prop_aosp_db = getAospDirProp()
+        if prop_aosp_db != None:
+            aosp_db = prop_aosp_db
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            aosp_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            print "[ERROR] File '%s' not found. Exiting." % aosp_db
+            return -3
+
+    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
+
+    local_db = AppDb.AppDb(PROJECT_DB)
+    diff_db = AppDb.AppDb(aosp_db)
+
+    local_permissions = local_db.getPermissions()
+    diff_permission_names = [ x.name for x in diff_db.getPermissions()]
+
+    for local_permission in local_permissions:
+
+        name = local_permission.name
+
+        if name in diff_permission_names: continue
+ 
+        app_id = local_permission.application_id
+        app = local_db.getAppById(app_id)
+
+        protection_level = local_permission.protection_level
+        project_name = app.project_name
+        package_name = app.package_name
+
+        print "%s|%s|%s (%s)" % (name, protection_level,
+                                 project_name, package_name)
+
+def cmdList():
+
+    global PROJECT_DB
+
+    appdb = AppDb.AppDb(PROJECT_DB)
+
+    for permission in appdb.getPermissions():
+
+        app_id = permission.application_id
+        app = appdb.getAppById(app_id)
+
+        name = permission.name
+        protection_level = permission.protection_level
+        project_name = app.project_name
+        package_name = app.package_name
+
+        print "%s|%s|%s (%s)" % (name, protection_level,
+                                 project_name, package_name)
+def cmdLookup():
+
+    global PROJECT_DB
+
+    parser = ArgumentParser(prog='permissions lookup',
+                   description='List components protected by a permission.')
+    parser.add_argument('permission_name', metavar="permission_name",
+                   type=str, default=None,
+                   help='The permission to check.')
+
+    args = parser.parse_args()
+
+    permission_name = args.permission_name
+
+    appdb = AppDb.AppDb(PROJECT_DB)
+
+    permission = appdb.resolvePermissionByName(permission_name)
+
+    if permission == None:
+        log.e(TAG, "Permission '%s' not found!" % permission_name)
+        return -1
+
+    getComponentsUsingPermission(appdb, permission)
+
+def main(argv):
+
+    global PROJECT_DB
+    global AOSP_DB
+
+    PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
+    AOSP_DB = ("%s/aosp-data-%s/dbs/sysapps.db" %
+                (DTF_PACKAGES, dtfconfig.get_prop("Info", "sdk")))
+
+    # We can pop the program name off
+    argv.pop(0)
+
+    # Get the mode
+    mode = argv[0]
+
+    if mode == 'appuses':
+        return cmdAppUses()
+    elif mode == 'diff':
+        return cmdDiff()
+    elif mode == 'list':
+        return cmdList()
+    elif mode == 'lookup':
+        return cmdLookup()
+    else:
+        return usage()
+
+if __name__ == '__main__':
+
+    if len(argv) < 2:
+        exit(usage())
+    else:
+        exit(main(argv))
+

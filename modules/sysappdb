@@ -17,8 +17,8 @@
 # Application Manipulation
 from pydtf.dtfadb import DtfAdb
 from pydtf.dtfcore import (
-        md5_local, apktool, TOP, baksmali, 
-        axmlprinter2, launch_module)
+        md5_local, apktool, aapt, TOP,
+        baksmali, axmlprinter2, launch_module)
 from pydtf.dtfglobals import DTF_PACKAGES
 from pydtf import dtfconfig
 from pydtf import dtflog as log
@@ -160,6 +160,52 @@ def getFileType(file):
         return TYPE_ODEX
     else:
         return TYPE_UNKNOWN
+# End File Stuff
+
+# Signature stuff
+def processSignature(path_to_apk):
+
+    cmd = ("keytool -printcert -jarfile %s"
+                % (path_to_apk)).split(' ')
+
+    p = Popen(cmd, stdout=PIPE, shell=False)
+    p.wait()
+
+    if p.returncode != 0:
+        log.e(TAG, "Error reading APK signatures!")
+        return None
+
+    owner = None
+    issuer = None
+    serial = None
+    fingerprint = None
+
+    for line in p.stdout.read().split('\n'):
+
+        try:
+            key, value = line.replace('\t','').split(':',1)
+            if value == '': continue
+
+            if key == "Owner":
+                owner = value.lstrip()
+            elif key == "Issuer":
+                issuer = value.lstrip()
+            elif key == "Serial number":
+                serial = value.lstrip()
+            elif key == " MD5":
+                fingerprint = value.lstrip()
+            else: continue
+        except:
+            continue
+
+    signature = AppDb.Signature()
+    signature.owner = owner
+    signature.issuer = issuer
+    signature.serial = serial
+    signature.fingerprint = fingerprint
+
+    return signature
+# End signature stuff
 
 # SQL Stuff TODO: move to AppDb
 def dropTables(con):
@@ -271,14 +317,11 @@ def getVersionInfo(apk_path):
                          'version_name' : None,
                          'min_sdk_version' : None,
                          'target_sdk_version' : None }
-                
-        cmd = ("aapt d badging %s" %apk_path).split(' ')
 
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
-        stdout = p.stdout.read().split("\n")
-        stderr = p.stderr.read().split("\n")
+        stdout, stderr, rtn = aapt("d badging %s" % apk_path)
 
         for line in stdout:
+
             if line == "": continue
             if line.find(':') == -1: continue
 
@@ -466,6 +509,8 @@ class DbThread(threading.Thread):
             package_name, project_name, local_name = self.queue.get()
 
             log.i(TAG, "%s Processing %s" % (self.logString(), project_name))
+
+            # First get the version info
             version_info = getVersionInfo(local_name)
             with con:
                 cur = con.cursor()
@@ -1224,6 +1269,39 @@ def parseShared(appdb, application_id, libs_dir):
         log.d(TAG, "No libs for this package.")
         return
 
+def parseSignatures(appdb, project_id, project_name):
+
+    path_to_apk = ("%s/%s.apk" 
+                % (SYSTEM_APPS_DIR, project_name))
+
+    signature = processSignature(path_to_apk)
+
+    if signature == None:
+        return -1
+
+    # First check if any application has this (yet).
+    # If no apps have, we add the signature, then add the link.
+    # Otherwise, we just add the link.
+    r_signature = appdb.resolveSignature(signature)
+    if r_signature == None:
+        # Add the signature.
+        if (appdb.addSignature(signature)):
+            log.d(TAG, "Signature added!")
+        else:
+            log.e(TAG, "Error adding signature!")
+
+        # Now we need to get the ID of the signature we just added,
+        signature_id = appdb._getLastId("signatures")
+
+    else:
+        signature_id = r_signature._id
+
+    # Now we link app to signature.
+    if not appdb.addAppUsesSignature(project_id, signature_id):
+        log.e(TAG, "Error linking application to signature!")
+        return -2
+
+    return 0
 # End Process Functionality
 
 # Exposed Functionality
@@ -1847,7 +1925,9 @@ def cmdProcess(args):
     appdb.dropTables()
 
     # Create new ones!
-    appdb.createTables()
+    if appdb.createTables() != 0:
+        log.e(TAG, "Database creation failed, exiting!")
+        return -1
 
     # First pass adds <permission-groups>, <protected-broadcasts>
     log.i(TAG, "Processing '<permission-groups>' and '<protected-broadcasts>...")
@@ -1904,7 +1984,7 @@ def cmdProcess(args):
 
     ############################################################################
 
-    # Final pass does the components, <uses-permission>, shared libs
+    # Final pass does the components, <uses-permission>, shared libs, sigs
     log.i(TAG, "Processing components, '<uses-permission>', and shared libraries...")
 
     for app in appdb.getApps():
@@ -1947,6 +2027,9 @@ def cmdProcess(args):
         log.d(TAG, "Looking for shared libraries.")
         libs_dir = decoded_path+"/lib/"
         parseShared(appdb, project_id, libs_dir)
+
+        # Do the signatures.
+        parseSignatures(appdb, project_id, project_name)
 
     # Write it all out
     appdb.commit()

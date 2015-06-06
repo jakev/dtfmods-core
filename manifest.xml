@@ -201,10 +201,10 @@
     <Item type="module"
           name="permissions"
           majorVersion="1"
-          minorVersion="1"
-          health="working"
+          minorVersion="2"
+          health="beta"
           author="Jake Valletta (jakev)"
-          about="Simple permision printer."
+          about="Permission searching and lookups."
           localName="modules/permissions" />
 
     <Item type="module"
