@@ -1414,18 +1414,20 @@ def doDump(appdb, app, config):
         for uses_permission in appdb.getAppUsesPermissions(application_id):
             print "   %s" % uses_permission
 
-def doExposed(appdb, app, config):
+def doExposed(appdb, aosp_appdb, app, config):
+
+    is_aosp = False
 
     filter = config['filter']
-
     csv_mode = config['csv_mode']
     no_google = config['no_google']
+    new_only = config['new_only']
 
     app_name = app.project_name
 
     if no_google and AppDb.isGoogleApp(app_name):
         log.d(TAG, "Skipping Google app '%s'" % app_name)
-        return
+        return 0
 
     log.i(TAG, "app_name : %s" % app_name)
 
@@ -1437,12 +1439,29 @@ def doExposed(appdb, app, config):
 
     if debuggable: print "[!!!] This application is debuggable, bad!!"
 
+    # Is this an AOSP application?
+    aosp_app = aosp_appdb.getAppByName(app_name)
+    if aosp_app != None:
+        is_aosp = True
+
     ############# Parsing ##############
     if FILTER_ACTIVITIES in filter:
+
+        # If it is an AOSP app, get the activities.
+        if is_aosp:
+            aosp_activities = map(lambda act: act.name,
+                            aosp_appdb.getAppActivities(aosp_app._id))
 
         print "[+] Printing exposed activities..."
         # Let's get exposed activities.
         for activity in appdb.getAppActivities(application_id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if new_only and is_aosp:
+                if activity.name in aosp_activities: continue
+
             enabled = activity.enabled
             exported = activity.exported
 
@@ -1488,9 +1507,21 @@ def doExposed(appdb, app, config):
 
     if FILTER_SERVICES in filter:
 
+        # If it is an AOSP app, get the activities.
+        if is_aosp:
+            aosp_services = map(lambda serv: serv.name,
+                            aosp_appdb.getAppServices(aosp_app._id))
+
         print "[+] Printing exposed services..."
         # Let's get exposed services.
         for service in appdb.getAppServices(application_id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if new_only and is_aosp:
+                if service.name in aosp_services: continue
+
             enabled = service.enabled
             exported = service.exported
 
@@ -1528,8 +1559,19 @@ def doExposed(appdb, app, config):
 
     if FILTER_PROVIDERS in filter:
 
+        # If it is an AOSP app, get the activities.
+        if is_aosp:
+            aosp_providers = map(lambda pro: pro.name,
+                            aosp_appdb.getAppProviders(aosp_app._id))
+
         print "[+] Printing exposed providers..."
         for provider in appdb.getAppProviders(application_id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if new_only and is_aosp:
+                if provider.name in aosp_providers: continue
 
             enabled = provider.enabled
             exported = provider.exported
@@ -1611,9 +1653,21 @@ def doExposed(appdb, app, config):
 
     if FILTER_RECEIVERS in filter:
 
+        # If it is an AOSP app, get the activities.
+        if is_aosp:
+            aosp_receivers = map(lambda rec: rec.name,
+                            aosp_appdb.getAppReceivers(aosp_app._id))
+
         print "[+] Printing exposed receivers..."
         # Let's get exposed receivers.
         for receiver in appdb.getAppReceivers(application_id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if new_only and is_aosp:
+                if receiver.name in aosp_receivers: continue
+
             enabled = receiver.enabled
             exported = receiver.exported
 
@@ -1648,8 +1702,104 @@ def doExposed(appdb, app, config):
                     print "   [EXP] Implicit export by intent-filter!"
                     printReceiver(appdb, receiver, intent_filters)
 
+    return 0
+
 # End Exposed Functionality
 
+def doDiff(appdb, aosp_appdb, app, config):
+
+    filter = config['filter']
+
+    app_name = app.project_name
+
+    log.i(TAG, "app_name : %s" % app_name)
+
+    application_id = app._id
+
+    aosp_app = aosp_appdb.getAppByName(app_name)
+
+    ############# Parsing ##############
+    if FILTER_ACTIVITIES in filter:
+
+        aosp_activities = map(lambda act: act.name,
+                        aosp_appdb.getAppActivities(aosp_app._id))
+
+        print "[+] Printing added activities..."
+        # Let's get new activities.
+        for activity in appdb.getAppActivities(application_id):
+
+            if activity.name in aosp_activities: continue
+
+            intent_filters = appdb.getIntentFilters(activity)
+            printActivity(appdb, activity, intent_filters)
+
+    if FILTER_SERVICES in filter:
+
+        aosp_services = map(lambda serv: serv.name,
+                        aosp_appdb.getAppServices(aosp_app._id))
+
+        print "[+] Printing added services..."
+        # Let's get new services.
+        for service in appdb.getAppServices(application_id):
+
+            if service.name in aosp_services: continue
+
+            intent_filters = appdb.getIntentFilters(service)
+            printService(appdb, service, intent_filters)
+
+    if FILTER_PROVIDERS in filter:
+
+        aosp_providers = map(lambda pro: pro.name,
+                        aosp_appdb.getAppProviders(aosp_app._id))
+
+        print "[+] Printing added providers..."
+        # Let's get new providers.
+        for provider in appdb.getAppProviders(application_id):
+
+            if provider.name in aosp_providers: continue
+
+            printProvider(provider)
+
+    if FILTER_RECEIVERS in filter:
+
+        aosp_receivers = map(lambda rec: rec.name,
+                        aosp_appdb.getAppReceivers(aosp_app._id))
+
+        print "[+] Printing added receivers..."
+        # Let's get new receivers.
+        for receiver in appdb.getAppReceivers(application_id):
+
+            if receiver.name in aosp_receivers: continue
+
+            intent_filters = appdb.getIntentFilters(receiver)
+            printReceiver(appdb, receiver, intent_filters)
+
+    if FILTER_PERMISSIONS in filter:
+
+        aosp_permissions = map(lambda perm: perm.name,
+                        aosp_appdb.getAppPermissions(aosp_app._id))
+
+        print "[+] New Permission Definitions:"
+        for permission in appdb.getAppPermissions(application_id):
+
+            if permission.name in aosp_permissions: continue
+
+            print "   %s" % permission
+
+
+    if FILTER_USES_PERMISSIONS in filter:
+
+        aosp_uses_permissions = map(lambda perm: perm.name,
+                        aosp_appdb.getAppUsesPermissions(aosp_app._id))
+
+        print "[+] New Uses Permissions:"
+        for uses_permission in appdb.getAppUsesPermissions(application_id):
+
+            if uses_permission.name in aosp_uses_permissions: continue
+
+            print "   %s" % uses_permission
+
+    return 0
 # Commands #
 def cmdOatExtract(args):
 
@@ -2035,7 +2185,88 @@ def cmdProcess(args):
     appdb.commit()
 
 def cmdDiff(args):
-    pass
+
+    global AOSP_DB
+    global PROJECT_DB
+
+    DEFAULT_FILTERS = ['activities','services','providers','receivers',
+                       'permissions', 'uses-permissions']
+
+    config = dict()
+
+    parser = ArgumentParser(prog='sysappdb exposed',
+                    description='Get differences between an application.')
+    parser.add_argument('app_name', metavar="app_name", type=str,
+                    nargs='?', default=None, help='The application to check.')
+    parser.add_argument('--filter', dest='filter', default=None,
+                    help='Filter by component type(comma seperated).')
+    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?', 
+                    default=None, help='Use the specified AOSP database.')
+
+    args = parser.parse_args()
+
+    app_name = args.app_name
+    filter = args.filter
+
+    if app_name is None:
+        print "You need to specify an application name! Exiting."
+        return -1
+
+    # No argument provided.  First check if prop is set.
+    if args.aosp_db == None:
+
+        prop_aosp_db = getAospDirProp()
+        if prop_aosp_db != None:
+            aosp_db = prop_aosp_db
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            aosp_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            print "[ERROR] File '%s' not found. Exiting." % aosp_db
+            return -3
+
+    log.i(TAG, "Using AOSP DB '%s'" % aosp_db)
+
+    if filter is None:
+        filter = DEFAULT_FILTERS
+    else:
+        filter = filter.split(',')
+
+        # Validate filter
+        for f in filter:
+            if f not in DEFAULT_FILTERS:
+                print "[ERROR] Invalid filter option: %s" % f
+                return -5
+
+    config['filter'] = filter
+
+    # Get a handle to our DBs
+    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
+    aosp_appdb = AppDb.AppDb(aosp_db)
+
+    # First, check if this is even a AOSP app. Error otherwise.
+    aosp_app = aosp_appdb.getAppByName(app_name)
+
+    if aosp_app == None:
+        print "[ERROR] This doesn't appear to be an AOSP app! Exiting."
+        return -3
+
+    app = appdb.getAppByName(app_name)
+    if app is None:
+        print ("[ERROR] Unable to find application '%s' in DB. Exiting."
+                                                % app_name)
+        return -1
+
+    return doDiff(appdb, aosp_appdb, app, config)
 
 def cmdDump(args):
 
@@ -2096,19 +2327,24 @@ def cmdExposed(args):
     config = dict()
 
     parser = ArgumentParser(prog='sysappdb exposed',
-                            description='Get exposed components of an application.')
-    parser.add_argument('app_name', metavar="app_name", type=str, nargs='?', default=None,
-                        help='The application to check.')
+                    description='Get exposed components of an application.')
+    parser.add_argument('app_name', metavar="app_name", type=str,
+                    nargs='?', default=None, help='The application to check.')
     parser.add_argument('--filter', dest='filter', default=None,
-                        help='Filter by component type(comma seperated).')
-    parser.add_argument('--all', dest='all', action='store_const', const=True, default=False,
-                        help='Run against all non-AOSP applications.')
+                    help='Filter by component type(comma seperated).')
+    parser.add_argument('--all', dest='all', action='store_const',
+                    const=True, default=False,
+                    help='Run against all non-AOSP applications.')
     parser.add_argument('--csv', dest='csv_name', default=None,
-                        help='Output data to CSV.')
-    parser.add_argument('--no-google', dest='no_google', action='store_const', const=True,
-                        default=False, help='Omit Google packages based on package name.')
-    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?', default=None,
-                        help='Use the specified AOSP database.')
+                    help='Output data to CSV.')
+    parser.add_argument('--no-google', dest='no_google', action='store_const',
+                    const=True, default=False,
+                    help='Omit Google packages based on package name.')
+    parser.add_argument('--new-only', dest='new_only', action='store_const',
+                    const=True, default=False,
+                    help='Omit Google packages based on package name.')
+    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?',
+                    default=None, help='Use the specified AOSP database.')
 
     args = parser.parse_args()
 
@@ -2175,25 +2411,29 @@ def cmdExposed(args):
         config['csv_mode'] = False
 
     config['no_google'] = args.no_google
+    config['new_only'] = args.new_only
 
-    # Get a handle to our db
+    # Get a handle to our DBs
     appdb = AppDb.AppDb(PROJECT_DB, safe=True)
+    aosp_appdb = AppDb.AppDb(aosp_db)
 
     if all_mode:
-        aosp_appdb = AppDb.AppDb(aosp_db)
-        aosp_apps = [ i.project_name for i in aosp_appdb.getApps() ]
+
+        rtn = 0
 
         for app in appdb.getApps():
-            if app.project_name not in aosp_apps:
-                doExposed(appdb, app, config)
+            rtn |= doExposed(appdb, aosp_appdb, app, config)
 
+        return rtn
     else:
         app = appdb.getAppByName(app_name)
 
         if app is None:
-            print "[ERROR] Unable to find application '%s' in DB. Exiting." % app_name
+            print ("[ERROR] Unable to find application '%s' in DB. Exiting."
+                                                    % app_name)
             return -1
-        doExposed(appdb, app, config)
+
+        return doExposed(appdb, aosp_appdb, app, config)
 
 def main(argv):
 
