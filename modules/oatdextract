@@ -19,7 +19,7 @@
 import struct
 from argparse import ArgumentParser
 from os import mkdir
-from os.path import isdir
+from os.path import isdir, isfile
 from sys import argv, stderr, exit
 
 from elftools.common.exceptions import ELFError
@@ -212,6 +212,12 @@ class OatElf(object):
             out_file_path = "%s/%s%s.odex" % (self.out_dir, self.base_name, num)
         else:
             out_file_path = "%s/%s" % (self.out_dir, out_file_name)
+
+        # Check if the output file already exists.
+        if isfile(out_file_path):
+            log.e(TAG, "The output file '%s' already exists! Not saving!" %
+                  out_file_path)
+            return -1
 
         log.i(TAG, 
             "Carving DEX '%s' to '%s' (0x%4x) @%i" %
