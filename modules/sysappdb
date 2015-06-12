@@ -79,6 +79,7 @@ FILTER_USES_PERMISSIONS = "uses-permissions"
 # End Exposed Stuff
 
 unpack_report = None
+missing_perm_list = None
 
 def usage():
     print "SysAppDb dtf Module Version %s" % __VERSION__
@@ -248,8 +249,11 @@ def createTables(con):
                'version_name TEXT, '
                'version_code TEXT, '
                'permission INTEGER DEFAULT 0, '
-               'debuggable ITEGER, '
-               'successfully_unpacked INTEGER DEFAULT 0)')
+               'debuggable INTEGER, '
+               'successfully_unpacked INTEGER DEFAULT 0, '
+               'shared_user_id TEXT, '
+               'shared_user_label TEXT)')
+
         cur.execute(sql)
 
     con.commit()
@@ -833,7 +837,9 @@ def parseProtectedBroadcasts(appdb, application_id, manifest_path):
 
     appdb.commit()
 
-def parseActivities(appdb, application_id, manifest_path):
+def parseActivities(appdb, application_id, manifest_path, save_missing):
+
+    global missing_perm_list
 
     manifest_f = open(manifest_path)
 
@@ -884,6 +890,9 @@ def parseActivities(appdb, application_id, manifest_path):
             # This is the error case.
             if permission is None:
                 log.w(TAG, "[addActivity] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Activity",
+                                              name, permission_name])
 
         activity = AppDb.Activity(name, enabled, exported, permission,
                                   application_id)
@@ -905,7 +914,9 @@ def parseActivities(appdb, application_id, manifest_path):
 
     appdb.commit()
 
-def parseServices(appdb, application_id, manifest_path):
+def parseServices(appdb, application_id, manifest_path, save_missing):
+
+    global missing_perm_list
 
     manifest_f = open(manifest_path)
 
@@ -956,6 +967,9 @@ def parseServices(appdb, application_id, manifest_path):
             # This is the error case.
             if permission is None:
                 log.w(TAG, "[addService] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Service",
+                                              name, permission_name])
 
         service = AppDb.Service(name, enabled, exported, permission,
                                 application_id)
@@ -977,7 +991,9 @@ def parseServices(appdb, application_id, manifest_path):
 
     appdb.commit()
 
-def parseProviders(appdb, application_id, manifest_path):
+def parseProviders(appdb, application_id, manifest_path, save_missing):
+
+    global missing_perm_list
 
     manifest_f = open(manifest_path)
 
@@ -1040,12 +1056,19 @@ def parseProviders(appdb, application_id, manifest_path):
             # This is the error case.
             if permission is None:
                 log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Provider",
+                                              name, permission_name])
+
         if read_permission_name is not "None":
             read_permission = appdb.resolvePermissionByName(read_permission_name)
 
             # This is the error case.
             if read_permission is None:
                 log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, read_permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Provider-R",
+                                              name, read_permission_name])
 
         if write_permission_name is not "None":
             write_permission = appdb.resolvePermissionByName(write_permission_name)
@@ -1053,6 +1076,9 @@ def parseProviders(appdb, application_id, manifest_path):
             # This is the error case.
             if write_permission is None:
                 log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, write_permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Provider-W",
+                                              name, write_permission_name])
 
         grant_uri_permission_data = combineTags(p, ".//grant-uri-permission")
 
@@ -1070,7 +1096,9 @@ def parseProviders(appdb, application_id, manifest_path):
     appdb.commit()
 
 
-def parseReceivers(appdb, application_id, manifest_path):
+def parseReceivers(appdb, application_id, manifest_path, save_missing):
+
+    global missing_perm_list
 
     manifest_f = open(manifest_path)
 
@@ -1122,6 +1150,9 @@ def parseReceivers(appdb, application_id, manifest_path):
             # This is the error case.
             if permission is None:
                 log.w(TAG, "[addReceiver] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
+                if save_missing:
+                    missing_perm_list.append([manifest_path, "Receiver",
+                                              name, permission_name])
 
         receiver = AppDb.Receiver(name, enabled, exported, permission,
                                   application_id)
@@ -1302,6 +1333,25 @@ def parseSignatures(appdb, project_id, project_name):
         return -2
 
     return 0
+
+def parseSharedUser(appdb, application_id, manifest_path):
+
+    manifest_f = open(manifest_path)
+
+    app = appdb.getAppById(application_id)
+
+    try:
+        root = etree.XML(manifest_f.read())
+    except etree.XMLSyntaxError:
+        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
+        return -4
+
+    app.shared_user_id = getAttrib(root,
+                                     "sharedUserId", default=None)
+    app.shared_user_label = getAttrib(root,
+                                    "sharedUserLabel", default=None)
+    appdb.updateApplication(app)
+
 # End Process Functionality
 
 # Exposed Functionality
@@ -2062,11 +2112,21 @@ def cmdProcess(args):
     global PROJECT_DB
 
     parser = ArgumentParser(prog='sysappdb process',
-                            description='Process all application components.')
+                        description='Process all application components.')
+    parser.add_argument('--save-missing', dest='save_missing',
+                        action='store_const', const=True, default=False,
+                        help='Saves a missing permission report.')
 
     args = parser.parse_args()
+    save_missing = args.save_missing
 
     rtn = 0
+
+    # For saving missing permissions, we use the format:
+    # application, component_type, component_name, permission_used
+    if save_missing:
+        global missing_perm_list
+        missing_perm_list = list()
 
     # First, we are going to iterate over the apps we have in the system.db
     appdb = AppDb.AppDb(PROJECT_DB)
@@ -2162,16 +2222,16 @@ def cmdProcess(args):
         parseAppPermission(appdb, project_id, manifest_path)
 
         log.d(TAG, "Parsing <activity> tags for %s" % project_name)
-        parseActivities(appdb, project_id, manifest_path)
+        parseActivities(appdb, project_id, manifest_path, save_missing)
 
         log.d(TAG, "Parsing <service> tags for %s" % project_name)
-        parseServices(appdb, project_id, manifest_path)
+        parseServices(appdb, project_id, manifest_path, save_missing)
 
         log.d(TAG, "Parsing <provider> tags for %s" % project_name)
-        parseProviders(appdb, project_id, manifest_path)
+        parseProviders(appdb, project_id, manifest_path, save_missing)
 
         log.d(TAG, "Parsing <reciever> tags for %s" % project_name)
-        parseReceivers(appdb, project_id, manifest_path)
+        parseReceivers(appdb, project_id, manifest_path, save_missing)
 
         # Now look for the native code.
         log.d(TAG, "Looking for shared libraries.")
@@ -2181,8 +2241,28 @@ def cmdProcess(args):
         # Do the signatures.
         parseSignatures(appdb, project_id, project_name)
 
+        # Do UserID related tasks.
+        parseSharedUser(appdb, project_id, manifest_path)
+
     # Write it all out
     appdb.commit()
+
+    # If we are generating the missing perm report, do it here.
+    if save_missing:
+        log.i(TAG, "Saving missing permission report...")
+
+        report_file_path = ("%s/%s" %
+                    (dtfconfig.get_prop("Local", "reports-dir"),
+                     'missing_permissions.csv'))
+
+        report_f = open(report_file_path, 'w')
+
+        for line in missing_perm_list:
+            report_f.write(','.join(line)+"\n")
+
+        report_f.close()
+
+    return 0
 
 def cmdDiff(args):
 

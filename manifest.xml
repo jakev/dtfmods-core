@@ -199,6 +199,15 @@
           localName="modules/oatdextract" />
 
     <Item type="module"
+          name="pbroadcasts"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Print protected broadcast actions."
+          localName="modules/pbroadcasts" />
+
+    <Item type="module"
           name="permissions"
           majorVersion="1"
           minorVersion="2"

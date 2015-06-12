@@ -80,10 +80,13 @@ class Application(object):
     permisison = None
     debuggable = None
     successfully_unpacked = None
+    shared_user_id = ''
+    shared_user_label = ''
 
     def __init__(self, package_name, project_name, decoded_path, has_native,
                 min_sdk_version, target_sdk_version, version_name,
-                version_code, permission, debuggable, id=None):
+                version_code, permission, debuggable, shared_user_id,
+                shared_user_label, id=None):
 
         self.project_name = project_name
         self.package_name = package_name
@@ -104,7 +107,10 @@ class Application(object):
         self.version_code = version_code
 
         self.permission = permission
- 
+
+        self.shared_user_id = shared_user_id
+        self.shared_user_label = shared_user_label
+
         if id is not None:
             self._id = id
 
@@ -1093,7 +1099,8 @@ class AppDb(object):
         sql = ('SELECT id, package_name, project_name, '
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
-               'permission, debuggable, successfully_unpacked '
+               'permission, debuggable, successfully_unpacked, '
+               'shared_user_id, shared_user_label '
                'FROM apps '
                'ORDER BY id')
 
@@ -1111,6 +1118,8 @@ class AppDb(object):
             permission_id = line[9]
             debuggable = line[10]
             successfully_unpacked = line[11]
+            shared_user_id = line[12]
+            shared_user_label = line[13]
 
             if not dont_resolve:
                 if permission_id != 0 and permission_id is not None:
@@ -1120,10 +1129,12 @@ class AppDb(object):
             else:
                 permission = None
 
-            app_list.append( Application(package_name, project_name, decoded_path,
-                                         has_native, min_sdk_version, target_sdk_version,
-                                         version_name, version_code, permission,
-                                         debuggable, id) )
+            app_list.append(
+                    Application(package_name, project_name, decoded_path,
+                                has_native, min_sdk_version, target_sdk_version,
+                                version_name, version_code, permission,
+                                debuggable, shared_user_id, shared_user_label,
+                                id=id))
         return app_list
 
 
@@ -1132,7 +1143,8 @@ class AppDb(object):
         sql = ('SELECT id, package_name, project_name, '
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
-               'permission, debuggable, successfully_unpacked '
+               'permission, debuggable, successfully_unpacked, '
+               'shared_user_id, shared_user_label '
                'FROM apps '
                "WHERE id=%d "
                'ORDER BY id '
@@ -1147,9 +1159,10 @@ class AppDb(object):
             if fetched == None:
                 return None
 
-            (id, package_name, project_name, decoded_path, has_native, min_sdk_version, 
-             target_sdk_version, version_name, version_code, permission_id, debuggable,
-             successfully_unpacked) = fetched
+            (id, package_name, project_name, decoded_path, has_native,
+             min_sdk_version, target_sdk_version, version_name, version_code,
+             permission_id, debuggable, successfully_unpacked, shared_user_id,
+             shared_user_label) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -1157,9 +1170,10 @@ class AppDb(object):
                 permission = None
 
             return Application(package_name, project_name, decoded_path,
-                                         has_native, min_sdk_version, target_sdk_version,
-                                         version_name, version_code, permission,
-                                         debuggable, id)
+                               has_native, min_sdk_version, target_sdk_version,
+                               version_name, version_code, permission,
+                               debuggable, shared_user_id, shared_user_label,
+                               id=id)
         except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
@@ -1169,7 +1183,8 @@ class AppDb(object):
         sql = ('SELECT id, package_name, project_name, '
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
-               'permission, debuggable, successfully_unpacked '
+               'permission, debuggable, successfully_unpacked, '
+               'shared_user_id, shared_user_label '
                'FROM apps '
                "WHERE project_name='%s' "
                'ORDER BY id '
@@ -1184,9 +1199,10 @@ class AppDb(object):
             if fetched == None:
                 return None
 
-            (id, package_name, project_name, decoded_path, has_native, min_sdk_version,
-             target_sdk_version, version_name, version_code, permission_id, debuggable,
-             successfully_unpacked) = fetched
+            (id, package_name, project_name, decoded_path, has_native,
+             min_sdk_version, target_sdk_version, version_name, version_code,
+             permission_id, debuggable, successfully_unpacked, shared_user_id,
+             shared_user_label) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -1194,9 +1210,10 @@ class AppDb(object):
                 permission = None
 
             return Application(package_name, project_name, decoded_path,
-                                         has_native, min_sdk_version, target_sdk_version,
-                                         version_name, version_code, permission,
-                                         debuggable, id)
+                               has_native, min_sdk_version, target_sdk_version,
+                               version_name, version_code, permission,
+                               debuggable, shared_user_id, shared_user_label,
+                               id=id)
         except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
@@ -1634,6 +1651,20 @@ class AppDb(object):
         else:
             return True
 
+    def getProtectedActions(self):
+
+        intent_list = list()
+        c = self.app_db.cursor()
+
+        sql = ('SELECT DISTINCT name '
+               'FROM protected_broadcasts '
+               'ORDER BY name')
+
+        try:
+            return map(lambda x: x[0], c.execute(sql))
+        except:
+            return None
+
     def getIntentFilters(self, component):
 
         intent_filters = list()
@@ -1752,15 +1783,20 @@ class AppDb(object):
         else:
             permission_id = a.permission._id
 
-        sql = ("UPDATE apps SET id=?, package_name=?, project_name=?, decoded_path=?, "
-               "has_native=?, min_sdk_version=?, target_sdk_version=?, version_name=?, " 
-               "version_code=?, debuggable=?, permission=?, successfully_unpacked=? "
-               "WHERE id=?")
+        sql = ('UPDATE apps '
+               'SET id=?, package_name=?, project_name=?, decoded_path=?, '
+               'has_native=?, min_sdk_version=?, target_sdk_version=?, '
+               'version_name=?, version_code=?, debuggable=?, permission=?, '
+               'successfully_unpacked=?, shared_user_id=?, '
+               'shared_user_label=? '
+               'WHERE id=?')
 
-        return self.app_db.execute(sql, (a._id, a.package_name, a.project_name, a.decoded_path,
-                                         a.has_native, a.min_sdk_version, a.target_sdk_version,
-                                         a.version_name, a.version_code, a.debuggable, permission_id,
-                                         a.successfully_unpacked, a._id))
+        return self.app_db.execute(sql,
+                    (a._id, a.package_name, a.project_name, a.decoded_path,
+                     a.has_native, a.min_sdk_version, a.target_sdk_version,
+                     a.version_name, a.version_code, a.debuggable,
+                     permission_id, a.successfully_unpacked, a.shared_user_id,
+                     a.shared_user_label, a._id))
 # End class AppDb
 
 # Helpers
