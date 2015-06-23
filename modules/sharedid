@@ -1,56 +1,154 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
 # Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# Shared ID Searching
+from argparse import ArgumentParser
+from os.path import isfile
+from pydtf import dtfconfig
+from pydtf import dtflog as log
+from pydtf.dtfglobals import DTF_PACKAGES
+from sys import argv
 
-#@About: Find all shared ID occurances for a give useSharedId string.
-#@Author: Jake Valletta (jakev)
-#@Health: stable
-#@Version: 1.0
+import AppDb
 
-do_search()
-{
+__VERSION__ = "1.1"
 
-    IFS=$'\r\n' filenames=($( grep -rEo "sharedUserId=\"[a-zA-Z0-9\.]*\"" ${1}/*/AndroidManifest.xml | awk -F\: '{print $1}'| sed 's/\/AndroidManifest\.xml//g'|sed "s/${1}\///g"))
-    IFS=$'\r\n' shared_id=($( grep -rEo "sharedUserId=\"[a-zA-Z0-9\.]*\"" ${1}/*/AndroidManifest.xml | awk -F\: '{print $2}'|tr -d \"|
-    sed 's/sharedUserId=//g'))
+# dtf Python Module declaration
+dtf_module = {"About" : "Find apps with a shared ID or by shared ID.",
+              "Author" : "Jake Valletta (jakev)",
+              "Health" : "stable",
+              "Version" : __VERSION__}
 
-    i=0
-    for item in "${shared_id[@]}"
-    do
-        if [[ "$item" =~ "$search_shared_id" ]]; then
-            echo "   [+] ${filenames[$i]} (${item})"
-        fi
+# Debug
+#log.LOG_LEVEL_STDOUT = 5
 
-        i=`expr $i + 1`
-    done
-}
+PROJECT_DB = ""
+AOSP_DB = ""
 
-. dtf_core.sh
+TAG = "sharedid"
 
+# Lookup the property associated with AOSP Databases
+def getAospDirProp():
+    try:
+        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/sysapps.db"
+    except:
+        return None
 
-if [ -z "$1" ]; then
+def main():
 
-    echo "Usage: sharedid <shared_id_string>"
-    exit -1
-fi
+    global AOSP_DB
+    global PROJECT_DB
 
-search_shared_id="$1"
+    PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
+    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
+                                               dtfconfig.get_prop("Info", "sdk"))
 
-echo "AOSP Shared:"
-do_search "decoded-aosp"
+    list_mode = False
 
+    oem_apps = list()
+    aosp_apps = list()
 
-echo "OEM Shared:"
-do_search "decoded-oem"
+    parser = ArgumentParser(prog='sharedid',
+                    description='Find apps with a shared ID or by shared ID.')
+    parser.add_argument('shared_id', metavar="shared_id", type=str,
+                    nargs='?', default=None, help='The (optional) shared ID.')
+    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?',
+                    default=None, help='Use the specified AOSP database.')
+
+    args = parser.parse_args()
+
+    shared_id = args.shared_id
+
+    if shared_id == None:
+        list_mode = True
+
+    # Determine which AOSP to use.
+    if args.aosp_db == None:
+
+        prop_aosp_db = getAospDirProp()
+        if prop_aosp_db != None:
+            aosp_db = prop_aosp_db
+            if not isfile(aosp_db):
+                print "[ERROR] File '%s' not found. Exiting." % aosp_db
+                return -3
+        else:
+            aosp_db = AOSP_DB
+
+            # Make sure that the AOSP_DB actually exists.
+            if not AppDb.isAOSPDataInstalled():
+                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+                return -2
+    else:
+        aosp_db = args.aosp_db
+        if not isfile(aosp_db):
+            print "[ERROR] File '%s' not found. Exiting." % aosp_db
+            return -3
+
+    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
+
+    # Get a handle to our DBs
+    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
+    aosp_appdb = AppDb.AppDb(aosp_db)
+
+    # List only
+    if list_mode:
+
+        shared_apps = dict()
+
+        for app in appdb.getApps():
+
+            shared_id = app.shared_user_id
+            if shared_id == None: continue
+
+            if shared_id not in shared_apps:
+                shared_apps[shared_id] = [app.project_name]
+            else:
+                shared_apps[shared_id].append(app.project_name)
+
+        # Print it out
+        for shared_id, apps in shared_apps.iteritems():
+
+            print "Shared ID '%s':" % shared_id
+            for app in sorted(apps):
+                print "   [+] %s" % app
+
+    # Lookup apps by the given shared ID
+    else:
+
+        for app in appdb.getAppsBySharedUserId(shared_id):
+
+            project_name = app.project_name
+
+            # Is it AOSP?
+            if aosp_appdb.getAppByName(project_name) == None:
+                oem_apps.append(project_name)
+            else:
+                aosp_apps.append(project_name)               
+
+        # Print it out
+        print "AOSP Shared:"
+        for app in aosp_apps:
+            print "   [+] %s" % app
+
+        print "OEM Shared:"
+        for app in oem_apps:
+            print "   [+] %s" % app
+
+        return 0
+
+if __name__ == '__main__':
+
+    exit(main())

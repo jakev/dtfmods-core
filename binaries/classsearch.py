@@ -52,13 +52,21 @@ def searchDb(db_name, config):
 
         if method_search:
 
+            method_matches = list()
+
             mc = conn.cursor()
             msql = ("SELECT name FROM methods where class_id=%d" % class_id)
             
             for method_name in mc.execute(msql):
 
                 if method_name[0] == search_method_name:
-                    print "   %s->%s" % (class_name,method_name[0])
+                    method_matches.append([class_name, method_name[0]])
+
+            if len(method_matches) > 0:
+                print "Match(es) in '%s':" % db_name
+                for match in method_matches:
+                    print "   %s->%s" % (match[0], match[1])
+
         else:
             if exact:
                 if class_name == search_class_name:

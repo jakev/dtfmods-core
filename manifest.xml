@@ -237,10 +237,10 @@
     <Item type="module"
           name="sharedid"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
-          about="Find all shared ID occurances for a give useSharedId string."
+          about="Find apps with a shared ID or by shared ID."
           localName="modules/sharedid" />
 
     <Item type="module"

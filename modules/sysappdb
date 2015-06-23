@@ -2080,7 +2080,7 @@ def cmdUnpack(args):
                 print "[ERROR] File '%s' not found. Exiting." % aosp_db
                 return -3
 
-        log.i(TAG, "Using AOSP DB '%s'" % aosp_db)
+        log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
 
         mkdir(DECODED_AOSP_DIR)
         mkdir(DECODED_OEM_DIR)
@@ -2314,7 +2314,7 @@ def cmdDiff(args):
             print "[ERROR] File '%s' not found. Exiting." % aosp_db
             return -3
 
-    log.i(TAG, "Using AOSP DB '%s'" % aosp_db)
+    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
 
     if filter is None:
         filter = DEFAULT_FILTERS
@@ -2461,7 +2461,7 @@ def cmdExposed(args):
             print "[ERROR] File '%s' not found. Exiting." % aosp_db
             return -3
 
-    log.i(TAG, "Using AOSP DB '%s'" % aosp_db)
+    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
 
     if filter is None:
         filter = DEFAULT_FILTERS

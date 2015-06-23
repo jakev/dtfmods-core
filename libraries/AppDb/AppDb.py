@@ -1275,6 +1275,22 @@ class AppDb(object):
                             project_name)
             return None
 
+    def getAppsBySharedUserId(self, shared_id_name):
+
+        c = self.app_db.cursor()
+
+        app_list = list()
+
+        sql = ('SELECT id '
+               'FROM apps '
+               "WHERE shared_user_id='%s'" % shared_id_name)
+
+        for line in c.execute(sql):
+            _id = line[0]
+            app_list.append( self.getAppById(_id))
+
+        return app_list
+
     def resolveGroupByName(self, permission_group_name):
         c = self.app_db.cursor()
 

@@ -535,7 +535,7 @@ def cmdDiff(args):
             log.e(TAG, "File '%s' not found. Exiting." % aosp_db)
             return -3
 
-    log.i(TAG, "Using diffing DB '%s'" % aosp_db)
+    log.d(TAG, "Using diffing DB '%s'" % aosp_db)
 
     # Can't both be negative.
     if not boot and not non_boot:

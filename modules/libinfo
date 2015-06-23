@@ -25,7 +25,7 @@ print_info()
 {
 	lib_name=$(pwd)/$1
 
-        log_d "Doing : ${lib_name}"
+    echo "Doing : ${lib_name}"
 
 	echo "Dev grep:"
 	grep -rEo --text "/dev/([a-zA-Z0-9_\-\.]*[/]?)*" ${lib_name}
@@ -36,7 +36,7 @@ print_info()
 
 if [ "$1" == "-d" ] && [ ! -z "$2" ]; then
 
-    dir=${TOP}/$2
+    dir=$2
 
     if [ ! -d "${dir}" ]; then
         echo "Directory ${dir} does not exist. Exiting."
