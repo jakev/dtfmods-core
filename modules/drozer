@@ -17,10 +17,48 @@
 #@About: Starts a drozer session on the device (requires Drozer install).
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
+
+. dtf_core.sh
+. dtf_log.sh
+
+build_new()
+{
+    ADB=adb
+    APKTOOL=dtf_apktool
+    AUTOSIGN="dtf autosign"
+    DROZER_DIR=$TOP/.drozer
+    DIST_DIR=$DROZER_DIR/dist
+    PROJECT_NAME=com.mwr.dz
+    APK_NAME=drozer-agent-2.3.2.apk
+    APK_NAME_SIGNED=drozer-agent-2.3.2-signed.apk
+
+    # Clean
+    log_i "Cleaning old Drozer build..."
+    rm ${DIST_DIR}/${APK_NAME} 2> /dev/null
+    rm ${DIST_DIR}/${APK_NAME_SIGNED} 2> /dev/null
+
+    # Build APK
+    log_i "Building new APK..."
+    ${APKTOOL} build
+
+    log_i "Signing APK..."
+    ${AUTOSIGN} ${DIST_DIR}/${APK_NAME} ${DIST_DIR}/${APK_NAME_SIGNED}
+
+    # Uninstall old, install new.
+    log_i "Removing and installing new version..."
+    ${ADB} wait-for-device
+    ${ADB} uninstall ${PROJECT_NAME}
+    ${ADB} install ${DIST_DIR}/${APK_NAME_SIGNED}
+}
 
 command -v drozer >/dev/null 2>&1 || \
     { echo "\`drozer\` command not found in path. Is it installed?"; exit -1; }
+
+if [ "$1" = "make" ]; then
+    build_new
+    exit 0
+fi
 
 # Make sure we can get to our device.
 echo "Waiting for device..."

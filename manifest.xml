@@ -66,7 +66,7 @@
     <Item type="module"
           name="drozer"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
           about="Starts a drozer session on the device (requires Drozer install)."
@@ -226,6 +226,15 @@
           localName="modules/platformdiff" />
 
     <Item type="module"
+          name="process-all"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Attempts to perform all preprocessing."
+          localName="modules/process-all" />
+
+    <Item type="module"
           name="secretcode"
           majorVersion="1"
           minorVersion="1"
@@ -370,7 +379,7 @@
     <Item type="package"
           name="Drozer"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
           localName="packages/Drozer" />

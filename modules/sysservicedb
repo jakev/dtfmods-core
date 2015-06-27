@@ -41,7 +41,8 @@ __VERSION__ = "1.0"
 PROJECT_DB = ''
 AOSP_DB = ''
 
-log.LOG_LEVEL_STDOUT = 5
+# Debugging
+#log.LOG_LEVEL_STDOUT = 5
                                    
 TAG="sysservicedb"
 
@@ -56,7 +57,7 @@ def usage():
     print "ServiceDb dtf Module Version %s" % __VERSION__
     print ""
     print "Submodules:"
-    print "    create      Create the appdb database."
+    print "    create      Create the system service database."
     print "    diff        Diff System Service(s) against local db."
     print "    dump        Dumps details about a system service."
     print ""

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Attempts to perform all preprocessing.
+#@Author: Jake Valletta (jakev)
+#@Health: beta
+#@Version: 1.0
+
+. dtf_core.sh
+. dtf_log.sh
+
+echo "[WARNING] This script is VERY beta. Things will likely not work perfectly!!!"
+echo "You will need to provide user input at various points."
+echo ""
+echo "For more info, please consult:"
+echo "   https://thecobraden.com/projects/dtf/example"
+echo ""
+echo -n "Press enter to continue. "
+
+read _
+
+log_i "Getting all data from device..."
+
+# Get Data
+dtf sysappdb pull --threads 10 --no-md5
+dtf frameworkdb pull
+dtf getpermissions
+dtf getsyslibs
+dtf bindiff --pull
+
+log_i "Getting apktool ready..."
+dtf frameworkres
+
+log_i "Unpacking data..."
+# Unpack, process
+vm_type=$(dtf prop get Info vmtype)
+
+if [ "${vm_type:0:3}" = "ART" ]; then
+  log_i "Doing OAT extraction..."
+  dtf sysappdb oatextract
+  dtf frameworkdb oatextract
+fi
+
+# Applications
+log_i "Unpacking applications..."
+dtf sysappdb unpack --report
+dtf sysappdb process --save-missing
+
+# Frameworks
+log_i "Unpacking frameworks..."
+dtf frameworkdb process
+dtf frameworkdb unpack --report
+
+# Devices
+log_i "Generating device database..."
+dtf devdb create
+
+# DEX DBs
+log_i "Generating DEX databases.  This will take some time..."
+dtf frameworkdexdb create --all
+dtf appdexdb create --all-aosps
+
+# System Services
+log_i "Generating system services database..."
+dtf sysservicedb create

@@ -26,8 +26,8 @@ SRC=${DTF_PACKAGES}/Autosign
 out=your_app_signed.apk
 
 if [ -z "$1" ]; then
-  echo "Usage: autosign [your_unsigned_apk]" 
-  exit -1
+    echo "Usage: autosign your_unsigned_apk [output_file]"
+    exit -1
 fi
 
 in=$1
