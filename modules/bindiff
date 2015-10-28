@@ -19,8 +19,7 @@
 #@Health: broken
 #@Version: 1.0
 
-# Imports 
-. dtf_core.sh
+. $DTF_CORE
 
 make_csv()
 {
@@ -31,7 +30,6 @@ make_csv()
     fi
 
     csv_file=${reports_dir}/oembins.csv
-
 
     echo "Binary Name,Permissions,Owner,Group,Size,\"File Detail\",Notes" > ${csv_file}
 
@@ -63,8 +61,6 @@ sdk=$(dtf prop get Info sdk)
 binlist_file=${DTF_PACKAGES}/aosp-data-${sdk}/bindirlist
 
 IFS=$'\n' aosp_binlist=($(cat ${binlist_file}))
-
-echo ${aosp_binlist[*]}
 
 if [ "$1" == "--pull" ]; then 
     echo "Pulling OEM bins to \"${pull_dir}\""

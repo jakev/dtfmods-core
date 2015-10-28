@@ -1,24 +1,213 @@
-#!/usr/bin/env bash
-# DTF Core Content
+#!/usr/bin/env python
+# Android Device Testing Framework ("dtf")
 # Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""Search across framework or application DEX databases"""
 
-#@About: Search class files for classname (requires DEX databases).
-#@Author: Jake Valletta (jakev)
-#@Health: stable
-#@Version: 1.0
+import dtf.properties as prop
+import dtf.logging as log
+from dtf.module import Module
 
-. dtf_core.sh
+import sqlite3
+from argparse import ArgumentParser
+from os import listdir
 
-${DTF_BINS}/classsearch.py $@
+TAG = 'classsearch'
+
+
+class classsearch(Module):
+
+    """Module class for searching DEX databses"""
+
+    about = 'Search across DEX databases (requires processed DEX DBs).'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'classsearch'
+    version = '1.0'
+
+    @classmethod
+    def search_db(cls, db_name, config):
+
+        """Perform search"""
+
+        search_class_name = config['class_name']
+        search_method_name = config['method_name']
+        show_fields = config['show_fields']
+        show_methods = config['show_methods']
+        field_contains = config['field_contains']
+        file_mode = config['file_mode']
+        exact = config['exact']
+
+        method_search = False
+
+        log.d(TAG, "Doing : %s" % (db_name))
+        class_list = list()
+
+        if search_method_name is not None:
+            method_search = True
+
+        conn = sqlite3.connect(db_name)
+
+        cursor = conn.cursor()
+
+        sql = ('SELECT id, name, access_flags, superclass '
+               'FROM classes')
+
+        for cls_id, cls_name, access_flags, superclass in cursor.execute(sql):
+
+            if method_search:
+
+                method_matches = list()
+
+                m_cursor = conn.cursor()
+                msql = ('SELECT name '
+                        'FROM methods '
+                        "WHERE class_id=%d" % cls_id)
+
+                for method_name in m_cursor.execute(msql):
+
+                    if method_name[0] == search_method_name:
+                        method_matches.append([cls_name, method_name[0]])
+
+                if len(method_matches) > 0:
+                    print "Match(es) in '%s':" % db_name
+
+                    for match in method_matches:
+                        print "   %s->%s" % (match[0], match[1])
+
+            else:
+                if exact:
+                    if cls_name == search_class_name:
+                        class_list.append(cls_name)
+                else:
+                    if cls_name.find(search_class_name) != -1:
+                        class_list.append(cls_name)
+
+        if not method_search and len(class_list) != 0:
+            if not file_mode:
+                print "[+] In database: %s" % (db_name)
+            for n_class in class_list:
+                if file_mode:
+
+                    dex_db_dir = '.dbs/frameworkdexdbs/'
+                    tmp_fw_file = db_name.replace(dex_db_dir, "")
+                    framework_file = tmp_fw_file.replace(".db", "")
+
+                    unframework_dir = prop.get_prop("Local", "unframework-dir")
+                    dotted_path = n_class.replace(".", "/")
+
+                    print ("%s/%s/%s.smali"
+                            % (unframework_dir, framework_file, dotted_path))
+                else:
+                    print "\t%s" % (n_class)
+                if show_fields:
+                    fsql = ('SELECT sf.name '
+                            'FROM static_fields sf '
+                            'JOIN classes c '
+                            'ON c.id=sf.class_id '
+                            "WHERE c.name='%s'" % n_class)
+
+                    for field_name in cursor.execute(fsql):
+
+                        if field_name[0].find(field_contains) != -1:
+                            print "\t  +%s" % field_name[0]
+
+    def execute(self, args):
+
+        """Main executor method"""
+
+        config = dict()
+        class_name = None
+        method_name = None
+
+        parser = ArgumentParser(prog=self.name,
+                            description='Search for a class name.')
+        parser.add_argument('search_class', help='Class to search for.',
+                            default=None)
+        parser.add_argument('--frameworks', dest='fw', action='store_const',
+                            const=True, default=False,
+                            help='Search framework files.')
+        parser.add_argument('--apps', dest='app', action='store_const',
+                            const=True, default=False,
+                            help='Search application files.')
+        parser.add_argument('-e', dest='exact', action='store_const',
+                            const=True, default=False,
+                            help='Match exact name.')
+        parser.add_argument('-f', dest='file_mode', action='store_const',
+                            const=True, default=False,
+                            help='Print path to file instead.')
+        parser.add_argument('--hasMethod', dest='has_method',
+                            help='Search by method name.')
+        parser.add_argument('--implements', dest='implements', default=None,
+                            help='Search by implemented class')
+        parser.add_argument('--fields', dest='show_fields',
+                            action='store_const', const=1, default=0,
+                            help='Display fields for matching class')
+        parser.add_argument('--methods', dest='show_methods',
+                            action='store_const', const=1, default=0,
+                            help='Display methods for matching class')
+        parser.add_argument('--fieldContains', dest='field_contains',
+                            default=None, help='Filter fields')
+
+        parsed_args = parser.parse_args(args)
+
+        search_frameworks = parsed_args.fw
+        search_apps = parsed_args.app
+
+        if search_frameworks == False and search_apps == False:
+            log.e(TAG, "You must specify either '--frameworks' or '--apps'!")
+            return -2
+
+        method_name = parsed_args.has_method
+        class_name = parsed_args.search_class
+        show_methods = parsed_args.show_methods
+        show_fields = parsed_args.show_fields
+        field_contains = parsed_args.field_contains
+        exact = parsed_args.exact
+        file_mode = parsed_args.file_mode
+
+        config['method_name'] = method_name
+        config['class_name'] = class_name
+        config['show_methods'] = show_methods
+        config['show_fields'] = show_fields
+        config['field_contains'] = field_contains
+        config['file_mode'] = file_mode
+        config['exact'] = exact
+
+        if class_name is None and method_name is None:
+            log.e(TAG, "You need to specify a class_name to search for!")
+            exit(2)
+
+        db_dir = prop.get_prop("Local", "db-dir")
+
+        if search_frameworks:
+            # For file in frameworkdexdbs
+            try:
+                for db_file in listdir(db_dir + "/frameworkdexdbs/"):
+                    self.search_db(db_dir + "/frameworkdexdbs/" + db_file,
+                                   config)
+            except OSError:
+                log.e(TAG, "Error listing framework DEX DBs, do they exist?")
+                return -4
+
+        if search_apps:
+            # For file in appdexdbs
+            try:
+                for db_file in listdir(db_dir + "/appdexdbs/"):
+                    self.search_db(db_dir + "/appdexdbs/" + db_file, config)
+            except OSError:
+                log.e(TAG, "Error listing app DEX DBs, do they exist?")
+                return -4
+

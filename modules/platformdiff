@@ -35,7 +35,7 @@ PLATFORM_XML_NAME = 'platform.xml'
 
 class platformdiff(Module):
 
-    """Module class for archiving a project"""
+    """Module class for diffing platform.xml"""
 
     about = 'Parse the /system/etc/permissions/platform.xml file.'
     author = 'Jake Valletta (jakev)'
