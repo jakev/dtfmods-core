@@ -25,7 +25,7 @@
 
 .method public static newAccessibilityNodeProviderBridge(Landroid/support/v4/view/accessibility/AccessibilityNodeProviderCompatJellyBean$AccessibilityNodeInfoBridge;)Ljava/lang/Object;
     .locals 1
-    .parameter "bridge"
+    .param p0, "bridge"    # Landroid/support/v4/view/accessibility/AccessibilityNodeProviderCompatJellyBean$AccessibilityNodeInfoBridge;
 
     .prologue
     .line 38

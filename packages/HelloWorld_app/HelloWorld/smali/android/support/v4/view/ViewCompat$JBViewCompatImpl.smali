@@ -29,7 +29,7 @@
 # virtual methods
 .method public getAccessibilityNodeProvider(Landroid/view/View;)Landroid/support/v4/view/accessibility/AccessibilityNodeProviderCompat;
     .locals 2
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 493
@@ -38,7 +38,7 @@
     move-result-object v0
 
     .line 494
-    .local v0, compat:Ljava/lang/Object;
+    .local v0, "compat":Ljava/lang/Object;
     if-eqz v0, :cond_0
 
     .line 495
@@ -58,7 +58,7 @@
 
 .method public getImportantForAccessibility(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 481
@@ -71,7 +71,7 @@
 
 .method public getParentForAccessibility(Landroid/view/View;)Landroid/view/ViewParent;
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 502
@@ -84,7 +84,7 @@
 
 .method public hasTransientState(Landroid/view/View;)Z
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 457
@@ -97,9 +97,9 @@
 
 .method public performAccessibilityAction(Landroid/view/View;ILandroid/os/Bundle;)Z
     .locals 1
-    .parameter "view"
-    .parameter "action"
-    .parameter "arguments"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "action"    # I
+    .param p3, "arguments"    # Landroid/os/Bundle;
 
     .prologue
     .line 489
@@ -112,7 +112,7 @@
 
 .method public postInvalidateOnAnimation(Landroid/view/View;)V
     .locals 0
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 465
@@ -124,11 +124,11 @@
 
 .method public postInvalidateOnAnimation(Landroid/view/View;IIII)V
     .locals 0
-    .parameter "view"
-    .parameter "left"
-    .parameter "top"
-    .parameter "right"
-    .parameter "bottom"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "left"    # I
+    .param p3, "top"    # I
+    .param p4, "right"    # I
+    .param p5, "bottom"    # I
 
     .prologue
     .line 469
@@ -140,8 +140,8 @@
 
 .method public postOnAnimation(Landroid/view/View;Ljava/lang/Runnable;)V
     .locals 0
-    .parameter "view"
-    .parameter "action"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "action"    # Ljava/lang/Runnable;
 
     .prologue
     .line 473
@@ -153,9 +153,9 @@
 
 .method public postOnAnimationDelayed(Landroid/view/View;Ljava/lang/Runnable;J)V
     .locals 0
-    .parameter "view"
-    .parameter "action"
-    .parameter "delayMillis"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "action"    # Ljava/lang/Runnable;
+    .param p3, "delayMillis"    # J
 
     .prologue
     .line 477
@@ -167,8 +167,8 @@
 
 .method public setHasTransientState(Landroid/view/View;Z)V
     .locals 0
-    .parameter "view"
-    .parameter "hasTransientState"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "hasTransientState"    # Z
 
     .prologue
     .line 461
@@ -180,8 +180,8 @@
 
 .method public setImportantForAccessibility(Landroid/view/View;I)V
     .locals 0
-    .parameter "view"
-    .parameter "mode"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "mode"    # I
 
     .prologue
     .line 485

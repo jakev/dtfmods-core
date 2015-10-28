@@ -29,9 +29,9 @@
 # virtual methods
 .method public addChild(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "child"
-    .parameter "virtualDescendantId"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "virtualDescendantId"    # I
 
     .prologue
     .line 681
@@ -43,8 +43,8 @@
 
 .method public findFocus(Ljava/lang/Object;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "focus"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "focus"    # I
 
     .prologue
     .line 671
@@ -57,8 +57,8 @@
 
 .method public focusSearch(Ljava/lang/Object;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "direction"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "direction"    # I
 
     .prologue
     .line 676
@@ -71,7 +71,7 @@
 
 .method public getMovementGranularities(Ljava/lang/Object;)I
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 721
@@ -84,7 +84,7 @@
 
 .method public isAccessibilityFocused(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 701
@@ -97,7 +97,7 @@
 
 .method public isVisibleToUser(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 691
@@ -110,8 +110,8 @@
 
 .method public obtain(Landroid/view/View;I)Ljava/lang/Object;
     .locals 1
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p1, "root"    # Landroid/view/View;
+    .param p2, "virtualDescendantId"    # I
 
     .prologue
     .line 666
@@ -124,9 +124,9 @@
 
 .method public performAction(Ljava/lang/Object;ILandroid/os/Bundle;)Z
     .locals 1
-    .parameter "info"
-    .parameter "action"
-    .parameter "arguments"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "action"    # I
+    .param p3, "arguments"    # Landroid/os/Bundle;
 
     .prologue
     .line 711
@@ -139,8 +139,8 @@
 
 .method public setAccessibilityFocused(Ljava/lang/Object;Z)V
     .locals 0
-    .parameter "info"
-    .parameter "focused"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "focused"    # Z
 
     .prologue
     .line 706
@@ -152,8 +152,8 @@
 
 .method public setMovementGranularities(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "info"
-    .parameter "granularities"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "granularities"    # I
 
     .prologue
     .line 716
@@ -165,9 +165,9 @@
 
 .method public setParent(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "root"    # Landroid/view/View;
+    .param p3, "virtualDescendantId"    # I
 
     .prologue
     .line 726
@@ -179,9 +179,9 @@
 
 .method public setSource(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "root"    # Landroid/view/View;
+    .param p3, "virtualDescendantId"    # I
 
     .prologue
     .line 686
@@ -193,8 +193,8 @@
 
 .method public setVisibleToUser(Ljava/lang/Object;Z)V
     .locals 0
-    .parameter "info"
-    .parameter "visibleToUser"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "visibleToUser"    # Z
 
     .prologue
     .line 696

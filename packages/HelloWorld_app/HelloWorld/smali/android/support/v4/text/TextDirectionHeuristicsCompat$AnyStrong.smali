@@ -55,7 +55,7 @@
 
 .method private constructor <init>(Z)V
     .locals 0
-    .parameter "lookForRtl"
+    .param p1, "lookForRtl"    # Z
 
     .prologue
     .line 231
@@ -72,9 +72,9 @@
 # virtual methods
 .method public checkRtl(Ljava/lang/CharSequence;II)I
     .locals 6
-    .parameter "cs"
-    .parameter "start"
-    .parameter "count"
+    .param p1, "cs"    # Ljava/lang/CharSequence;
+    .param p2, "start"    # I
+    .param p3, "count"    # I
 
     .prologue
     const/4 v3, 0x1
@@ -85,13 +85,13 @@
     const/4 v1, 0x0
 
     .line 207
-    .local v1, haveUnlookedFor:Z
+    .local v1, "haveUnlookedFor":Z
     move v2, p2
 
-    .local v2, i:I
+    .local v2, "i":I
     add-int v0, p2, p3
 
-    .local v0, e:I
+    .local v0, "e":I
     :goto_0
     if-ge v2, v0, :cond_2
 
@@ -104,7 +104,7 @@
 
     move-result v5
 
-    #calls: Landroid/support/v4/text/TextDirectionHeuristicsCompat;->isRtlText(I)I
+    # invokes: Landroid/support/v4/text/TextDirectionHeuristicsCompat;->isRtlText(I)I
     invoke-static {v5}, Landroid/support/v4/text/TextDirectionHeuristicsCompat;->access$200(I)I
 
     move-result v5

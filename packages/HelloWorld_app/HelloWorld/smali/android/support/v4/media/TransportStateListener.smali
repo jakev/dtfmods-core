@@ -18,7 +18,7 @@
 # virtual methods
 .method public onPlayingChanged(Landroid/support/v4/media/TransportController;)V
     .locals 0
-    .parameter "controller"
+    .param p1, "controller"    # Landroid/support/v4/media/TransportController;
 
     .prologue
     .line 30
@@ -27,7 +27,7 @@
 
 .method public onTransportControlsChanged(Landroid/support/v4/media/TransportController;)V
     .locals 0
-    .parameter "controller"
+    .param p1, "controller"    # Landroid/support/v4/media/TransportController;
 
     .prologue
     .line 38

@@ -29,8 +29,8 @@
 # virtual methods
 .method public configureMenuItem(Landroid/view/MenuItem;Landroid/support/v4/app/ShareCompat$IntentBuilder;)V
     .locals 2
-    .parameter "item"
-    .parameter "shareIntent"
+    .param p1, "item"    # Landroid/view/MenuItem;
+    .param p2, "shareIntent"    # Landroid/support/v4/app/ShareCompat$IntentBuilder;
 
     .prologue
     .line 125
@@ -65,7 +65,7 @@
 
 .method shouldAddChooserIntent(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p1, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 133

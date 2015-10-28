@@ -29,7 +29,7 @@
 # virtual methods
 .method public getViewIdResourceName(Ljava/lang/Object;)Ljava/lang/String;
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 734
@@ -42,8 +42,8 @@
 
 .method public setViewIdResourceName(Ljava/lang/Object;Ljava/lang/String;)V
     .locals 0
-    .parameter "info"
-    .parameter "viewId"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "viewId"    # Ljava/lang/String;
 
     .prologue
     .line 739

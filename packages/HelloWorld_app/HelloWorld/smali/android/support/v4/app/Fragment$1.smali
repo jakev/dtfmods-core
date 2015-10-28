@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/app/Fragment;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 1461
@@ -39,7 +38,7 @@
 # virtual methods
 .method public findViewById(I)Landroid/view/View;
     .locals 2
-    .parameter "id"
+    .param p1, "id"    # I
 
     .prologue
     .line 1464

@@ -23,7 +23,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/widget/SlidingPaneLayout;)V
     .locals 1
-    .parameter
 
     .prologue
     .line 1395
@@ -43,15 +42,15 @@
 
 .method private copyNodeInfoNoChildren(Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
     .locals 2
-    .parameter "dest"
-    .parameter "src"
+    .param p1, "dest"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
+    .param p2, "src"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
 
     .prologue
     .line 1454
     iget-object v0, p0, Landroid/support/v4/widget/SlidingPaneLayout$AccessibilityDelegate;->mTmpRect:Landroid/graphics/Rect;
 
     .line 1456
-    .local v0, rect:Landroid/graphics/Rect;
+    .local v0, "rect":Landroid/graphics/Rect;
     invoke-virtual {p2, v0}, Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;->getBoundsInParent(Landroid/graphics/Rect;)V
 
     .line 1457
@@ -162,7 +161,7 @@
 # virtual methods
 .method public filter(Landroid/view/View;)Z
     .locals 1
-    .parameter "child"
+    .param p1, "child"    # Landroid/view/View;
 
     .prologue
     .line 1444
@@ -177,8 +176,8 @@
 
 .method public onInitializeAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 1
-    .parameter "host"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 1429
@@ -199,8 +198,8 @@
 
 .method public onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
     .locals 6
-    .parameter "host"
-    .parameter "info"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "info"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
 
     .prologue
     .line 1400
@@ -209,7 +208,7 @@
     move-result-object v4
 
     .line 1401
-    .local v4, superNode:Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
+    .local v4, "superNode":Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
     invoke-super {p0, p1, v4}, Landroid/support/v4/view/AccessibilityDelegateCompat;->onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
 
     .line 1402
@@ -236,7 +235,7 @@
     move-result-object v3
 
     .line 1409
-    .local v3, parent:Landroid/view/ViewParent;
+    .local v3, "parent":Landroid/view/ViewParent;
     instance-of v5, v3, Landroid/view/View;
 
     if-eqz v5, :cond_0
@@ -244,7 +243,7 @@
     .line 1410
     check-cast v3, Landroid/view/View;
 
-    .end local v3           #parent:Landroid/view/ViewParent;
+    .end local v3    # "parent":Landroid/view/ViewParent;
     invoke-virtual {p2, v3}, Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;->setParent(Landroid/view/View;)V
 
     .line 1415
@@ -256,10 +255,10 @@
     move-result v1
 
     .line 1416
-    .local v1, childCount:I
+    .local v1, "childCount":I
     const/4 v2, 0x0
 
-    .local v2, i:I
+    .local v2, "i":I
     :goto_0
     if-ge v2, v1, :cond_2
 
@@ -271,7 +270,7 @@
     move-result-object v0
 
     .line 1418
-    .local v0, child:Landroid/view/View;
+    .local v0, "child":Landroid/view/View;
     invoke-virtual {p0, v0}, Landroid/support/v4/widget/SlidingPaneLayout$AccessibilityDelegate;->filter(Landroid/view/View;)Z
 
     move-result v5
@@ -299,16 +298,16 @@
     goto :goto_0
 
     .line 1425
-    .end local v0           #child:Landroid/view/View;
+    .end local v0    # "child":Landroid/view/View;
     :cond_2
     return-void
 .end method
 
 .method public onRequestSendAccessibilityEvent(Landroid/view/ViewGroup;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "host"
-    .parameter "child"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/ViewGroup;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 1437

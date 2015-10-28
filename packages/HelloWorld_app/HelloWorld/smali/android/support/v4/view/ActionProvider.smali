@@ -27,7 +27,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 0
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 78
@@ -77,7 +77,7 @@
 
 .method public onCreateActionView(Landroid/view/MenuItem;)Landroid/view/View;
     .locals 1
-    .parameter "forItem"
+    .param p1, "forItem"    # Landroid/view/MenuItem;
 
     .prologue
     .line 109
@@ -100,7 +100,7 @@
 
 .method public onPrepareSubMenu(Landroid/view/SubMenu;)V
     .locals 0
-    .parameter "subMenu"
+    .param p1, "subMenu"    # Landroid/view/SubMenu;
 
     .prologue
     .line 208
@@ -148,7 +148,7 @@
 
 .method public setSubUiVisibilityListener(Landroid/support/v4/view/ActionProvider$SubUiVisibilityListener;)V
     .locals 0
-    .parameter "listener"
+    .param p1, "listener"    # Landroid/support/v4/view/ActionProvider$SubUiVisibilityListener;
 
     .prologue
     .line 226
@@ -160,7 +160,7 @@
 
 .method public setVisibilityListener(Landroid/support/v4/view/ActionProvider$VisibilityListener;)V
     .locals 3
-    .parameter "listener"
+    .param p1, "listener"    # Landroid/support/v4/view/ActionProvider$VisibilityListener;
 
     .prologue
     .line 236
@@ -217,7 +217,7 @@
 
 .method public subUiVisibilityChanged(Z)V
     .locals 1
-    .parameter "isVisible"
+    .param p1, "isVisible"    # Z
 
     .prologue
     .line 217

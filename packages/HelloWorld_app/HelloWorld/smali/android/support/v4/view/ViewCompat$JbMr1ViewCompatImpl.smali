@@ -29,7 +29,7 @@
 # virtual methods
 .method public getLabelFor(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 510
@@ -42,7 +42,7 @@
 
 .method public getLayoutDirection(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 525
@@ -55,8 +55,8 @@
 
 .method public setLabelFor(Landroid/view/View;I)V
     .locals 0
-    .parameter "view"
-    .parameter "id"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "id"    # I
 
     .prologue
     .line 515
@@ -68,8 +68,8 @@
 
 .method public setLayerPaint(Landroid/view/View;Landroid/graphics/Paint;)V
     .locals 0
-    .parameter "view"
-    .parameter "paint"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "paint"    # Landroid/graphics/Paint;
 
     .prologue
     .line 520
@@ -81,8 +81,8 @@
 
 .method public setLayoutDirection(Landroid/view/View;I)V
     .locals 0
-    .parameter "view"
-    .parameter "layoutDirection"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "layoutDirection"    # I
 
     .prologue
     .line 530

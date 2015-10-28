@@ -32,7 +32,7 @@
 # virtual methods
 .method public getQuery(Landroid/view/View;)Ljava/lang/CharSequence;
     .locals 1
-    .parameter "searchView"
+    .param p1, "searchView"    # Landroid/view/View;
 
     .prologue
     .line 92
@@ -43,7 +43,7 @@
 
 .method public isIconified(Landroid/view/View;)Z
     .locals 1
-    .parameter "searchView"
+    .param p1, "searchView"    # Landroid/view/View;
 
     .prologue
     .line 109
@@ -54,7 +54,7 @@
 
 .method public isQueryRefinementEnabled(Landroid/view/View;)Z
     .locals 1
-    .parameter "searchView"
+    .param p1, "searchView"    # Landroid/view/View;
 
     .prologue
     .line 127
@@ -65,7 +65,7 @@
 
 .method public isSubmitButtonEnabled(Landroid/view/View;)Z
     .locals 1
-    .parameter "searchView"
+    .param p1, "searchView"    # Landroid/view/View;
 
     .prologue
     .line 118
@@ -76,7 +76,7 @@
 
 .method public newOnCloseListener(Landroid/support/v4/widget/SearchViewCompat$OnCloseListenerCompat;)Ljava/lang/Object;
     .locals 1
-    .parameter "listener"
+    .param p1, "listener"    # Landroid/support/v4/widget/SearchViewCompat$OnCloseListenerCompat;
 
     .prologue
     .line 83
@@ -87,7 +87,7 @@
 
 .method public newOnQueryTextListener(Landroid/support/v4/widget/SearchViewCompat$OnQueryTextListenerCompat;)Ljava/lang/Object;
     .locals 1
-    .parameter "listener"
+    .param p1, "listener"    # Landroid/support/v4/widget/SearchViewCompat$OnQueryTextListenerCompat;
 
     .prologue
     .line 74
@@ -98,7 +98,7 @@
 
 .method public newSearchView(Landroid/content/Context;)Landroid/view/View;
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 57
@@ -109,8 +109,8 @@
 
 .method public setIconified(Landroid/view/View;Z)V
     .locals 0
-    .parameter "searchView"
-    .parameter "iconify"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "iconify"    # Z
 
     .prologue
     .line 105
@@ -119,8 +119,8 @@
 
 .method public setImeOptions(Landroid/view/View;I)V
     .locals 0
-    .parameter "searchView"
-    .parameter "imeOptions"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "imeOptions"    # I
 
     .prologue
     .line 66
@@ -129,8 +129,8 @@
 
 .method public setInputType(Landroid/view/View;I)V
     .locals 0
-    .parameter "searchView"
-    .parameter "inputType"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "inputType"    # I
 
     .prologue
     .line 70
@@ -139,8 +139,8 @@
 
 .method public setMaxWidth(Landroid/view/View;I)V
     .locals 0
-    .parameter "searchView"
-    .parameter "maxpixels"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "maxpixels"    # I
 
     .prologue
     .line 132
@@ -149,8 +149,8 @@
 
 .method public setOnCloseListener(Ljava/lang/Object;Ljava/lang/Object;)V
     .locals 0
-    .parameter "searchView"
-    .parameter "listener"
+    .param p1, "searchView"    # Ljava/lang/Object;
+    .param p2, "listener"    # Ljava/lang/Object;
 
     .prologue
     .line 88
@@ -159,8 +159,8 @@
 
 .method public setOnQueryTextListener(Ljava/lang/Object;Ljava/lang/Object;)V
     .locals 0
-    .parameter "searchView"
-    .parameter "listener"
+    .param p1, "searchView"    # Ljava/lang/Object;
+    .param p2, "listener"    # Ljava/lang/Object;
 
     .prologue
     .line 79
@@ -169,9 +169,9 @@
 
 .method public setQuery(Landroid/view/View;Ljava/lang/CharSequence;Z)V
     .locals 0
-    .parameter "searchView"
-    .parameter "query"
-    .parameter "submit"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "query"    # Ljava/lang/CharSequence;
+    .param p3, "submit"    # Z
 
     .prologue
     .line 97
@@ -180,8 +180,8 @@
 
 .method public setQueryHint(Landroid/view/View;Ljava/lang/CharSequence;)V
     .locals 0
-    .parameter "searchView"
-    .parameter "hint"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "hint"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 101
@@ -190,8 +190,8 @@
 
 .method public setQueryRefinementEnabled(Landroid/view/View;Z)V
     .locals 0
-    .parameter "searchView"
-    .parameter "enable"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "enable"    # Z
 
     .prologue
     .line 123
@@ -200,8 +200,8 @@
 
 .method public setSearchableInfo(Landroid/view/View;Landroid/content/ComponentName;)V
     .locals 0
-    .parameter "searchView"
-    .parameter "searchableComponent"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "searchableComponent"    # Landroid/content/ComponentName;
 
     .prologue
     .line 62
@@ -210,8 +210,8 @@
 
 .method public setSubmitButtonEnabled(Landroid/view/View;Z)V
     .locals 0
-    .parameter "searchView"
-    .parameter "enabled"
+    .param p1, "searchView"    # Landroid/view/View;
+    .param p2, "enabled"    # Z
 
     .prologue
     .line 114

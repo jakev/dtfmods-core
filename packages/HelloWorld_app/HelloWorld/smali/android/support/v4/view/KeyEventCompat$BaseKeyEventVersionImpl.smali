@@ -36,11 +36,11 @@
 
 .method private static metaStateFilterDirectionalModifiers(IIIII)I
     .locals 5
-    .parameter "metaState"
-    .parameter "modifiers"
-    .parameter "basic"
-    .parameter "left"
-    .parameter "right"
+    .param p0, "metaState"    # I
+    .param p1, "modifiers"    # I
+    .param p2, "basic"    # I
+    .param p3, "left"    # I
+    .param p4, "right"    # I
 
     .prologue
     const/4 v2, 0x1
@@ -55,18 +55,18 @@
     move v1, v2
 
     .line 56
-    .local v1, wantBasic:Z
+    .local v1, "wantBasic":Z
     :goto_0
     or-int v0, p3, p4
 
     .line 57
-    .local v0, directional:I
+    .local v0, "directional":I
     and-int v4, p1, v0
 
     if-eqz v4, :cond_1
 
     .line 59
-    .local v2, wantLeftOrRight:Z
+    .local v2, "wantLeftOrRight":Z
     :goto_1
     if-eqz v1, :cond_4
 
@@ -82,17 +82,17 @@
 
     throw v3
 
-    .end local v0           #directional:I
-    .end local v1           #wantBasic:Z
-    .end local v2           #wantLeftOrRight:Z
+    .end local v0    # "directional":I
+    .end local v1    # "wantBasic":Z
+    .end local v2    # "wantLeftOrRight":Z
     :cond_0
     move v1, v3
 
     .line 55
     goto :goto_0
 
-    .restart local v0       #directional:I
-    .restart local v1       #wantBasic:Z
+    .restart local v0    # "directional":I
+    .restart local v1    # "wantBasic":Z
     :cond_1
     move v2, v3
 
@@ -100,20 +100,20 @@
     goto :goto_1
 
     .line 63
-    .restart local v2       #wantLeftOrRight:Z
+    .restart local v2    # "wantLeftOrRight":Z
     :cond_2
     xor-int/lit8 v3, v0, -0x1
 
     and-int/2addr p0, v3
 
     .line 67
-    .end local p0
+    .end local p0    # "metaState":I
     :cond_3
     :goto_2
     return p0
 
     .line 64
-    .restart local p0
+    .restart local p0    # "metaState":I
     :cond_4
     if-eqz v2, :cond_3
 
@@ -129,10 +129,10 @@
 # virtual methods
 .method public dispatch(Landroid/view/KeyEvent;Landroid/view/KeyEvent$Callback;Ljava/lang/Object;Ljava/lang/Object;)Z
     .locals 1
-    .parameter "event"
-    .parameter "receiver"
-    .parameter "state"
-    .parameter "target"
+    .param p1, "event"    # Landroid/view/KeyEvent;
+    .param p2, "receiver"    # Landroid/view/KeyEvent$Callback;
+    .param p3, "state"    # Ljava/lang/Object;
+    .param p4, "target"    # Ljava/lang/Object;
 
     .prologue
     .line 114
@@ -145,7 +145,7 @@
 
 .method public getKeyDispatcherState(Landroid/view/View;)Ljava/lang/Object;
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 108
@@ -156,7 +156,7 @@
 
 .method public isTracking(Landroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "event"
+    .param p1, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 103
@@ -167,8 +167,8 @@
 
 .method public metaStateHasModifiers(II)Z
     .locals 4
-    .parameter "metaState"
-    .parameter "modifiers"
+    .param p1, "metaState"    # I
+    .param p2, "modifiers"    # I
 
     .prologue
     const/4 v0, 0x1
@@ -214,7 +214,7 @@
 
 .method public metaStateHasNoModifiers(I)Z
     .locals 1
-    .parameter "metaState"
+    .param p1, "metaState"    # I
 
     .prologue
     .line 94
@@ -239,7 +239,7 @@
 
 .method public normalizeMetaState(I)I
     .locals 1
-    .parameter "metaState"
+    .param p1, "metaState"    # I
 
     .prologue
     .line 73
@@ -268,7 +268,7 @@
 
 .method public startTracking(Landroid/view/KeyEvent;)V
     .locals 0
-    .parameter "event"
+    .param p1, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 99

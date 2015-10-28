@@ -23,7 +23,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/widget/DrawerLayout;)V
     .locals 1
-    .parameter
 
     .prologue
     .line 1527
@@ -43,8 +42,8 @@
 
 .method private addChildrenForAccessibility(Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;Landroid/view/ViewGroup;)V
     .locals 5
-    .parameter "info"
-    .parameter "v"
+    .param p1, "info"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
+    .param p2, "v"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 1548
@@ -53,10 +52,10 @@
     move-result v1
 
     .line 1549
-    .local v1, childCount:I
+    .local v1, "childCount":I
     const/4 v2, 0x0
 
-    .local v2, i:I
+    .local v2, "i":I
     :goto_0
     if-ge v2, v1, :cond_2
 
@@ -66,7 +65,7 @@
     move-result-object v0
 
     .line 1551
-    .local v0, child:Landroid/view/View;
+    .local v0, "child":Landroid/view/View;
     invoke-virtual {p0, v0}, Landroid/support/v4/widget/DrawerLayout$AccessibilityDelegate;->filter(Landroid/view/View;)Z
 
     move-result v4
@@ -74,7 +73,7 @@
     if-eqz v4, :cond_1
 
     .line 1549
-    .end local v0           #child:Landroid/view/View;
+    .end local v0    # "child":Landroid/view/View;
     :cond_0
     :goto_1
     :pswitch_0
@@ -83,14 +82,14 @@
     goto :goto_0
 
     .line 1558
-    .restart local v0       #child:Landroid/view/View;
+    .restart local v0    # "child":Landroid/view/View;
     :cond_1
     invoke-static {v0}, Landroid/support/v4/view/ViewCompat;->getImportantForAccessibility(Landroid/view/View;)I
 
     move-result v3
 
     .line 1559
-    .local v3, importance:I
+    .local v3, "importance":I
     packed-switch v3, :pswitch_data_0
 
     :pswitch_1
@@ -117,13 +116,13 @@
     .line 1566
     check-cast v0, Landroid/view/ViewGroup;
 
-    .end local v0           #child:Landroid/view/View;
+    .end local v0    # "child":Landroid/view/View;
     invoke-direct {p0, p1, v0}, Landroid/support/v4/widget/DrawerLayout$AccessibilityDelegate;->addChildrenForAccessibility(Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;Landroid/view/ViewGroup;)V
 
     goto :goto_1
 
     .line 1578
-    .end local v3           #importance:I
+    .end local v3    # "importance":I
     :cond_2
     return-void
 
@@ -142,15 +141,15 @@
 
 .method private copyNodeInfoNoChildren(Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
     .locals 2
-    .parameter "dest"
-    .parameter "src"
+    .param p1, "dest"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
+    .param p2, "src"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
 
     .prologue
     .line 1601
     iget-object v0, p0, Landroid/support/v4/widget/DrawerLayout$AccessibilityDelegate;->mTmpRect:Landroid/graphics/Rect;
 
     .line 1603
-    .local v0, rect:Landroid/graphics/Rect;
+    .local v0, "rect":Landroid/graphics/Rect;
     invoke-virtual {p2, v0}, Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;->getBoundsInParent(Landroid/graphics/Rect;)V
 
     .line 1604
@@ -254,7 +253,7 @@
 # virtual methods
 .method public filter(Landroid/view/View;)Z
     .locals 2
-    .parameter "child"
+    .param p1, "child"    # Landroid/view/View;
 
     .prologue
     .line 1590
@@ -265,7 +264,7 @@
     move-result-object v0
 
     .line 1591
-    .local v0, openDrawer:Landroid/view/View;
+    .local v0, "openDrawer":Landroid/view/View;
     if-eqz v0, :cond_0
 
     if-eq v0, p1, :cond_0
@@ -283,8 +282,8 @@
 
 .method public onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
     .locals 3
-    .parameter "host"
-    .parameter "info"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "info"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
 
     .prologue
     .line 1532
@@ -293,7 +292,7 @@
     move-result-object v1
 
     .line 1533
-    .local v1, superNode:Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
+    .local v1, "superNode":Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
     invoke-super {p0, p1, v1}, Landroid/support/v4/view/AccessibilityDelegateCompat;->onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
 
     .line 1535
@@ -305,7 +304,7 @@
     move-result-object v0
 
     .line 1537
-    .local v0, parent:Landroid/view/ViewParent;
+    .local v0, "parent":Landroid/view/ViewParent;
     instance-of v2, v0, Landroid/view/View;
 
     if-eqz v2, :cond_0
@@ -313,7 +312,7 @@
     .line 1538
     check-cast v0, Landroid/view/View;
 
-    .end local v0           #parent:Landroid/view/ViewParent;
+    .end local v0    # "parent":Landroid/view/ViewParent;
     invoke-virtual {p2, v0}, Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;->setParent(Landroid/view/View;)V
 
     .line 1540
@@ -326,7 +325,7 @@
     .line 1544
     check-cast p1, Landroid/view/ViewGroup;
 
-    .end local p1
+    .end local p1    # "host":Landroid/view/View;
     invoke-direct {p0, p2, p1}, Landroid/support/v4/widget/DrawerLayout$AccessibilityDelegate;->addChildrenForAccessibility(Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;Landroid/view/ViewGroup;)V
 
     .line 1545
@@ -335,9 +334,9 @@
 
 .method public onRequestSendAccessibilityEvent(Landroid/view/ViewGroup;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "host"
-    .parameter "child"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/ViewGroup;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 1583

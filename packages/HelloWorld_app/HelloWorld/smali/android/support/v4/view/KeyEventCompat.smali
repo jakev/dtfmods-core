@@ -65,10 +65,10 @@
 
 .method public static dispatch(Landroid/view/KeyEvent;Landroid/view/KeyEvent$Callback;Ljava/lang/Object;Ljava/lang/Object;)Z
     .locals 1
-    .parameter "event"
-    .parameter "receiver"
-    .parameter "state"
-    .parameter "target"
+    .param p0, "event"    # Landroid/view/KeyEvent;
+    .param p1, "receiver"    # Landroid/view/KeyEvent$Callback;
+    .param p2, "state"    # Ljava/lang/Object;
+    .param p3, "target"    # Ljava/lang/Object;
 
     .prologue
     .line 209
@@ -83,7 +83,7 @@
 
 .method public static getKeyDispatcherState(Landroid/view/View;)Ljava/lang/Object;
     .locals 1
-    .parameter "view"
+    .param p0, "view"    # Landroid/view/View;
 
     .prologue
     .line 204
@@ -98,8 +98,8 @@
 
 .method public static hasModifiers(Landroid/view/KeyEvent;I)Z
     .locals 2
-    .parameter "event"
-    .parameter "modifiers"
+    .param p0, "event"    # Landroid/view/KeyEvent;
+    .param p1, "modifiers"    # I
 
     .prologue
     .line 188
@@ -118,7 +118,7 @@
 
 .method public static hasNoModifiers(Landroid/view/KeyEvent;)Z
     .locals 2
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 192
@@ -137,7 +137,7 @@
 
 .method public static isTracking(Landroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 200
@@ -152,8 +152,8 @@
 
 .method public static metaStateHasModifiers(II)Z
     .locals 1
-    .parameter "metaState"
-    .parameter "modifiers"
+    .param p0, "metaState"    # I
+    .param p1, "modifiers"    # I
 
     .prologue
     .line 180
@@ -168,7 +168,7 @@
 
 .method public static metaStateHasNoModifiers(I)Z
     .locals 1
-    .parameter "metaState"
+    .param p0, "metaState"    # I
 
     .prologue
     .line 184
@@ -183,7 +183,7 @@
 
 .method public static normalizeMetaState(I)I
     .locals 1
-    .parameter "metaState"
+    .param p0, "metaState"    # I
 
     .prologue
     .line 176
@@ -198,7 +198,7 @@
 
 .method public static startTracking(Landroid/view/KeyEvent;)V
     .locals 1
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 196

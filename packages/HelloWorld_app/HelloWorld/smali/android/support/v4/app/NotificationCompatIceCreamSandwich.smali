@@ -16,19 +16,19 @@
 
 .method static add(Landroid/content/Context;Landroid/app/Notification;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Landroid/widget/RemoteViews;ILandroid/app/PendingIntent;Landroid/app/PendingIntent;Landroid/graphics/Bitmap;IIZ)Landroid/app/Notification;
     .locals 8
-    .parameter "context"
-    .parameter "n"
-    .parameter "contentTitle"
-    .parameter "contentText"
-    .parameter "contentInfo"
-    .parameter "tickerView"
-    .parameter "number"
-    .parameter "contentIntent"
-    .parameter "fullScreenIntent"
-    .parameter "largeIcon"
-    .parameter "mProgressMax"
-    .parameter "mProgress"
-    .parameter "mProgressIndeterminate"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "n"    # Landroid/app/Notification;
+    .param p2, "contentTitle"    # Ljava/lang/CharSequence;
+    .param p3, "contentText"    # Ljava/lang/CharSequence;
+    .param p4, "contentInfo"    # Ljava/lang/CharSequence;
+    .param p5, "tickerView"    # Landroid/widget/RemoteViews;
+    .param p6, "number"    # I
+    .param p7, "contentIntent"    # Landroid/app/PendingIntent;
+    .param p8, "fullScreenIntent"    # Landroid/app/PendingIntent;
+    .param p9, "largeIcon"    # Landroid/graphics/Bitmap;
+    .param p10, "mProgressMax"    # I
+    .param p11, "mProgress"    # I
+    .param p12, "mProgressIndeterminate"    # Z
 
     .prologue
     .line 31
@@ -189,7 +189,7 @@
     move-result-object v3
 
     .line 54
-    .local v3, b:Landroid/app/Notification$Builder;
+    .local v3, "b":Landroid/app/Notification$Builder;
     invoke-virtual {v3}, Landroid/app/Notification$Builder;->getNotification()Landroid/app/Notification;
 
     move-result-object v4
@@ -197,7 +197,7 @@
     return-object v4
 
     .line 31
-    .end local v3           #b:Landroid/app/Notification$Builder;
+    .end local v3    # "b":Landroid/app/Notification$Builder;
     :cond_0
     const/4 v4, 0x0
 

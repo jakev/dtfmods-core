@@ -55,7 +55,7 @@
 
 .method public incrementOperationCount(I)V
     .locals 0
-    .parameter "operationCount"
+    .param p1, "operationCount"    # I
 
     .prologue
     .line 97
@@ -67,8 +67,8 @@
 
 .method public incrementOperationCount(II)V
     .locals 0
-    .parameter "tag"
-    .parameter "operationCount"
+    .param p1, "tag"    # I
+    .param p2, "operationCount"    # I
 
     .prologue
     .line 102
@@ -80,7 +80,7 @@
 
 .method public setThreadStatsTag(I)V
     .locals 0
-    .parameter "tag"
+    .param p1, "tag"    # I
 
     .prologue
     .line 107
@@ -92,7 +92,7 @@
 
 .method public tagSocket(Ljava/net/Socket;)V
     .locals 0
-    .parameter "socket"
+    .param p1, "socket"    # Ljava/net/Socket;
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/net/SocketException;
@@ -109,7 +109,7 @@
 
 .method public untagSocket(Ljava/net/Socket;)V
     .locals 0
-    .parameter "socket"
+    .param p1, "socket"    # Ljava/net/Socket;
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/net/SocketException;

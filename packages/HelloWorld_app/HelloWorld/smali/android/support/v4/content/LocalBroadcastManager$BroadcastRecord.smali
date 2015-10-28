@@ -32,8 +32,7 @@
 # direct methods
 .method constructor <init>(Landroid/content/Intent;Ljava/util/ArrayList;)V
     .locals 0
-    .parameter "_intent"
-    .parameter
+    .param p1, "_intent"    # Landroid/content/Intent;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -47,7 +46,7 @@
 
     .prologue
     .line 73
-    .local p2, _receivers:Ljava/util/ArrayList;,"Ljava/util/ArrayList<Landroid/support/v4/content/LocalBroadcastManager$ReceiverRecord;>;"
+    .local p2, "_receivers":Ljava/util/ArrayList;, "Ljava/util/ArrayList<Landroid/support/v4/content/LocalBroadcastManager$ReceiverRecord;>;"
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     .line 74

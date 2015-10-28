@@ -29,8 +29,8 @@
 # virtual methods
 .method public makeMainSelectorActivity(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
     .locals 1
-    .parameter "selectorAction"
-    .parameter "selectorCategory"
+    .param p1, "selectorAction"    # Ljava/lang/String;
+    .param p2, "selectorCategory"    # Ljava/lang/String;
 
     .prologue
     .line 79

@@ -32,9 +32,9 @@
 # virtual methods
 .method public requestSendAccessibilityEvent(Landroid/view/ViewParent;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 3
-    .parameter "parent"
-    .parameter "child"
-    .parameter "event"
+    .param p1, "parent"    # Landroid/view/ViewParent;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 42
@@ -62,7 +62,7 @@
     check-cast v0, Landroid/view/accessibility/AccessibilityManager;
 
     .line 47
-    .local v0, manager:Landroid/view/accessibility/AccessibilityManager;
+    .local v0, "manager":Landroid/view/accessibility/AccessibilityManager;
     invoke-virtual {v0, p3}, Landroid/view/accessibility/AccessibilityManager;->sendAccessibilityEvent(Landroid/view/accessibility/AccessibilityEvent;)V
 
     .line 48

@@ -24,7 +24,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 0
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 77
@@ -41,7 +41,7 @@
 # virtual methods
 .method public createTabContent(Ljava/lang/String;)Landroid/view/View;
     .locals 3
-    .parameter "tag"
+    .param p1, "tag"    # Ljava/lang/String;
 
     .prologue
     const/4 v2, 0x0
@@ -54,7 +54,7 @@
     invoke-direct {v0, v1}, Landroid/view/View;-><init>(Landroid/content/Context;)V
 
     .line 84
-    .local v0, v:Landroid/view/View;
+    .local v0, "v":Landroid/view/View;
     invoke-virtual {v0, v2}, Landroid/view/View;->setMinimumWidth(I)V
 
     .line 85

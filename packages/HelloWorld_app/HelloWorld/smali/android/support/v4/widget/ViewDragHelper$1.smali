@@ -32,10 +32,10 @@
 # virtual methods
 .method public getInterpolation(F)F
     .locals 2
-    .parameter "t"
+    .param p1, "t"    # F
 
     .prologue
-    const/high16 v1, 0x3f80
+    const/high16 v1, 0x3f800000    # 1.0f
 
     .line 328
     sub-float/2addr p1, v1

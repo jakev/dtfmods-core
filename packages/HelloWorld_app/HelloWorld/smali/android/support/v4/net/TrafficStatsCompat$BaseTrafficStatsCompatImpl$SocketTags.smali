@@ -36,7 +36,7 @@
 
 .method synthetic constructor <init>(Landroid/support/v4/net/TrafficStatsCompat$1;)V
     .locals 0
-    .parameter "x0"
+    .param p1, "x0"    # Landroid/support/v4/net/TrafficStatsCompat$1;
 
     .prologue
     .line 41

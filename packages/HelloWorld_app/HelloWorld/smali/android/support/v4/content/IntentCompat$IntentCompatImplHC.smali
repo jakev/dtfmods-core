@@ -29,7 +29,7 @@
 # virtual methods
 .method public makeMainActivity(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "componentName"
+    .param p1, "componentName"    # Landroid/content/ComponentName;
 
     .prologue
     .line 68
@@ -42,7 +42,7 @@
 
 .method public makeRestartActivityTask(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "componentName"
+    .param p1, "componentName"    # Landroid/content/ComponentName;
 
     .prologue
     .line 72

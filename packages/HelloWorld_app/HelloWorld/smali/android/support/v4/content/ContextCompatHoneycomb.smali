@@ -16,7 +16,7 @@
 
 .method public static getObbDir(Landroid/content/Context;)Ljava/io/File;
     .locals 1
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     .line 34
@@ -29,8 +29,8 @@
 
 .method static startActivities(Landroid/content/Context;[Landroid/content/Intent;)V
     .locals 0
-    .parameter "context"
-    .parameter "intents"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "intents"    # [Landroid/content/Intent;
 
     .prologue
     .line 30

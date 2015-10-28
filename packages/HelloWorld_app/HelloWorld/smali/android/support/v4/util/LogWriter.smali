@@ -12,7 +12,7 @@
 # direct methods
 .method public constructor <init>(Ljava/lang/String;)V
     .locals 2
-    .parameter "tag"
+    .param p1, "tag"    # Ljava/lang/String;
 
     .prologue
     .line 39
@@ -102,15 +102,15 @@
 
 .method public write([CII)V
     .locals 3
-    .parameter "buf"
-    .parameter "offset"
-    .parameter "count"
+    .param p1, "buf"    # [C
+    .param p2, "offset"    # I
+    .param p3, "count"    # I
 
     .prologue
     .line 52
     const/4 v1, 0x0
 
-    .local v1, i:I
+    .local v1, "i":I
     :goto_0
     if-ge v1, p3, :cond_1
 
@@ -120,7 +120,7 @@
     aget-char v0, p1, v2
 
     .line 54
-    .local v0, c:C
+    .local v0, "c":C
     const/16 v2, 0xa
 
     if-ne v0, v2, :cond_0
@@ -143,7 +143,7 @@
     goto :goto_1
 
     .line 61
-    .end local v0           #c:C
+    .end local v0    # "c":C
     :cond_1
     return-void
 .end method

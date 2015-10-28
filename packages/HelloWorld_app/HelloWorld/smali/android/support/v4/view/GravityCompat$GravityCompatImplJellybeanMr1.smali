@@ -32,14 +32,14 @@
 # virtual methods
 .method public apply(IIILandroid/graphics/Rect;IILandroid/graphics/Rect;I)V
     .locals 0
-    .parameter "gravity"
-    .parameter "w"
-    .parameter "h"
-    .parameter "container"
-    .parameter "xAdj"
-    .parameter "yAdj"
-    .parameter "outRect"
-    .parameter "layoutDirection"
+    .param p1, "gravity"    # I
+    .param p2, "w"    # I
+    .param p3, "h"    # I
+    .param p4, "container"    # Landroid/graphics/Rect;
+    .param p5, "xAdj"    # I
+    .param p6, "yAdj"    # I
+    .param p7, "outRect"    # Landroid/graphics/Rect;
+    .param p8, "layoutDirection"    # I
 
     .prologue
     .line 77
@@ -51,12 +51,12 @@
 
 .method public apply(IIILandroid/graphics/Rect;Landroid/graphics/Rect;I)V
     .locals 0
-    .parameter "gravity"
-    .parameter "w"
-    .parameter "h"
-    .parameter "container"
-    .parameter "outRect"
-    .parameter "layoutDirection"
+    .param p1, "gravity"    # I
+    .param p2, "w"    # I
+    .param p3, "h"    # I
+    .param p4, "container"    # Landroid/graphics/Rect;
+    .param p5, "outRect"    # Landroid/graphics/Rect;
+    .param p6, "layoutDirection"    # I
 
     .prologue
     .line 71
@@ -68,10 +68,10 @@
 
 .method public applyDisplay(ILandroid/graphics/Rect;Landroid/graphics/Rect;I)V
     .locals 0
-    .parameter "gravity"
-    .parameter "display"
-    .parameter "inoutObj"
-    .parameter "layoutDirection"
+    .param p1, "gravity"    # I
+    .param p2, "display"    # Landroid/graphics/Rect;
+    .param p3, "inoutObj"    # Landroid/graphics/Rect;
+    .param p4, "layoutDirection"    # I
 
     .prologue
     .line 83
@@ -83,8 +83,8 @@
 
 .method public getAbsoluteGravity(II)I
     .locals 1
-    .parameter "gravity"
-    .parameter "layoutDirection"
+    .param p1, "gravity"    # I
+    .param p2, "layoutDirection"    # I
 
     .prologue
     .line 65

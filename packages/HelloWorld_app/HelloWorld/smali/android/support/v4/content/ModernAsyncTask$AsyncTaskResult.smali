@@ -38,8 +38,7 @@
 # direct methods
 .method varargs constructor <init>(Landroid/support/v4/content/ModernAsyncTask;[Ljava/lang/Object;)V
     .locals 0
-    .parameter "task"
-    .parameter
+    .param p1, "task"    # Landroid/support/v4/content/ModernAsyncTask;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -50,8 +49,8 @@
 
     .prologue
     .line 492
-    .local p0, this:Landroid/support/v4/content/ModernAsyncTask$AsyncTaskResult;,"Landroid/support/v4/content/ModernAsyncTask$AsyncTaskResult<TData;>;"
-    .local p2, data:[Ljava/lang/Object;,"[TData;"
+    .local p0, "this":Landroid/support/v4/content/ModernAsyncTask$AsyncTaskResult;, "Landroid/support/v4/content/ModernAsyncTask$AsyncTaskResult<TData;>;"
+    .local p2, "data":[Ljava/lang/Object;, "[TData;"
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
 
     .line 493

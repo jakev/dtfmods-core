@@ -32,7 +32,7 @@
 # virtual methods
 .method public isActiveNetworkMetered(Landroid/net/ConnectivityManager;)Z
     .locals 1
-    .parameter "cm"
+    .param p1, "cm"    # Landroid/net/ConnectivityManager;
 
     .prologue
     .line 77

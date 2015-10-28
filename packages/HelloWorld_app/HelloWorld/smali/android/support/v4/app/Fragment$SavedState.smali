@@ -51,7 +51,7 @@
 
 .method constructor <init>(Landroid/os/Bundle;)V
     .locals 0
-    .parameter "state"
+    .param p1, "state"    # Landroid/os/Bundle;
 
     .prologue
     .line 309
@@ -66,8 +66,8 @@
 
 .method constructor <init>(Landroid/os/Parcel;Ljava/lang/ClassLoader;)V
     .locals 1
-    .parameter "in"
-    .parameter "loader"
+    .param p1, "in"    # Landroid/os/Parcel;
+    .param p2, "loader"    # Ljava/lang/ClassLoader;
 
     .prologue
     .line 313
@@ -111,8 +111,8 @@
 
 .method public writeToParcel(Landroid/os/Parcel;I)V
     .locals 1
-    .parameter "dest"
-    .parameter "flags"
+    .param p1, "dest"    # Landroid/os/Parcel;
+    .param p2, "flags"    # I
 
     .prologue
     .line 327

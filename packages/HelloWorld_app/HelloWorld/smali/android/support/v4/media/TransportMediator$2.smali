@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/media/TransportMediator;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 130
@@ -39,8 +38,8 @@
 # virtual methods
 .method public onKeyDown(ILandroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "keyCode"
-    .parameter "event"
+    .param p1, "keyCode"    # I
+    .param p2, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 133
@@ -69,8 +68,8 @@
 
 .method public onKeyLongPress(ILandroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "keyCode"
-    .parameter "event"
+    .param p1, "keyCode"    # I
+    .param p2, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 137
@@ -81,9 +80,9 @@
 
 .method public onKeyMultiple(IILandroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "keyCode"
-    .parameter "count"
-    .parameter "event"
+    .param p1, "keyCode"    # I
+    .param p2, "count"    # I
+    .param p3, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 147
@@ -94,8 +93,8 @@
 
 .method public onKeyUp(ILandroid/view/KeyEvent;)Z
     .locals 1
-    .parameter "keyCode"
-    .parameter "event"
+    .param p1, "keyCode"    # I
+    .param p2, "event"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 142

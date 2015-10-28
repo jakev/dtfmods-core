@@ -52,7 +52,7 @@
 
 .method public constructor <init>(Landroid/os/Parcel;)V
     .locals 1
-    .parameter "in"
+    .param p1, "in"    # Landroid/os/Parcel;
 
     .prologue
     const/4 v0, 0x0
@@ -82,7 +82,7 @@
 
 .method public constructor <init>(Landroid/os/Parcelable;)V
     .locals 1
-    .parameter "superState"
+    .param p1, "superState"    # Landroid/os/Parcelable;
 
     .prologue
     const/4 v0, 0x0
@@ -107,8 +107,8 @@
 # virtual methods
 .method public writeToParcel(Landroid/os/Parcel;I)V
     .locals 1
-    .parameter "dest"
-    .parameter "flags"
+    .param p1, "dest"    # Landroid/os/Parcel;
+    .param p2, "flags"    # I
 
     .prologue
     .line 1305

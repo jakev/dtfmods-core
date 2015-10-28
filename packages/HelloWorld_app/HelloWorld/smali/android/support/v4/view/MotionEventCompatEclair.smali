@@ -16,8 +16,8 @@
 
 .method public static findPointerIndex(Landroid/view/MotionEvent;I)I
     .locals 1
-    .parameter "event"
-    .parameter "pointerId"
+    .param p0, "event"    # Landroid/view/MotionEvent;
+    .param p1, "pointerId"    # I
 
     .prologue
     .line 26
@@ -30,7 +30,7 @@
 
 .method public static getPointerCount(Landroid/view/MotionEvent;)I
     .locals 1
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/MotionEvent;
 
     .prologue
     .line 38
@@ -43,8 +43,8 @@
 
 .method public static getPointerId(Landroid/view/MotionEvent;I)I
     .locals 1
-    .parameter "event"
-    .parameter "pointerIndex"
+    .param p0, "event"    # Landroid/view/MotionEvent;
+    .param p1, "pointerIndex"    # I
 
     .prologue
     .line 29
@@ -57,8 +57,8 @@
 
 .method public static getX(Landroid/view/MotionEvent;I)F
     .locals 1
-    .parameter "event"
-    .parameter "pointerIndex"
+    .param p0, "event"    # Landroid/view/MotionEvent;
+    .param p1, "pointerIndex"    # I
 
     .prologue
     .line 32
@@ -71,8 +71,8 @@
 
 .method public static getY(Landroid/view/MotionEvent;I)F
     .locals 1
-    .parameter "event"
-    .parameter "pointerIndex"
+    .param p0, "event"    # Landroid/view/MotionEvent;
+    .param p1, "pointerIndex"    # I
 
     .prologue
     .line 35

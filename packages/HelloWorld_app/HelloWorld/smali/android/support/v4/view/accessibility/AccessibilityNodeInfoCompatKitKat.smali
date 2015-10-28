@@ -16,13 +16,13 @@
 
 .method public static getLiveRegion(Ljava/lang/Object;)I
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 26
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/accessibility/AccessibilityNodeInfo;->getLiveRegion()I
 
     move-result v0
@@ -32,14 +32,14 @@
 
 .method public static setLiveRegion(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "info"
-    .parameter "mode"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "mode"    # I
 
     .prologue
     .line 30
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->setLiveRegion(I)V
 
     .line 31

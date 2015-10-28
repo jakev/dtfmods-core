@@ -29,8 +29,8 @@
 # virtual methods
 .method public canScrollHorizontally(Landroid/view/View;I)Z
     .locals 1
-    .parameter "v"
-    .parameter "direction"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "direction"    # I
 
     .prologue
     .line 430
@@ -43,8 +43,8 @@
 
 .method public canScrollVertically(Landroid/view/View;I)Z
     .locals 1
-    .parameter "v"
-    .parameter "direction"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "direction"    # I
 
     .prologue
     .line 434
@@ -57,8 +57,8 @@
 
 .method public onInitializeAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 0
-    .parameter "v"
-    .parameter "event"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 442
@@ -70,8 +70,8 @@
 
 .method public onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;)V
     .locals 1
-    .parameter "v"
-    .parameter "info"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "info"    # Landroid/support/v4/view/accessibility/AccessibilityNodeInfoCompat;
 
     .prologue
     .line 446
@@ -87,8 +87,8 @@
 
 .method public onPopulateAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 0
-    .parameter "v"
-    .parameter "event"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 438
@@ -100,8 +100,8 @@
 
 .method public setAccessibilityDelegate(Landroid/view/View;Landroid/support/v4/view/AccessibilityDelegateCompat;)V
     .locals 1
-    .parameter "v"
-    .parameter "delegate"
+    .param p1, "v"    # Landroid/view/View;
+    .param p2, "delegate"    # Landroid/support/v4/view/AccessibilityDelegateCompat;
 
     .prologue
     .line 450

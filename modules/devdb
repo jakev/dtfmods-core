@@ -19,8 +19,8 @@
 #@Health: stable
 #@Version: 1.0
 
-. dtf_log.sh
-. dtf_core.sh
+. $DTF_CORE
+. $DTF_LOG
 
 create_db()
 {

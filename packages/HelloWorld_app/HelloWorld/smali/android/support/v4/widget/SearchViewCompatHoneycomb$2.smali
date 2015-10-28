@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/widget/SearchViewCompatHoneycomb$OnCloseListenerCompatBridge;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 71

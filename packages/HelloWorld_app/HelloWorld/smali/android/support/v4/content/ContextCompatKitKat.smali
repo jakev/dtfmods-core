@@ -16,7 +16,7 @@
 
 .method public static getExternalCacheDirs(Landroid/content/Context;)[Ljava/io/File;
     .locals 1
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     .line 25
@@ -29,8 +29,8 @@
 
 .method public static getExternalFilesDirs(Landroid/content/Context;Ljava/lang/String;)[Ljava/io/File;
     .locals 1
-    .parameter "context"
-    .parameter "type"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "type"    # Ljava/lang/String;
 
     .prologue
     .line 29
@@ -43,7 +43,7 @@
 
 .method public static getObbDirs(Landroid/content/Context;)[Ljava/io/File;
     .locals 1
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     .line 33

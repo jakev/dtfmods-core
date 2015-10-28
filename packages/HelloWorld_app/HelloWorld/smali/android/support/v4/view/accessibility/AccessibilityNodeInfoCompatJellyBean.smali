@@ -16,15 +16,15 @@
 
 .method public static addChild(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "child"
-    .parameter "virtualDescendantId"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "child"    # Landroid/view/View;
+    .param p2, "virtualDescendantId"    # I
 
     .prologue
     .line 29
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2}, Landroid/view/accessibility/AccessibilityNodeInfo;->addChild(Landroid/view/View;I)V
 
     .line 30
@@ -33,14 +33,14 @@
 
 .method public static findFocus(Ljava/lang/Object;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "focus"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "focus"    # I
 
     .prologue
     .line 61
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->findFocus(I)Landroid/view/accessibility/AccessibilityNodeInfo;
 
     move-result-object v0
@@ -50,14 +50,14 @@
 
 .method public static focusSearch(Ljava/lang/Object;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "direction"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "direction"    # I
 
     .prologue
     .line 65
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->focusSearch(I)Landroid/view/accessibility/AccessibilityNodeInfo;
 
     move-result-object v0
@@ -67,13 +67,13 @@
 
 .method public static getMovementGranularities(Ljava/lang/Object;)I
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 53
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/accessibility/AccessibilityNodeInfo;->getMovementGranularities()I
 
     move-result v0
@@ -83,13 +83,13 @@
 
 .method public static isAccessibilityFocused(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 73
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/accessibility/AccessibilityNodeInfo;->isAccessibilityFocused()Z
 
     move-result v0
@@ -99,13 +99,13 @@
 
 .method public static isVisibleToUser(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 37
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/accessibility/AccessibilityNodeInfo;->isVisibleToUser()Z
 
     move-result v0
@@ -115,8 +115,8 @@
 
 .method public static obtain(Landroid/view/View;I)Ljava/lang/Object;
     .locals 1
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p0, "root"    # Landroid/view/View;
+    .param p1, "virtualDescendantId"    # I
 
     .prologue
     .line 57
@@ -129,15 +129,15 @@
 
 .method public static performAction(Ljava/lang/Object;ILandroid/os/Bundle;)Z
     .locals 1
-    .parameter "info"
-    .parameter "action"
-    .parameter "arguments"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "action"    # I
+    .param p2, "arguments"    # Landroid/os/Bundle;
 
     .prologue
     .line 45
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2}, Landroid/view/accessibility/AccessibilityNodeInfo;->performAction(ILandroid/os/Bundle;)Z
 
     move-result v0
@@ -147,14 +147,14 @@
 
 .method public static setAccesibilityFocused(Ljava/lang/Object;Z)V
     .locals 0
-    .parameter "info"
-    .parameter "focused"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "focused"    # Z
 
     .prologue
     .line 77
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->setAccessibilityFocused(Z)V
 
     .line 78
@@ -163,14 +163,14 @@
 
 .method public static setMovementGranularities(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "info"
-    .parameter "granularities"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "granularities"    # I
 
     .prologue
     .line 49
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->setMovementGranularities(I)V
 
     .line 50
@@ -179,15 +179,15 @@
 
 .method public static setParent(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "root"    # Landroid/view/View;
+    .param p2, "virtualDescendantId"    # I
 
     .prologue
     .line 69
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2}, Landroid/view/accessibility/AccessibilityNodeInfo;->setParent(Landroid/view/View;I)V
 
     .line 70
@@ -196,15 +196,15 @@
 
 .method public static setSource(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "info"
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "root"    # Landroid/view/View;
+    .param p2, "virtualDescendantId"    # I
 
     .prologue
     .line 33
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2}, Landroid/view/accessibility/AccessibilityNodeInfo;->setSource(Landroid/view/View;I)V
 
     .line 34
@@ -213,14 +213,14 @@
 
 .method public static setVisibleToUser(Ljava/lang/Object;Z)V
     .locals 0
-    .parameter "info"
-    .parameter "visibleToUser"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "visibleToUser"    # Z
 
     .prologue
     .line 41
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->setVisibleToUser(Z)V
 
     .line 42

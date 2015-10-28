@@ -21,7 +21,7 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/app/ActivityOptionsCompatJB;)V
     .locals 0
-    .parameter "impl"
+    .param p1, "impl"    # Landroid/support/v4/app/ActivityOptionsCompatJB;
 
     .prologue
     .line 115
@@ -52,7 +52,7 @@
 
 .method public update(Landroid/support/v4/app/ActivityOptionsCompat;)V
     .locals 3
-    .parameter "otherOptions"
+    .param p1, "otherOptions"    # Landroid/support/v4/app/ActivityOptionsCompat;
 
     .prologue
     .line 126
@@ -66,7 +66,7 @@
     check-cast v0, Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;
 
     .line 128
-    .local v0, otherImpl:Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;
+    .local v0, "otherImpl":Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;
     iget-object v1, p0, Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;->mImpl:Landroid/support/v4/app/ActivityOptionsCompatJB;
 
     iget-object v2, v0, Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;->mImpl:Landroid/support/v4/app/ActivityOptionsCompatJB;
@@ -74,7 +74,7 @@
     invoke-virtual {v1, v2}, Landroid/support/v4/app/ActivityOptionsCompatJB;->update(Landroid/support/v4/app/ActivityOptionsCompatJB;)V
 
     .line 130
-    .end local v0           #otherImpl:Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;
+    .end local v0    # "otherImpl":Landroid/support/v4/app/ActivityOptionsCompat$ActivityOptionsImplJB;
     :cond_0
     return-void
 .end method

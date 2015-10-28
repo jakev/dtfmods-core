@@ -17,8 +17,8 @@
 
 .method public static setMotionEventSplittingEnabled(Landroid/view/ViewGroup;Z)V
     .locals 0
-    .parameter "group"
-    .parameter "split"
+    .param p0, "group"    # Landroid/view/ViewGroup;
+    .param p1, "split"    # Z
 
     .prologue
     .line 27

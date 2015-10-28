@@ -29,7 +29,7 @@
 # virtual methods
 .method public getAlpha(Landroid/view/View;)F
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 391
@@ -54,7 +54,7 @@
 
 .method public getLayerType(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 399
@@ -67,7 +67,7 @@
 
 .method public getMeasuredHeightAndState(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 419
@@ -80,7 +80,7 @@
 
 .method public getMeasuredState(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 423
@@ -93,7 +93,7 @@
 
 .method public getMeasuredWidthAndState(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 415
@@ -106,9 +106,9 @@
 
 .method public resolveSizeAndState(III)I
     .locals 1
-    .parameter "size"
-    .parameter "measureSpec"
-    .parameter "childMeasuredState"
+    .param p1, "size"    # I
+    .param p2, "measureSpec"    # I
+    .param p3, "childMeasuredState"    # I
 
     .prologue
     .line 411
@@ -121,8 +121,8 @@
 
 .method public setLayerPaint(Landroid/view/View;Landroid/graphics/Paint;)V
     .locals 1
-    .parameter "view"
-    .parameter "paint"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "paint"    # Landroid/graphics/Paint;
 
     .prologue
     .line 405
@@ -141,9 +141,9 @@
 
 .method public setLayerType(Landroid/view/View;ILandroid/graphics/Paint;)V
     .locals 0
-    .parameter "view"
-    .parameter "layerType"
-    .parameter "paint"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "layerType"    # I
+    .param p3, "paint"    # Landroid/graphics/Paint;
 
     .prologue
     .line 395

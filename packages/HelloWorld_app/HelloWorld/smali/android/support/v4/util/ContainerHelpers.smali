@@ -48,20 +48,20 @@
 
 .method static binarySearch([III)I
     .locals 5
-    .parameter "array"
-    .parameter "size"
-    .parameter "value"
+    .param p0, "array"    # [I
+    .param p1, "size"    # I
+    .param p2, "value"    # I
 
     .prologue
     .line 46
     const/4 v1, 0x0
 
     .line 47
-    .local v1, lo:I
+    .local v1, "lo":I
     add-int/lit8 v0, p1, -0x1
 
     .line 49
-    .local v0, hi:I
+    .local v0, "hi":I
     :goto_0
     if-gt v1, v0, :cond_1
 
@@ -71,11 +71,11 @@
     ushr-int/lit8 v2, v4, 0x1
 
     .line 51
-    .local v2, mid:I
+    .local v2, "mid":I
     aget v3, p0, v2
 
     .line 53
-    .local v3, midVal:I
+    .local v3, "midVal":I
     if-ge v3, p2, :cond_0
 
     .line 54
@@ -93,8 +93,8 @@
     goto :goto_0
 
     .line 61
-    .end local v2           #mid:I
-    .end local v3           #midVal:I
+    .end local v2    # "mid":I
+    .end local v3    # "midVal":I
     :cond_1
     xor-int/lit8 v2, v1, -0x1
 
@@ -104,20 +104,20 @@
 
 .method static binarySearch([JIJ)I
     .locals 6
-    .parameter "array"
-    .parameter "size"
-    .parameter "value"
+    .param p0, "array"    # [J
+    .param p1, "size"    # I
+    .param p2, "value"    # J
 
     .prologue
     .line 65
     const/4 v1, 0x0
 
     .line 66
-    .local v1, lo:I
+    .local v1, "lo":I
     add-int/lit8 v0, p1, -0x1
 
     .line 68
-    .local v0, hi:I
+    .local v0, "hi":I
     :goto_0
     if-gt v1, v0, :cond_1
 
@@ -127,11 +127,11 @@
     ushr-int/lit8 v2, v5, 0x1
 
     .line 70
-    .local v2, mid:I
+    .local v2, "mid":I
     aget-wide v3, p0, v2
 
     .line 72
-    .local v3, midVal:J
+    .local v3, "midVal":J
     cmp-long v5, v3, p2
 
     if-gez v5, :cond_0
@@ -153,8 +153,8 @@
     goto :goto_0
 
     .line 80
-    .end local v2           #mid:I
-    .end local v3           #midVal:J
+    .end local v2    # "mid":I
+    .end local v3    # "midVal":J
     :cond_1
     xor-int/lit8 v2, v1, -0x1
 
@@ -164,8 +164,8 @@
 
 .method public static equal(Ljava/lang/Object;Ljava/lang/Object;)Z
     .locals 1
-    .parameter "a"
-    .parameter "b"
+    .param p0, "a"    # Ljava/lang/Object;
+    .param p1, "b"    # Ljava/lang/Object;
 
     .prologue
     .line 41
@@ -193,7 +193,7 @@
 
 .method public static idealByteArraySize(I)I
     .locals 3
-    .parameter "need"
+    .param p0, "need"    # I
 
     .prologue
     const/4 v2, 0x1
@@ -201,7 +201,7 @@
     .line 33
     const/4 v0, 0x4
 
-    .local v0, i:I
+    .local v0, "i":I
     :goto_0
     const/16 v1, 0x20
 
@@ -220,12 +220,12 @@
     add-int/lit8 p0, v1, -0xc
 
     .line 37
-    .end local p0
+    .end local p0    # "need":I
     :cond_0
     return p0
 
     .line 33
-    .restart local p0
+    .restart local p0    # "need":I
     :cond_1
     add-int/lit8 v0, v0, 0x1
 
@@ -234,7 +234,7 @@
 
 .method public static idealIntArraySize(I)I
     .locals 1
-    .parameter "need"
+    .param p0, "need"    # I
 
     .prologue
     .line 25
@@ -251,7 +251,7 @@
 
 .method public static idealLongArraySize(I)I
     .locals 1
-    .parameter "need"
+    .param p0, "need"    # I
 
     .prologue
     .line 29

@@ -16,7 +16,7 @@
 
 .method public static getLayoutMode(Landroid/view/ViewGroup;)I
     .locals 1
-    .parameter "group"
+    .param p0, "group"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 24
@@ -29,8 +29,8 @@
 
 .method public static setLayoutMode(Landroid/view/ViewGroup;I)V
     .locals 0
-    .parameter "group"
-    .parameter "mode"
+    .param p0, "group"    # Landroid/view/ViewGroup;
+    .param p1, "mode"    # I
 
     .prologue
     .line 28

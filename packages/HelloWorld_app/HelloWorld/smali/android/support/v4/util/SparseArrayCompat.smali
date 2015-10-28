@@ -52,7 +52,7 @@
 
     .prologue
     .line 35
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     const/16 v0, 0xa
 
     invoke-direct {p0, v0}, Landroid/support/v4/util/SparseArrayCompat;-><init>(I)V
@@ -63,10 +63,10 @@
 
 .method public constructor <init>(I)V
     .locals 2
-    .parameter "initialCapacity"
+    .param p1, "initialCapacity"    # I
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     const/4 v1, 0x0
 
     .line 45
@@ -119,26 +119,26 @@
 
     .prologue
     .line 141
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
     .line 142
-    .local v2, n:I
+    .local v2, "n":I
     const/4 v3, 0x0
 
     .line 143
-    .local v3, o:I
+    .local v3, "o":I
     iget-object v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     .line 144
-    .local v1, keys:[I
+    .local v1, "keys":[I
     iget-object v5, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
     .line 146
-    .local v5, values:[Ljava/lang/Object;
+    .local v5, "values":[Ljava/lang/Object;
     const/4 v0, 0x0
 
-    .local v0, i:I
+    .local v0, "i":I
     :goto_0
     if-ge v0, v2, :cond_2
 
@@ -146,7 +146,7 @@
     aget-object v4, v5, v0
 
     .line 149
-    .local v4, val:Ljava/lang/Object;
+    .local v4, "val":Ljava/lang/Object;
     sget-object v6, Landroid/support/v4/util/SparseArrayCompat;->DELETED:Ljava/lang/Object;
 
     if-eq v4, v6, :cond_1
@@ -178,7 +178,7 @@
     goto :goto_0
 
     .line 160
-    .end local v4           #val:Ljava/lang/Object;
+    .end local v4    # "val":Ljava/lang/Object;
     :cond_2
     const/4 v6, 0x0
 
@@ -195,8 +195,7 @@
 # virtual methods
 .method public append(ILjava/lang/Object;)V
     .locals 7
-    .parameter "key"
-    .parameter
+    .param p1, "key"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(ITE;)V"
@@ -204,8 +203,8 @@
     .end annotation
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
-    .local p2, value:Ljava/lang/Object;,"TE;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p2, "value":Ljava/lang/Object;, "TE;"
     const/4 v6, 0x0
 
     .line 325
@@ -252,7 +251,7 @@
     iget v3, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
     .line 335
-    .local v3, pos:I
+    .local v3, "pos":I
     iget-object v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     array-length v4, v4
@@ -267,15 +266,15 @@
     move-result v0
 
     .line 338
-    .local v0, n:I
+    .local v0, "n":I
     new-array v1, v0, [I
 
     .line 339
-    .local v1, nkeys:[I
+    .local v1, "nkeys":[I
     new-array v2, v0, [Ljava/lang/Object;
 
     .line 342
-    .local v2, nvalues:[Ljava/lang/Object;
+    .local v2, "nvalues":[Ljava/lang/Object;
     iget-object v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     iget-object v5, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
@@ -300,9 +299,9 @@
     iput-object v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
     .line 349
-    .end local v0           #n:I
-    .end local v1           #nkeys:[I
-    .end local v2           #nvalues:[Ljava/lang/Object;
+    .end local v0    # "n":I
+    .end local v1    # "nkeys":[I
+    .end local v2    # "nvalues":[Ljava/lang/Object;
     :cond_2
     iget-object v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
@@ -325,21 +324,21 @@
     .locals 5
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     const/4 v4, 0x0
 
     .line 309
     iget v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
     .line 310
-    .local v1, n:I
+    .local v1, "n":I
     iget-object v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
     .line 312
-    .local v2, values:[Ljava/lang/Object;
+    .local v2, "values":[Ljava/lang/Object;
     const/4 v0, 0x0
 
-    .local v0, i:I
+    .local v0, "i":I
     :goto_0
     if-ge v0, v1, :cond_0
 
@@ -376,11 +375,11 @@
 
     .prologue
     .line 60
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     const/4 v1, 0x0
 
     .line 62
-    .local v1, clone:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local v1, "clone":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     :try_start_0
     invoke-super {p0}, Ljava/lang/Object;->clone()Ljava/lang/Object;
 
@@ -437,7 +436,7 @@
 
     .prologue
     .line 23
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     invoke-virtual {p0}, Landroid/support/v4/util/SparseArrayCompat;->clone()Landroid/support/v4/util/SparseArrayCompat;
 
     move-result-object v0
@@ -447,11 +446,11 @@
 
 .method public delete(I)V
     .locals 3
-    .parameter "key"
+    .param p1, "key"    # I
 
     .prologue
     .line 98
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-object v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     iget v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
@@ -461,7 +460,7 @@
     move-result v0
 
     .line 100
-    .local v0, i:I
+    .local v0, "i":I
     if-ltz v0, :cond_0
 
     .line 101
@@ -492,7 +491,7 @@
 
 .method public get(I)Ljava/lang/Object;
     .locals 1
-    .parameter "key"
+    .param p1, "key"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(I)TE;"
@@ -501,7 +500,7 @@
 
     .prologue
     .line 76
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     const/4 v0, 0x0
 
     invoke-virtual {p0, p1, v0}, Landroid/support/v4/util/SparseArrayCompat;->get(ILjava/lang/Object;)Ljava/lang/Object;
@@ -513,8 +512,7 @@
 
 .method public get(ILjava/lang/Object;)Ljava/lang/Object;
     .locals 3
-    .parameter "key"
-    .parameter
+    .param p1, "key"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(ITE;)TE;"
@@ -523,8 +521,8 @@
 
     .prologue
     .line 85
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
-    .local p2, valueIfKeyNotFound:Ljava/lang/Object;,"TE;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p2, "valueIfKeyNotFound":Ljava/lang/Object;, "TE;"
     iget-object v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     iget v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
@@ -534,7 +532,7 @@
     move-result v0
 
     .line 87
-    .local v0, i:I
+    .local v0, "i":I
     if-ltz v0, :cond_0
 
     iget-object v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
@@ -546,12 +544,12 @@
     if-ne v1, v2, :cond_1
 
     .line 90
-    .end local p2           #valueIfKeyNotFound:Ljava/lang/Object;,"TE;"
+    .end local p2    # "valueIfKeyNotFound":Ljava/lang/Object;, "TE;"
     :cond_0
     :goto_0
     return-object p2
 
-    .restart local p2       #valueIfKeyNotFound:Ljava/lang/Object;,"TE;"
+    .restart local p2    # "valueIfKeyNotFound":Ljava/lang/Object;, "TE;"
     :cond_1
     iget-object v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
@@ -562,11 +560,11 @@
 
 .method public indexOfKey(I)I
     .locals 2
-    .parameter "key"
+    .param p1, "key"    # I
 
     .prologue
     .line 276
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-boolean v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v0, :cond_0
@@ -589,7 +587,6 @@
 
 .method public indexOfValue(Ljava/lang/Object;)I
     .locals 2
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(TE;)I"
@@ -598,8 +595,8 @@
 
     .prologue
     .line 294
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
-    .local p1, value:Ljava/lang/Object;,"TE;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p1, "value":Ljava/lang/Object;, "TE;"
     iget-boolean v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v1, :cond_0
@@ -611,7 +608,7 @@
     :cond_0
     const/4 v0, 0x0
 
-    .local v0, i:I
+    .local v0, "i":I
     :goto_0
     iget v1, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
@@ -625,12 +622,12 @@
     if-ne v1, p1, :cond_1
 
     .line 302
-    .end local v0           #i:I
+    .end local v0    # "i":I
     :goto_1
     return v0
 
     .line 298
-    .restart local v0       #i:I
+    .restart local v0    # "i":I
     :cond_1
     add-int/lit8 v0, v0, 0x1
 
@@ -645,11 +642,11 @@
 
 .method public keyAt(I)I
     .locals 1
-    .parameter "index"
+    .param p1, "index"    # I
 
     .prologue
     .line 236
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-boolean v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v0, :cond_0
@@ -668,8 +665,7 @@
 
 .method public put(ILjava/lang/Object;)V
     .locals 8
-    .parameter "key"
-    .parameter
+    .param p1, "key"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(ITE;)V"
@@ -677,8 +673,8 @@
     .end annotation
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
-    .local p2, value:Ljava/lang/Object;,"TE;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p2, "value":Ljava/lang/Object;, "TE;"
     const/4 v6, 0x0
 
     .line 172
@@ -691,7 +687,7 @@
     move-result v0
 
     .line 174
-    .local v0, i:I
+    .local v0, "i":I
     if-ltz v0, :cond_0
 
     .line 175
@@ -780,15 +776,15 @@
     move-result v1
 
     .line 195
-    .local v1, n:I
+    .local v1, "n":I
     new-array v2, v1, [I
 
     .line 196
-    .local v2, nkeys:[I
+    .local v2, "nkeys":[I
     new-array v3, v1, [Ljava/lang/Object;
 
     .line 199
-    .local v3, nvalues:[Ljava/lang/Object;
+    .local v3, "nvalues":[Ljava/lang/Object;
     iget-object v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
 
     iget-object v5, p0, Landroid/support/v4/util/SparseArrayCompat;->mKeys:[I
@@ -813,9 +809,9 @@
     iput-object v3, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
     .line 206
-    .end local v1           #n:I
-    .end local v2           #nkeys:[I
-    .end local v3           #nvalues:[Ljava/lang/Object;
+    .end local v1    # "n":I
+    .end local v2    # "nkeys":[I
+    .end local v3    # "nvalues":[Ljava/lang/Object;
     :cond_3
     iget v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
@@ -872,11 +868,11 @@
 
 .method public remove(I)V
     .locals 0
-    .parameter "key"
+    .param p1, "key"    # I
 
     .prologue
     .line 112
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     invoke-virtual {p0, p1}, Landroid/support/v4/util/SparseArrayCompat;->delete(I)V
 
     .line 113
@@ -885,11 +881,11 @@
 
 .method public removeAt(I)V
     .locals 2
-    .parameter "index"
+    .param p1, "index"    # I
 
     .prologue
     .line 119
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-object v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mValues:[Ljava/lang/Object;
 
     aget-object v0, v0, p1
@@ -917,12 +913,12 @@
 
 .method public removeAtRange(II)V
     .locals 4
-    .parameter "index"
-    .parameter "size"
+    .param p1, "index"    # I
+    .param p2, "size"    # I
 
     .prologue
     .line 132
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget v2, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
     add-int v3, p1, p2
@@ -932,10 +928,10 @@
     move-result v0
 
     .line 133
-    .local v0, end:I
+    .local v0, "end":I
     move v1, p1
 
-    .local v1, i:I
+    .local v1, "i":I
     :goto_0
     if-ge v1, v0, :cond_0
 
@@ -954,8 +950,7 @@
 
 .method public setValueAt(ILjava/lang/Object;)V
     .locals 1
-    .parameter "index"
-    .parameter
+    .param p1, "index"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(ITE;)V"
@@ -964,8 +959,8 @@
 
     .prologue
     .line 263
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
-    .local p2, value:Ljava/lang/Object;,"TE;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p2, "value":Ljava/lang/Object;, "TE;"
     iget-boolean v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v0, :cond_0
@@ -988,7 +983,7 @@
 
     .prologue
     .line 223
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-boolean v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v0, :cond_0
@@ -1008,7 +1003,7 @@
 
     .prologue
     .line 363
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     invoke-virtual {p0}, Landroid/support/v4/util/SparseArrayCompat;->size()I
 
     move-result v4
@@ -1033,7 +1028,7 @@
     invoke-direct {v0, v4}, Ljava/lang/StringBuilder;-><init>(I)V
 
     .line 368
-    .local v0, buffer:Ljava/lang/StringBuilder;
+    .local v0, "buffer":Ljava/lang/StringBuilder;
     const/16 v4, 0x7b
 
     invoke-virtual {v0, v4}, Ljava/lang/StringBuilder;->append(C)Ljava/lang/StringBuilder;
@@ -1041,7 +1036,7 @@
     .line 369
     const/4 v1, 0x0
 
-    .local v1, i:I
+    .local v1, "i":I
     :goto_1
     iget v4, p0, Landroid/support/v4/util/SparseArrayCompat;->mSize:I
 
@@ -1062,7 +1057,7 @@
     move-result v2
 
     .line 374
-    .local v2, key:I
+    .local v2, "key":I
     invoke-virtual {v0, v2}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
 
     .line 375
@@ -1076,7 +1071,7 @@
     move-result-object v3
 
     .line 377
-    .local v3, value:Ljava/lang/Object;
+    .local v3, "value":Ljava/lang/Object;
     if-eq v3, p0, :cond_2
 
     .line 378
@@ -1097,8 +1092,8 @@
     goto :goto_2
 
     .line 383
-    .end local v2           #key:I
-    .end local v3           #value:Ljava/lang/Object;
+    .end local v2    # "key":I
+    .end local v3    # "value":Ljava/lang/Object;
     :cond_3
     const/16 v4, 0x7d
 
@@ -1114,7 +1109,7 @@
 
 .method public valueAt(I)Ljava/lang/Object;
     .locals 1
-    .parameter "index"
+    .param p1, "index"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(I)TE;"
@@ -1123,7 +1118,7 @@
 
     .prologue
     .line 250
-    .local p0, this:Landroid/support/v4/util/SparseArrayCompat;,"Landroid/support/v4/util/SparseArrayCompat<TE;>;"
+    .local p0, "this":Landroid/support/v4/util/SparseArrayCompat;, "Landroid/support/v4/util/SparseArrayCompat<TE;>;"
     iget-boolean v0, p0, Landroid/support/v4/util/SparseArrayCompat;->mGarbage:Z
 
     if-eqz v0, :cond_0

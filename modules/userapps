@@ -19,8 +19,8 @@
 #@Health: beta
 #@Version: 1.0
 
-. dtf_core.sh
-. dtf_log.sh
+. $DTF_CORE
+. $DTF_LOG
 
 sdk=$(dtf prop get Info sdk)
 

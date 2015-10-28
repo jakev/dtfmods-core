@@ -18,17 +18,17 @@
 
 
 # static fields
-.field public static final ANYRTL_LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final ANYRTL_LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
-.field public static final FIRSTSTRONG_LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final FIRSTSTRONG_LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
-.field public static final FIRSTSTRONG_RTL:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final FIRSTSTRONG_RTL:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
-.field public static final LOCALE:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final LOCALE:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
-.field public static final LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final LTR:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
-.field public static final RTL:Landroid/support/v4/text/TextDirectionHeuristicCompat; = null
+.field public static final RTL:Landroid/support/v4/text/TextDirectionHeuristicCompat;
 
 .field private static final STATE_FALSE:I = 0x1
 
@@ -110,7 +110,7 @@
 
 .method static synthetic access$100(I)I
     .locals 1
-    .parameter "x0"
+    .param p0, "x0"    # I
 
     .prologue
     .line 28
@@ -123,7 +123,7 @@
 
 .method static synthetic access$200(I)I
     .locals 1
-    .parameter "x0"
+    .param p0, "x0"    # I
 
     .prologue
     .line 28
@@ -136,7 +136,7 @@
 
 .method private static isRtlText(I)I
     .locals 1
-    .parameter "directionality"
+    .param p0, "directionality"    # I
 
     .prologue
     .line 79
@@ -173,7 +173,7 @@
 
 .method private static isRtlTextOrFormat(I)I
     .locals 1
-    .parameter "directionality"
+    .param p0, "directionality"    # I
 
     .prologue
     .line 91

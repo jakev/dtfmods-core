@@ -25,14 +25,14 @@
 
 .method public static getAccessibilityNodeProvider(Ljava/lang/Object;Landroid/view/View;)Ljava/lang/Object;
     .locals 1
-    .parameter "delegate"
-    .parameter "host"
+    .param p0, "delegate"    # Ljava/lang/Object;
+    .param p1, "host"    # Landroid/view/View;
 
     .prologue
     .line 99
     check-cast p0, Landroid/view/View$AccessibilityDelegate;
 
-    .end local p0
+    .end local p0    # "delegate":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/View$AccessibilityDelegate;->getAccessibilityNodeProvider(Landroid/view/View;)Landroid/view/accessibility/AccessibilityNodeProvider;
 
     move-result-object v0
@@ -42,7 +42,7 @@
 
 .method public static newAccessibilityDelegateBridge(Landroid/support/v4/view/AccessibilityDelegateCompatJellyBean$AccessibilityDelegateBridgeJellyBean;)Ljava/lang/Object;
     .locals 1
-    .parameter "bridge"
+    .param p0, "bridge"    # Landroid/support/v4/view/AccessibilityDelegateCompatJellyBean$AccessibilityDelegateBridgeJellyBean;
 
     .prologue
     .line 47
@@ -55,16 +55,16 @@
 
 .method public static performAccessibilityAction(Ljava/lang/Object;Landroid/view/View;ILandroid/os/Bundle;)Z
     .locals 1
-    .parameter "delegate"
-    .parameter "host"
-    .parameter "action"
-    .parameter "args"
+    .param p0, "delegate"    # Ljava/lang/Object;
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "action"    # I
+    .param p3, "args"    # Landroid/os/Bundle;
 
     .prologue
     .line 104
     check-cast p0, Landroid/view/View$AccessibilityDelegate;
 
-    .end local p0
+    .end local p0    # "delegate":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2, p3}, Landroid/view/View$AccessibilityDelegate;->performAccessibilityAction(Landroid/view/View;ILandroid/os/Bundle;)Z
 
     move-result v0

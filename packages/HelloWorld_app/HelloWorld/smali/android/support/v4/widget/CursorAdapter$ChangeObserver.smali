@@ -21,7 +21,6 @@
 # direct methods
 .method public constructor <init>(Landroid/support/v4/widget/CursorAdapter;)V
     .locals 1
-    .parameter
 
     .prologue
     .line 454
@@ -52,7 +51,7 @@
 
 .method public onChange(Z)V
     .locals 1
-    .parameter "selfChange"
+    .param p1, "selfChange"    # Z
 
     .prologue
     .line 465

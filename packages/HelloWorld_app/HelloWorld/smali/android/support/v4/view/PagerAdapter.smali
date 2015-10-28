@@ -35,9 +35,9 @@
 # virtual methods
 .method public destroyItem(Landroid/view/View;ILjava/lang/Object;)V
     .locals 2
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/View;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 192
@@ -52,9 +52,9 @@
 
 .method public destroyItem(Landroid/view/ViewGroup;ILjava/lang/Object;)V
     .locals 0
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 124
@@ -66,7 +66,7 @@
 
 .method public finishUpdate(Landroid/view/View;)V
     .locals 0
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/View;
 
     .prologue
     .line 219
@@ -75,7 +75,7 @@
 
 .method public finishUpdate(Landroid/view/ViewGroup;)V
     .locals 0
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 148
@@ -90,7 +90,7 @@
 
 .method public getItemPosition(Ljava/lang/Object;)I
     .locals 1
-    .parameter "object"
+    .param p1, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 268
@@ -101,7 +101,7 @@
 
 .method public getPageTitle(I)Ljava/lang/CharSequence;
     .locals 1
-    .parameter "position"
+    .param p1, "position"    # I
 
     .prologue
     .line 307
@@ -112,19 +112,19 @@
 
 .method public getPageWidth(I)F
     .locals 1
-    .parameter "position"
+    .param p1, "position"    # I
 
     .prologue
     .line 318
-    const/high16 v0, 0x3f80
+    const/high16 v0, 0x3f800000    # 1.0f
 
     return v0
 .end method
 
 .method public instantiateItem(Landroid/view/View;I)Ljava/lang/Object;
     .locals 2
-    .parameter "container"
-    .parameter "position"
+    .param p1, "container"    # Landroid/view/View;
+    .param p2, "position"    # I
 
     .prologue
     .line 175
@@ -139,8 +139,8 @@
 
 .method public instantiateItem(Landroid/view/ViewGroup;I)Ljava/lang/Object;
     .locals 1
-    .parameter "container"
-    .parameter "position"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
 
     .prologue
     .line 110
@@ -169,7 +169,7 @@
 
 .method public registerDataSetObserver(Landroid/database/DataSetObserver;)V
     .locals 1
-    .parameter "observer"
+    .param p1, "observer"    # Landroid/database/DataSetObserver;
 
     .prologue
     .line 285
@@ -183,8 +183,8 @@
 
 .method public restoreState(Landroid/os/Parcelable;Ljava/lang/ClassLoader;)V
     .locals 0
-    .parameter "state"
-    .parameter "loader"
+    .param p1, "state"    # Landroid/os/Parcelable;
+    .param p2, "loader"    # Ljava/lang/ClassLoader;
 
     .prologue
     .line 250
@@ -203,9 +203,9 @@
 
 .method public setPrimaryItem(Landroid/view/View;ILjava/lang/Object;)V
     .locals 0
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/View;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 207
@@ -214,9 +214,9 @@
 
 .method public setPrimaryItem(Landroid/view/ViewGroup;ILjava/lang/Object;)V
     .locals 0
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 137
@@ -228,7 +228,7 @@
 
 .method public startUpdate(Landroid/view/View;)V
     .locals 0
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/View;
 
     .prologue
     .line 159
@@ -237,7 +237,7 @@
 
 .method public startUpdate(Landroid/view/ViewGroup;)V
     .locals 0
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 95
@@ -249,7 +249,7 @@
 
 .method public unregisterDataSetObserver(Landroid/database/DataSetObserver;)V
     .locals 1
-    .parameter "observer"
+    .param p1, "observer"    # Landroid/database/DataSetObserver;
 
     .prologue
     .line 294

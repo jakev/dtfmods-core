@@ -41,7 +41,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 86
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0xf
 
     if-lt v0, v1, :cond_0
@@ -96,7 +96,7 @@
 
 .method public static makeMainActivity(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "mainActivity"
+    .param p0, "mainActivity"    # Landroid/content/ComponentName;
 
     .prologue
     .line 221
@@ -111,8 +111,8 @@
 
 .method public static makeMainSelectorActivity(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
     .locals 1
-    .parameter "selectorAction"
-    .parameter "selectorCategory"
+    .param p0, "selectorAction"    # Ljava/lang/String;
+    .param p1, "selectorCategory"    # Ljava/lang/String;
 
     .prologue
     .line 249
@@ -127,7 +127,7 @@
 
 .method public static makeRestartActivityTask(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "mainActivity"
+    .param p0, "mainActivity"    # Landroid/content/ComponentName;
 
     .prologue
     .line 266

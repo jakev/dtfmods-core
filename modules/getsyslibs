@@ -23,7 +23,6 @@ system_libs=system-libs
 
 mkdir ${system_libs} 2>/dev/null
 
-
 adb pull /system/lib ${system_libs}
 adb pull /vendor/lib ${system_libs}
 

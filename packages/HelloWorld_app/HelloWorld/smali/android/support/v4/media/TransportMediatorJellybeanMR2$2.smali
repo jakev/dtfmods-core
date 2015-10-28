@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/media/TransportMediatorJellybeanMR2;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 53
@@ -39,7 +38,7 @@
 # virtual methods
 .method public onWindowFocusChanged(Z)V
     .locals 1
-    .parameter "hasFocus"
+    .param p1, "hasFocus"    # Z
 
     .prologue
     .line 56

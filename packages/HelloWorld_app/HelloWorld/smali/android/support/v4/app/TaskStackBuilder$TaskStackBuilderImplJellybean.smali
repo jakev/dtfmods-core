@@ -32,11 +32,11 @@
 # virtual methods
 .method public getPendingIntent(Landroid/content/Context;[Landroid/content/Intent;IILandroid/os/Bundle;)Landroid/app/PendingIntent;
     .locals 3
-    .parameter "context"
-    .parameter "intents"
-    .parameter "requestCode"
-    .parameter "flags"
-    .parameter "options"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "intents"    # [Landroid/content/Intent;
+    .param p3, "requestCode"    # I
+    .param p4, "flags"    # I
+    .param p5, "options"    # Landroid/os/Bundle;
 
     .prologue
     const/4 v2, 0x0

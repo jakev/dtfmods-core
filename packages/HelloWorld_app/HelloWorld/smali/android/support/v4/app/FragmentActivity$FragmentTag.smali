@@ -15,7 +15,7 @@
 
 
 # static fields
-.field public static final Fragment:[I = null
+.field public static final Fragment:[I
 
 .field public static final Fragment_id:I = 0x1
 
@@ -43,10 +43,10 @@
     nop
 
     :array_0
-    .array-data 0x4
-        0x3t 0x0t 0x1t 0x1t
-        0xd0t 0x0t 0x1t 0x1t
-        0xd1t 0x0t 0x1t 0x1t
+    .array-data 4
+        0x1010003
+        0x10100d0
+        0x10100d1
     .end array-data
 .end method
 

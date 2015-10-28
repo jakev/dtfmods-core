@@ -18,14 +18,14 @@
 # virtual methods
 .method protected onCreate(Landroid/os/Bundle;)V
     .locals 1
-    .parameter "savedInstanceState"
+    .param p1, "savedInstanceState"    # Landroid/os/Bundle;
 
     .prologue
     .line 11
     invoke-super {p0, p1}, Landroid/app/Activity;->onCreate(Landroid/os/Bundle;)V
 
     .line 12
-    const/high16 v0, 0x7f03
+    const/high16 v0, 0x7f030000
 
     invoke-virtual {p0, v0}, Lcom/helloworld/MainActivity;->setContentView(I)V
 
@@ -35,7 +35,7 @@
 
 .method public onCreateOptionsMenu(Landroid/view/Menu;)Z
     .locals 2
-    .parameter "menu"
+    .param p1, "menu"    # Landroid/view/Menu;
 
     .prologue
     .line 18
@@ -43,7 +43,7 @@
 
     move-result-object v0
 
-    const/high16 v1, 0x7f07
+    const/high16 v1, 0x7f070000
 
     invoke-virtual {v0, v1, p1}, Landroid/view/MenuInflater;->inflate(ILandroid/view/Menu;)V
 

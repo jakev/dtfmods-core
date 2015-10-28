@@ -43,11 +43,10 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/util/MapCollections;)V
     .locals 1
-    .parameter
 
     .prologue
     .line 76
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iput-object p1, p0, Landroid/support/v4/util/MapCollections$MapIterator;->this$0:Landroid/support/v4/util/MapCollections;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -79,10 +78,10 @@
 # virtual methods
 .method public final equals(Ljava/lang/Object;)Z
     .locals 6
-    .parameter "o"
+    .param p1, "o"    # Ljava/lang/Object;
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     const/4 v1, 0x1
 
     const/4 v2, 0x0
@@ -118,7 +117,7 @@
     check-cast v0, Ljava/util/Map$Entry;
 
     .line 141
-    .local v0, e:Ljava/util/Map$Entry;,"Ljava/util/Map$Entry<**>;"
+    .local v0, "e":Ljava/util/Map$Entry;, "Ljava/util/Map$Entry<**>;"
     invoke-interface {v0}, Ljava/util/Map$Entry;->getKey()Ljava/lang/Object;
 
     move-result-object v3
@@ -176,7 +175,7 @@
 
     .prologue
     .line 106
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iget-boolean v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mEntryValid:Z
 
     if-nez v0, :cond_0
@@ -215,7 +214,7 @@
 
     .prologue
     .line 115
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iget-boolean v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mEntryValid:Z
 
     if-nez v0, :cond_0
@@ -249,7 +248,7 @@
 
     .prologue
     .line 83
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iget v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mIndex:I
 
     iget v1, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mEnd:I
@@ -271,7 +270,7 @@
     .locals 6
 
     .prologue
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     const/4 v2, 0x0
 
     .line 147
@@ -299,7 +298,7 @@
     move-result-object v0
 
     .line 152
-    .local v0, key:Ljava/lang/Object;
+    .local v0, "key":Ljava/lang/Object;
     iget-object v3, p0, Landroid/support/v4/util/MapCollections$MapIterator;->this$0:Landroid/support/v4/util/MapCollections;
 
     iget v4, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mIndex:I
@@ -311,7 +310,7 @@
     move-result-object v1
 
     .line 153
-    .local v1, value:Ljava/lang/Object;
+    .local v1, "value":Ljava/lang/Object;
     if-nez v0, :cond_1
 
     move v3, v2
@@ -344,7 +343,7 @@
 
     .prologue
     .line 71
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     invoke-virtual {p0}, Landroid/support/v4/util/MapCollections$MapIterator;->next()Ljava/util/Map$Entry;
 
     move-result-object v0
@@ -364,7 +363,7 @@
 
     .prologue
     .line 88
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iget v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mIndex:I
 
     add-int/lit8 v0, v0, 0x1
@@ -385,7 +384,7 @@
 
     .prologue
     .line 95
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     iget-boolean v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mEntryValid:Z
 
     if-nez v0, :cond_0
@@ -430,7 +429,6 @@
 
 .method public setValue(Ljava/lang/Object;)Ljava/lang/Object;
     .locals 2
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(TV;)TV;"
@@ -439,8 +437,8 @@
 
     .prologue
     .line 124
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
-    .local p1, object:Ljava/lang/Object;,"TV;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p1, "object":Ljava/lang/Object;, "TV;"
     iget-boolean v0, p0, Landroid/support/v4/util/MapCollections$MapIterator;->mEntryValid:Z
 
     if-nez v0, :cond_0
@@ -472,7 +470,7 @@
 
     .prologue
     .line 159
-    .local p0, this:Landroid/support/v4/util/MapCollections$MapIterator;,"Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
+    .local p0, "this":Landroid/support/v4/util/MapCollections$MapIterator;, "Landroid/support/v4/util/MapCollections<TK;TV;>.MapIterator;"
     new-instance v0, Ljava/lang/StringBuilder;
 
     invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V

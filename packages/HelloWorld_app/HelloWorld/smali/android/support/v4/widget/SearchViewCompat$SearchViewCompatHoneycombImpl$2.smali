@@ -26,8 +26,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/widget/SearchViewCompat$SearchViewCompatHoneycombImpl;Landroid/support/v4/widget/SearchViewCompat$OnCloseListenerCompat;)V
     .locals 0
-    .parameter
-    .parameter
 
     .prologue
     .line 170

@@ -25,7 +25,7 @@
 
 .method public static setSingleLineAllCaps(Landroid/widget/TextView;)V
     .locals 2
-    .parameter "text"
+    .param p0, "text"    # Landroid/widget/TextView;
 
     .prologue
     .line 28

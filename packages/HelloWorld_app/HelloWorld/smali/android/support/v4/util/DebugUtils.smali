@@ -16,8 +16,8 @@
 
 .method public static buildShortClassTag(Ljava/lang/Object;Ljava/lang/StringBuilder;)V
     .locals 3
-    .parameter "cls"
-    .parameter "out"
+    .param p0, "cls"    # Ljava/lang/Object;
+    .param p1, "out"    # Ljava/lang/StringBuilder;
 
     .prologue
     .line 28
@@ -43,7 +43,7 @@
     move-result-object v1
 
     .line 32
-    .local v1, simpleName:Ljava/lang/String;
+    .local v1, "simpleName":Ljava/lang/String;
     if-eqz v1, :cond_1
 
     invoke-virtual {v1}, Ljava/lang/String;->length()I
@@ -70,7 +70,7 @@
     move-result v0
 
     .line 35
-    .local v0, end:I
+    .local v0, "end":I
     if-lez v0, :cond_2
 
     .line 36
@@ -81,7 +81,7 @@
     move-result-object v1
 
     .line 39
-    .end local v0           #end:I
+    .end local v0    # "end":I
     :cond_2
     invoke-virtual {p1, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 

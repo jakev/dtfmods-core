@@ -32,7 +32,7 @@
 # virtual methods
 .method public onPanelClosed(Landroid/view/View;)V
     .locals 0
-    .parameter "panel"
+    .param p1, "panel"    # Landroid/view/View;
 
     .prologue
     .line 240
@@ -41,7 +41,7 @@
 
 .method public onPanelOpened(Landroid/view/View;)V
     .locals 0
-    .parameter "panel"
+    .param p1, "panel"    # Landroid/view/View;
 
     .prologue
     .line 237
@@ -50,8 +50,8 @@
 
 .method public onPanelSlide(Landroid/view/View;F)V
     .locals 0
-    .parameter "panel"
-    .parameter "slideOffset"
+    .param p1, "panel"    # Landroid/view/View;
+    .param p2, "slideOffset"    # F
 
     .prologue
     .line 234

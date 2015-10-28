@@ -32,7 +32,7 @@
 # virtual methods
 .method public abortAnimation(Ljava/lang/Object;)V
     .locals 0
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 201
@@ -44,7 +44,7 @@
 
 .method public computeScrollOffset(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 171
@@ -57,8 +57,8 @@
 
 .method public createScroller(Landroid/content/Context;Landroid/view/animation/Interpolator;)Ljava/lang/Object;
     .locals 1
-    .parameter "context"
-    .parameter "interpolator"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "interpolator"    # Landroid/view/animation/Interpolator;
 
     .prologue
     .line 146
@@ -71,15 +71,15 @@
 
 .method public fling(Ljava/lang/Object;IIIIIIII)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startX"
-    .parameter "startY"
-    .parameter "velX"
-    .parameter "velY"
-    .parameter "minX"
-    .parameter "maxX"
-    .parameter "minY"
-    .parameter "maxY"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startX"    # I
+    .param p3, "startY"    # I
+    .param p4, "velX"    # I
+    .param p5, "velY"    # I
+    .param p6, "minX"    # I
+    .param p7, "maxX"    # I
+    .param p8, "minY"    # I
+    .param p9, "maxY"    # I
 
     .prologue
     .line 188
@@ -91,17 +91,17 @@
 
 .method public fling(Ljava/lang/Object;IIIIIIIIII)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startX"
-    .parameter "startY"
-    .parameter "velX"
-    .parameter "velY"
-    .parameter "minX"
-    .parameter "maxX"
-    .parameter "minY"
-    .parameter "maxY"
-    .parameter "overX"
-    .parameter "overY"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startX"    # I
+    .param p3, "startY"    # I
+    .param p4, "velX"    # I
+    .param p5, "velY"    # I
+    .param p6, "minX"    # I
+    .param p7, "maxX"    # I
+    .param p8, "minY"    # I
+    .param p9, "maxY"    # I
+    .param p10, "overX"    # I
+    .param p11, "overY"    # I
 
     .prologue
     .line 195
@@ -113,7 +113,7 @@
 
 .method public getCurrVelocity(Ljava/lang/Object;)F
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 166
@@ -124,7 +124,7 @@
 
 .method public getCurrX(Ljava/lang/Object;)I
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 156
@@ -137,7 +137,7 @@
 
 .method public getCurrY(Ljava/lang/Object;)I
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 161
@@ -150,7 +150,7 @@
 
 .method public getFinalX(Ljava/lang/Object;)I
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 222
@@ -163,7 +163,7 @@
 
 .method public getFinalY(Ljava/lang/Object;)I
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 227
@@ -176,7 +176,7 @@
 
 .method public isFinished(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 151
@@ -189,7 +189,7 @@
 
 .method public isOverScrolled(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 217
@@ -202,10 +202,10 @@
 
 .method public notifyHorizontalEdgeReached(Ljava/lang/Object;III)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startX"
-    .parameter "finalX"
-    .parameter "overX"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startX"    # I
+    .param p3, "finalX"    # I
+    .param p4, "overX"    # I
 
     .prologue
     .line 207
@@ -217,10 +217,10 @@
 
 .method public notifyVerticalEdgeReached(Ljava/lang/Object;III)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startY"
-    .parameter "finalY"
-    .parameter "overY"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startY"    # I
+    .param p3, "finalY"    # I
+    .param p4, "overY"    # I
 
     .prologue
     .line 212
@@ -232,11 +232,11 @@
 
 .method public startScroll(Ljava/lang/Object;IIII)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startX"
-    .parameter "startY"
-    .parameter "dx"
-    .parameter "dy"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startX"    # I
+    .param p3, "startY"    # I
+    .param p4, "dx"    # I
+    .param p5, "dy"    # I
 
     .prologue
     .line 176
@@ -248,12 +248,12 @@
 
 .method public startScroll(Ljava/lang/Object;IIIII)V
     .locals 0
-    .parameter "scroller"
-    .parameter "startX"
-    .parameter "startY"
-    .parameter "dx"
-    .parameter "dy"
-    .parameter "duration"
+    .param p1, "scroller"    # Ljava/lang/Object;
+    .param p2, "startX"    # I
+    .param p3, "startY"    # I
+    .param p4, "dx"    # I
+    .param p5, "dy"    # I
+    .param p6, "duration"    # I
 
     .prologue
     .line 182

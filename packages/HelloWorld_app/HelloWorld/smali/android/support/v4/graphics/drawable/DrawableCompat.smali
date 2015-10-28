@@ -27,7 +27,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 84
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0x13
 
     if-lt v0, v1, :cond_0
@@ -82,7 +82,7 @@
 
 .method public static isAutoMirrored(Landroid/graphics/drawable/Drawable;)Z
     .locals 1
-    .parameter "drawable"
+    .param p0, "drawable"    # Landroid/graphics/drawable/Drawable;
 
     .prologue
     .line 133
@@ -97,7 +97,7 @@
 
 .method public static jumpToCurrentState(Landroid/graphics/drawable/Drawable;)V
     .locals 1
-    .parameter "drawable"
+    .param p0, "drawable"    # Landroid/graphics/drawable/Drawable;
 
     .prologue
     .line 102
@@ -111,8 +111,8 @@
 
 .method public static setAutoMirrored(Landroid/graphics/drawable/Drawable;Z)V
     .locals 1
-    .parameter "drawable"
-    .parameter "mirrored"
+    .param p0, "drawable"    # Landroid/graphics/drawable/Drawable;
+    .param p1, "mirrored"    # Z
 
     .prologue
     .line 118

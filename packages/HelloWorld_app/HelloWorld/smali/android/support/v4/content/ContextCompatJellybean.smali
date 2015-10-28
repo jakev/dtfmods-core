@@ -16,9 +16,9 @@
 
 .method public static startActivities(Landroid/content/Context;[Landroid/content/Intent;Landroid/os/Bundle;)V
     .locals 0
-    .parameter "context"
-    .parameter "intents"
-    .parameter "options"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "intents"    # [Landroid/content/Intent;
+    .param p2, "options"    # Landroid/os/Bundle;
 
     .prologue
     .line 26

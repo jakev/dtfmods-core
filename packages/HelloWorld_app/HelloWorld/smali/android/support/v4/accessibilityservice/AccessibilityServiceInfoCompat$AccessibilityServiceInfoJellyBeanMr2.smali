@@ -29,7 +29,7 @@
 # virtual methods
 .method public getCapabilities(Landroid/accessibilityservice/AccessibilityServiceInfo;)I
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Landroid/accessibilityservice/AccessibilityServiceInfo;
 
     .prologue
     .line 106

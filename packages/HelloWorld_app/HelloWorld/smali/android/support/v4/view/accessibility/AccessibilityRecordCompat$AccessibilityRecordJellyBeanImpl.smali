@@ -29,9 +29,9 @@
 # virtual methods
 .method public setSource(Ljava/lang/Object;Landroid/view/View;I)V
     .locals 0
-    .parameter "record"
-    .parameter "root"
-    .parameter "virtualDescendantId"
+    .param p1, "record"    # Ljava/lang/Object;
+    .param p2, "root"    # Landroid/view/View;
+    .param p3, "virtualDescendantId"    # I
 
     .prologue
     .line 501

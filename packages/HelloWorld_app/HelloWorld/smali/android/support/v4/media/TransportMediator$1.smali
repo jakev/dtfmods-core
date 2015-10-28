@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/media/TransportMediator;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 58
@@ -55,7 +54,7 @@
 
 .method public handleAudioFocusChange(I)V
     .locals 1
-    .parameter "focusChange"
+    .param p1, "focusChange"    # I
 
     .prologue
     .line 65
@@ -71,7 +70,7 @@
 
 .method public handleKey(Landroid/view/KeyEvent;)V
     .locals 1
-    .parameter "key"
+    .param p1, "key"    # Landroid/view/KeyEvent;
 
     .prologue
     .line 61
@@ -87,7 +86,7 @@
 
 .method public playbackPositionUpdate(J)V
     .locals 1
-    .parameter "newPositionMs"
+    .param p1, "newPositionMs"    # J
 
     .prologue
     .line 75

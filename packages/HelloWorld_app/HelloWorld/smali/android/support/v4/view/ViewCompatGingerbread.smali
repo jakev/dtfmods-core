@@ -16,7 +16,7 @@
 
 .method public static getOverScrollMode(Landroid/view/View;)I
     .locals 1
-    .parameter "v"
+    .param p0, "v"    # Landroid/view/View;
 
     .prologue
     .line 23
@@ -29,8 +29,8 @@
 
 .method public static setOverScrollMode(Landroid/view/View;I)V
     .locals 0
-    .parameter "v"
-    .parameter "mode"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "mode"    # I
 
     .prologue
     .line 27

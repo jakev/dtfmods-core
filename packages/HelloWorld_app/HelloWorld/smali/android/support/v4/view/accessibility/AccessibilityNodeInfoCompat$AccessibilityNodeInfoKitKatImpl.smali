@@ -29,7 +29,7 @@
 # virtual methods
 .method public getLiveRegion(Ljava/lang/Object;)I
     .locals 1
-    .parameter "info"
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 746
@@ -42,8 +42,8 @@
 
 .method public setLiveRegion(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "info"
-    .parameter "mode"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "mode"    # I
 
     .prologue
     .line 751

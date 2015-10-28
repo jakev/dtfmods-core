@@ -26,8 +26,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/view/MenuItemCompat$IcsMenuVersionImpl;Landroid/support/v4/view/MenuItemCompat$OnActionExpandListener;)V
     .locals 0
-    .parameter
-    .parameter
 
     .prologue
     .line 228
@@ -44,7 +42,7 @@
 # virtual methods
 .method public onMenuItemActionCollapse(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p1, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 236
@@ -59,7 +57,7 @@
 
 .method public onMenuItemActionExpand(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p1, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 231

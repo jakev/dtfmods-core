@@ -32,7 +32,7 @@
 # virtual methods
 .method public onDrawerClosed(Landroid/view/View;)V
     .locals 0
-    .parameter "drawerView"
+    .param p1, "drawerView"    # Landroid/view/View;
 
     .prologue
     .line 209
@@ -41,7 +41,7 @@
 
 .method public onDrawerOpened(Landroid/view/View;)V
     .locals 0
-    .parameter "drawerView"
+    .param p1, "drawerView"    # Landroid/view/View;
 
     .prologue
     .line 205
@@ -50,8 +50,8 @@
 
 .method public onDrawerSlide(Landroid/view/View;F)V
     .locals 0
-    .parameter "drawerView"
-    .parameter "slideOffset"
+    .param p1, "drawerView"    # Landroid/view/View;
+    .param p2, "slideOffset"    # F
 
     .prologue
     .line 201
@@ -60,7 +60,7 @@
 
 .method public onDrawerStateChanged(I)V
     .locals 0
-    .parameter "newState"
+    .param p1, "newState"    # I
 
     .prologue
     .line 213

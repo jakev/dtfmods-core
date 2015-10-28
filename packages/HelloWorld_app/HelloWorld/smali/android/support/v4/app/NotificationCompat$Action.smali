@@ -25,9 +25,9 @@
 # direct methods
 .method public constructor <init>(ILjava/lang/CharSequence;Landroid/app/PendingIntent;)V
     .locals 0
-    .parameter "icon_"
-    .parameter "title_"
-    .parameter "intent_"
+    .param p1, "icon_"    # I
+    .param p2, "title_"    # Ljava/lang/CharSequence;
+    .param p3, "intent_"    # Landroid/app/PendingIntent;
 
     .prologue
     .line 824

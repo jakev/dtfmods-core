@@ -16,7 +16,7 @@
 
 .method public static getStorageState(Ljava/io/File;)Ljava/lang/String;
     .locals 1
-    .parameter "path"
+    .param p0, "path"    # Ljava/io/File;
 
     .prologue
     .line 25

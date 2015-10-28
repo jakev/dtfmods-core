@@ -16,7 +16,7 @@
 # static fields
 .field public static final END:I = 0x800005
 
-.field static final IMPL:Landroid/support/v4/view/GravityCompat$GravityCompatImpl; = null
+.field static final IMPL:Landroid/support/v4/view/GravityCompat$GravityCompatImpl;
 
 .field public static final RELATIVE_HORIZONTAL_GRAVITY_MASK:I = 0x800007
 
@@ -34,7 +34,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 90
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0x11
 
     if-lt v0, v1, :cond_0
@@ -74,14 +74,14 @@
 
 .method public static apply(IIILandroid/graphics/Rect;IILandroid/graphics/Rect;I)V
     .locals 9
-    .parameter "gravity"
-    .parameter "w"
-    .parameter "h"
-    .parameter "container"
-    .parameter "xAdj"
-    .parameter "yAdj"
-    .parameter "outRect"
-    .parameter "layoutDirection"
+    .param p0, "gravity"    # I
+    .param p1, "w"    # I
+    .param p2, "h"    # I
+    .param p3, "container"    # Landroid/graphics/Rect;
+    .param p4, "xAdj"    # I
+    .param p5, "yAdj"    # I
+    .param p6, "outRect"    # Landroid/graphics/Rect;
+    .param p7, "layoutDirection"    # I
 
     .prologue
     .line 162
@@ -111,12 +111,12 @@
 
 .method public static apply(IIILandroid/graphics/Rect;Landroid/graphics/Rect;I)V
     .locals 7
-    .parameter "gravity"
-    .parameter "w"
-    .parameter "h"
-    .parameter "container"
-    .parameter "outRect"
-    .parameter "layoutDirection"
+    .param p0, "gravity"    # I
+    .param p1, "w"    # I
+    .param p2, "h"    # I
+    .param p3, "container"    # Landroid/graphics/Rect;
+    .param p4, "outRect"    # Landroid/graphics/Rect;
+    .param p5, "layoutDirection"    # I
 
     .prologue
     .line 132
@@ -142,10 +142,10 @@
 
 .method public static applyDisplay(ILandroid/graphics/Rect;Landroid/graphics/Rect;I)V
     .locals 1
-    .parameter "gravity"
-    .parameter "display"
-    .parameter "inoutObj"
-    .parameter "layoutDirection"
+    .param p0, "gravity"    # I
+    .param p1, "display"    # Landroid/graphics/Rect;
+    .param p2, "inoutObj"    # Landroid/graphics/Rect;
+    .param p3, "layoutDirection"    # I
 
     .prologue
     .line 186
@@ -159,8 +159,8 @@
 
 .method public static getAbsoluteGravity(II)I
     .locals 1
-    .parameter "gravity"
-    .parameter "layoutDirection"
+    .param p0, "gravity"    # I
+    .param p1, "layoutDirection"    # I
 
     .prologue
     .line 201

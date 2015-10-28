@@ -16,7 +16,7 @@
 
 .method public static isOpaque(Landroid/view/View;)Z
     .locals 1
-    .parameter "view"
+    .param p0, "view"    # Landroid/view/View;
 
     .prologue
     .line 24

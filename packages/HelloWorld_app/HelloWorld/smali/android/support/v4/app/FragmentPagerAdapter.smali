@@ -20,7 +20,7 @@
 # direct methods
 .method public constructor <init>(Landroid/support/v4/app/FragmentManager;)V
     .locals 1
-    .parameter "fm"
+    .param p1, "fm"    # Landroid/support/v4/app/FragmentManager;
 
     .prologue
     const/4 v0, 0x0
@@ -43,8 +43,8 @@
 
 .method private static makeFragmentName(IJ)Ljava/lang/String;
     .locals 2
-    .parameter "viewId"
-    .parameter "id"
+    .param p0, "viewId"    # I
+    .param p1, "id"    # J
 
     .prologue
     .line 173
@@ -83,9 +83,9 @@
 # virtual methods
 .method public destroyItem(Landroid/view/ViewGroup;ILjava/lang/Object;)V
     .locals 1
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 112
@@ -108,7 +108,7 @@
 
     check-cast p3, Landroid/support/v4/app/Fragment;
 
-    .end local p3
+    .end local p3    # "object":Ljava/lang/Object;
     invoke-virtual {v0, p3}, Landroid/support/v4/app/FragmentTransaction;->detach(Landroid/support/v4/app/Fragment;)Landroid/support/v4/app/FragmentTransaction;
 
     .line 118
@@ -117,7 +117,7 @@
 
 .method public finishUpdate(Landroid/view/ViewGroup;)V
     .locals 1
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 138
@@ -150,7 +150,7 @@
 
 .method public getItemId(I)J
     .locals 2
-    .parameter "position"
+    .param p1, "position"    # I
 
     .prologue
     .line 169
@@ -161,8 +161,8 @@
 
 .method public instantiateItem(Landroid/view/ViewGroup;I)Ljava/lang/Object;
     .locals 8
-    .parameter "container"
-    .parameter "position"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
 
     .prologue
     const/4 v7, 0x0
@@ -188,7 +188,7 @@
     move-result-wide v1
 
     .line 91
-    .local v1, itemId:J
+    .local v1, "itemId":J
     invoke-virtual {p1}, Landroid/view/ViewGroup;->getId()I
 
     move-result v4
@@ -198,7 +198,7 @@
     move-result-object v3
 
     .line 92
-    .local v3, name:Ljava/lang/String;
+    .local v3, "name":Ljava/lang/String;
     iget-object v4, p0, Landroid/support/v4/app/FragmentPagerAdapter;->mFragmentManager:Landroid/support/v4/app/FragmentManager;
 
     invoke-virtual {v4, v3}, Landroid/support/v4/app/FragmentManager;->findFragmentByTag(Ljava/lang/String;)Landroid/support/v4/app/Fragment;
@@ -206,7 +206,7 @@
     move-result-object v0
 
     .line 93
-    .local v0, fragment:Landroid/support/v4/app/Fragment;
+    .local v0, "fragment":Landroid/support/v4/app/Fragment;
     if-eqz v0, :cond_2
 
     .line 95
@@ -258,14 +258,14 @@
 
 .method public isViewFromObject(Landroid/view/View;Ljava/lang/Object;)Z
     .locals 1
-    .parameter "view"
-    .parameter "object"
+    .param p1, "view"    # Landroid/view/View;
+    .param p2, "object"    # Ljava/lang/Object;
 
     .prologue
     .line 147
     check-cast p2, Landroid/support/v4/app/Fragment;
 
-    .end local p2
+    .end local p2    # "object":Ljava/lang/Object;
     invoke-virtual {p2}, Landroid/support/v4/app/Fragment;->getView()Landroid/view/View;
 
     move-result-object v0
@@ -285,8 +285,8 @@
 
 .method public restoreState(Landroid/os/Parcelable;Ljava/lang/ClassLoader;)V
     .locals 0
-    .parameter "state"
-    .parameter "loader"
+    .param p1, "state"    # Landroid/os/Parcelable;
+    .param p2, "loader"    # Ljava/lang/ClassLoader;
 
     .prologue
     .line 157
@@ -305,9 +305,9 @@
 
 .method public setPrimaryItem(Landroid/view/ViewGroup;ILjava/lang/Object;)V
     .locals 4
-    .parameter "container"
-    .parameter "position"
-    .parameter "object"
+    .param p1, "container"    # Landroid/view/ViewGroup;
+    .param p2, "position"    # I
+    .param p3, "object"    # Ljava/lang/Object;
 
     .prologue
     const/4 v3, 0x1
@@ -320,7 +320,7 @@
     check-cast v0, Landroid/support/v4/app/Fragment;
 
     .line 123
-    .local v0, fragment:Landroid/support/v4/app/Fragment;
+    .local v0, "fragment":Landroid/support/v4/app/Fragment;
     iget-object v1, p0, Landroid/support/v4/app/FragmentPagerAdapter;->mCurrentPrimaryItem:Landroid/support/v4/app/Fragment;
 
     if-eq v0, v1, :cond_2
@@ -361,7 +361,7 @@
 
 .method public startUpdate(Landroid/view/ViewGroup;)V
     .locals 0
-    .parameter "container"
+    .param p1, "container"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 80

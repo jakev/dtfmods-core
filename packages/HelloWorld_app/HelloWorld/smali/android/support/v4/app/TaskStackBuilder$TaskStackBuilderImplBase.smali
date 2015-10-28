@@ -32,11 +32,11 @@
 # virtual methods
 .method public getPendingIntent(Landroid/content/Context;[Landroid/content/Intent;IILandroid/os/Bundle;)Landroid/app/PendingIntent;
     .locals 2
-    .parameter "context"
-    .parameter "intents"
-    .parameter "requestCode"
-    .parameter "flags"
-    .parameter "options"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "intents"    # [Landroid/content/Intent;
+    .param p3, "requestCode"    # I
+    .param p4, "flags"    # I
+    .param p5, "options"    # Landroid/os/Bundle;
 
     .prologue
     .line 84
@@ -51,8 +51,8 @@
     invoke-direct {v0, v1}, Landroid/content/Intent;-><init>(Landroid/content/Intent;)V
 
     .line 85
-    .local v0, topIntent:Landroid/content/Intent;
-    const/high16 v1, 0x1000
+    .local v0, "topIntent":Landroid/content/Intent;
+    const/high16 v1, 0x10000000
 
     invoke-virtual {v0, v1}, Landroid/content/Intent;->addFlags(I)Landroid/content/Intent;
 

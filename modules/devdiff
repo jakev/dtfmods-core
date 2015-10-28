@@ -19,8 +19,8 @@
 #@Health: beta
 #@Version: 1.0
 
-. dtf_log.sh
-. dtf_core.sh
+. $DTF_CORE
+. $DTF_LOG
 
 LOG_LEVEL=5
 

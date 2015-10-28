@@ -32,14 +32,14 @@
 # virtual methods
 .method public build(Landroid/support/v4/app/NotificationCompat$Builder;)Landroid/app/Notification;
     .locals 5
-    .parameter "b"
+    .param p1, "b"    # Landroid/support/v4/app/NotificationCompat$Builder;
 
     .prologue
     .line 87
     iget-object v0, p1, Landroid/support/v4/app/NotificationCompat$Builder;->mNotification:Landroid/app/Notification;
 
     .line 88
-    .local v0, result:Landroid/app/Notification;
+    .local v0, "result":Landroid/app/Notification;
     iget-object v1, p1, Landroid/support/v4/app/NotificationCompat$Builder;->mContext:Landroid/content/Context;
 
     iget-object v2, p1, Landroid/support/v4/app/NotificationCompat$Builder;->mContentTitle:Ljava/lang/CharSequence;

@@ -16,8 +16,8 @@
 
 .method public static makeMainSelectorActivity(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;
     .locals 1
-    .parameter "selectorAction"
-    .parameter "selectorCategory"
+    .param p0, "selectorAction"    # Ljava/lang/String;
+    .param p1, "selectorCategory"    # Ljava/lang/String;
 
     .prologue
     .line 24

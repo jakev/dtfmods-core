@@ -21,7 +21,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/view/AccessibilityDelegateCompatIcs$AccessibilityDelegateBridge;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 46
@@ -36,8 +35,8 @@
 # virtual methods
 .method public dispatchPopulateAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "host"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 49
@@ -52,8 +51,8 @@
 
 .method public onInitializeAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 1
-    .parameter "host"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 54
@@ -67,8 +66,8 @@
 
 .method public onInitializeAccessibilityNodeInfo(Landroid/view/View;Landroid/view/accessibility/AccessibilityNodeInfo;)V
     .locals 1
-    .parameter "host"
-    .parameter "info"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "info"    # Landroid/view/accessibility/AccessibilityNodeInfo;
 
     .prologue
     .line 59
@@ -82,8 +81,8 @@
 
 .method public onPopulateAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 1
-    .parameter "host"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 64
@@ -97,9 +96,9 @@
 
 .method public onRequestSendAccessibilityEvent(Landroid/view/ViewGroup;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "host"
-    .parameter "child"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/ViewGroup;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 70
@@ -114,8 +113,8 @@
 
 .method public sendAccessibilityEvent(Landroid/view/View;I)V
     .locals 1
-    .parameter "host"
-    .parameter "eventType"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "eventType"    # I
 
     .prologue
     .line 75
@@ -129,8 +128,8 @@
 
 .method public sendAccessibilityEventUnchecked(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 1
-    .parameter "host"
-    .parameter "event"
+    .param p1, "host"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 80

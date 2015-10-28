@@ -29,7 +29,7 @@
 # virtual methods
 .method public escapeHtml(Ljava/lang/CharSequence;)Ljava/lang/String;
     .locals 1
-    .parameter "html"
+    .param p1, "html"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 139
@@ -42,7 +42,7 @@
 
 .method shouldAddChooserIntent(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p1, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 144

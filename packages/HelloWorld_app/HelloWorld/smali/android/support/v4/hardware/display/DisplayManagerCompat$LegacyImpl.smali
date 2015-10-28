@@ -21,7 +21,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 108
@@ -46,7 +46,7 @@
 # virtual methods
 .method public getDisplay(I)Landroid/view/Display;
     .locals 2
-    .parameter "displayId"
+    .param p1, "displayId"    # I
 
     .prologue
     .line 114
@@ -57,7 +57,7 @@
     move-result-object v0
 
     .line 115
-    .local v0, display:Landroid/view/Display;
+    .local v0, "display":Landroid/view/Display;
     invoke-virtual {v0}, Landroid/view/Display;->getDisplayId()I
 
     move-result v1
@@ -65,11 +65,11 @@
     if-ne v1, p1, :cond_0
 
     .line 118
-    .end local v0           #display:Landroid/view/Display;
+    .end local v0    # "display":Landroid/view/Display;
     :goto_0
     return-object v0
 
-    .restart local v0       #display:Landroid/view/Display;
+    .restart local v0    # "display":Landroid/view/Display;
     :cond_0
     const/4 v0, 0x0
 
@@ -100,7 +100,7 @@
 
 .method public getDisplays(Ljava/lang/String;)[Landroid/view/Display;
     .locals 1
-    .parameter "category"
+    .param p1, "category"    # Ljava/lang/String;
 
     .prologue
     .line 128

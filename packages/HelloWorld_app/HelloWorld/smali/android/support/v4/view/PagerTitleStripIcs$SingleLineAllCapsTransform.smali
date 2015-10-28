@@ -25,7 +25,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 36
@@ -52,8 +52,8 @@
 # virtual methods
 .method public getTransformation(Ljava/lang/CharSequence;Landroid/view/View;)Ljava/lang/CharSequence;
     .locals 2
-    .parameter "source"
-    .parameter "view"
+    .param p1, "source"    # Ljava/lang/CharSequence;
+    .param p2, "view"    # Landroid/view/View;
 
     .prologue
     .line 42

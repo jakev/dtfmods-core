@@ -29,8 +29,8 @@
 # virtual methods
 .method public metaStateHasModifiers(II)Z
     .locals 1
-    .parameter "metaState"
-    .parameter "modifiers"
+    .param p1, "metaState"    # I
+    .param p2, "modifiers"    # I
 
     .prologue
     .line 152
@@ -43,7 +43,7 @@
 
 .method public metaStateHasNoModifiers(I)Z
     .locals 1
-    .parameter "metaState"
+    .param p1, "metaState"    # I
 
     .prologue
     .line 157
@@ -56,7 +56,7 @@
 
 .method public normalizeMetaState(I)I
     .locals 1
-    .parameter "metaState"
+    .param p1, "metaState"    # I
 
     .prologue
     .line 147

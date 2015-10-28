@@ -32,7 +32,7 @@
 # virtual methods
 .method public onPageScrollStateChanged(I)V
     .locals 0
-    .parameter "state"
+    .param p1, "state"    # I
 
     .prologue
     .line 306
@@ -41,9 +41,9 @@
 
 .method public onPageScrolled(IFI)V
     .locals 0
-    .parameter "position"
-    .parameter "positionOffset"
-    .parameter "positionOffsetPixels"
+    .param p1, "position"    # I
+    .param p2, "positionOffset"    # F
+    .param p3, "positionOffsetPixels"    # I
 
     .prologue
     .line 296
@@ -52,7 +52,7 @@
 
 .method public onPageSelected(I)V
     .locals 0
-    .parameter "position"
+    .param p1, "position"    # I
 
     .prologue
     .line 301

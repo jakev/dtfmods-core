@@ -51,22 +51,22 @@
 # virtual methods
 .method public checkRtl(Ljava/lang/CharSequence;II)I
     .locals 4
-    .parameter "cs"
-    .parameter "start"
-    .parameter "count"
+    .param p1, "cs"    # Ljava/lang/CharSequence;
+    .param p2, "start"    # I
+    .param p3, "count"    # I
 
     .prologue
     .line 183
     const/4 v2, 0x2
 
     .line 184
-    .local v2, result:I
+    .local v2, "result":I
     move v1, p2
 
-    .local v1, i:I
+    .local v1, "i":I
     add-int v0, p2, p3
 
-    .local v0, e:I
+    .local v0, "e":I
     :goto_0
     if-ge v1, v0, :cond_0
 
@@ -83,7 +83,7 @@
 
     move-result v3
 
-    #calls: Landroid/support/v4/text/TextDirectionHeuristicsCompat;->isRtlTextOrFormat(I)I
+    # invokes: Landroid/support/v4/text/TextDirectionHeuristicsCompat;->isRtlTextOrFormat(I)I
     invoke-static {v3}, Landroid/support/v4/text/TextDirectionHeuristicsCompat;->access$100(I)I
 
     move-result v2

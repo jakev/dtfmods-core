@@ -32,7 +32,7 @@
 # virtual methods
 .method public build(Landroid/support/v4/app/NotificationCompat$Builder;)Landroid/app/Notification;
     .locals 13
-    .parameter "b"
+    .param p1, "b"    # Landroid/support/v4/app/NotificationCompat$Builder;
 
     .prologue
     .line 108

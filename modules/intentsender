@@ -19,7 +19,7 @@
 #@Health: stable
 #@Version: 1.0
 
-. dtf_core.sh
+. $DTF_CORE
 
 apk_file=debugintentshortcut-0.1.apk
 

@@ -25,8 +25,8 @@
 # direct methods
 .method constructor <init>(Landroid/content/IntentFilter;Landroid/content/BroadcastReceiver;)V
     .locals 0
-    .parameter "_filter"
-    .parameter "_receiver"
+    .param p1, "_filter"    # Landroid/content/IntentFilter;
+    .param p2, "_receiver"    # Landroid/content/BroadcastReceiver;
 
     .prologue
     .line 52
@@ -56,7 +56,7 @@
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(I)V
 
     .line 60
-    .local v0, builder:Ljava/lang/StringBuilder;
+    .local v0, "builder":Ljava/lang/StringBuilder;
     const-string v1, "Receiver{"
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;

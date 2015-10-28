@@ -19,8 +19,6 @@
 #@Health: stable
 #@Version: 1.1
 
-. dtf_log.sh
-
 print_info()
 {
 	lib_name=$(pwd)/$1

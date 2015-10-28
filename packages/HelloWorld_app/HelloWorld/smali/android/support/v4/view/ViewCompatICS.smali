@@ -16,8 +16,8 @@
 
 .method public static canScrollHorizontally(Landroid/view/View;I)Z
     .locals 1
-    .parameter "v"
-    .parameter "direction"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "direction"    # I
 
     .prologue
     .line 30
@@ -30,8 +30,8 @@
 
 .method public static canScrollVertically(Landroid/view/View;I)Z
     .locals 1
-    .parameter "v"
-    .parameter "direction"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "direction"    # I
 
     .prologue
     .line 34
@@ -44,8 +44,8 @@
 
 .method public static onInitializeAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 0
-    .parameter "v"
-    .parameter "event"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 46
@@ -57,14 +57,14 @@
 
 .method public static onInitializeAccessibilityNodeInfo(Landroid/view/View;Ljava/lang/Object;)V
     .locals 0
-    .parameter "v"
-    .parameter "info"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 50
     check-cast p1, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p1
+    .end local p1    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/View;->onInitializeAccessibilityNodeInfo(Landroid/view/accessibility/AccessibilityNodeInfo;)V
 
     .line 51
@@ -73,8 +73,8 @@
 
 .method public static onPopulateAccessibilityEvent(Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)V
     .locals 0
-    .parameter "v"
-    .parameter "event"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 42
@@ -86,14 +86,14 @@
 
 .method public static setAccessibilityDelegate(Landroid/view/View;Ljava/lang/Object;)V
     .locals 0
-    .parameter "v"
-    .parameter "delegate"
+    .param p0, "v"    # Landroid/view/View;
+    .param p1, "delegate"    # Ljava/lang/Object;
 
     .prologue
     .line 38
     check-cast p1, Landroid/view/View$AccessibilityDelegate;
 
-    .end local p1
+    .end local p1    # "delegate":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/View;->setAccessibilityDelegate(Landroid/view/View$AccessibilityDelegate;)V
 
     .line 39

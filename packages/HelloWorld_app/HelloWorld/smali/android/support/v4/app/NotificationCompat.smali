@@ -24,7 +24,7 @@
 # static fields
 .field public static final FLAG_HIGH_PRIORITY:I = 0x80
 
-.field private static final IMPL:Landroid/support/v4/app/NotificationCompat$NotificationCompatImpl; = null
+.field private static final IMPL:Landroid/support/v4/app/NotificationCompat$NotificationCompatImpl;
 
 .field public static final PRIORITY_DEFAULT:I = 0x0
 

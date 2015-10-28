@@ -26,7 +26,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 59
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0x13
 
     if-lt v0, v1, :cond_0
@@ -66,7 +66,7 @@
 
 .method public static getDragToOpenListener(Ljava/lang/Object;)Landroid/view/View$OnTouchListener;
     .locals 1
-    .parameter "popupMenu"
+    .param p0, "popupMenu"    # Ljava/lang/Object;
 
     .prologue
     .line 90

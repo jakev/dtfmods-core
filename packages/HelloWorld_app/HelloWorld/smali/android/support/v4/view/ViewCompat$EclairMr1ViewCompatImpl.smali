@@ -29,7 +29,7 @@
 # virtual methods
 .method public isOpaque(Landroid/view/View;)Z
     .locals 1
-    .parameter "view"
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 369

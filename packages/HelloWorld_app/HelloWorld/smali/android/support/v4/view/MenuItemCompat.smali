@@ -16,7 +16,7 @@
 
 
 # static fields
-.field static final IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl; = null
+.field static final IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl;
 
 .field public static final SHOW_AS_ACTION_ALWAYS:I = 0x2
 
@@ -40,7 +40,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 248
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0xe
 
     if-lt v0, v1, :cond_0
@@ -95,7 +95,7 @@
 
 .method public static collapseActionView(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p0, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 402
@@ -106,13 +106,13 @@
     .line 403
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0}, Landroid/support/v4/internal/view/SupportMenuItem;->collapseActionView()Z
 
     move-result v0
 
     .line 405
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :goto_0
     return v0
 
@@ -128,7 +128,7 @@
 
 .method public static expandActionView(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p0, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 383
@@ -139,13 +139,13 @@
     .line 384
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0}, Landroid/support/v4/internal/view/SupportMenuItem;->expandActionView()Z
 
     move-result v0
 
     .line 386
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :goto_0
     return v0
 
@@ -161,7 +161,7 @@
 
 .method public static getActionProvider(Landroid/view/MenuItem;)Landroid/support/v4/view/ActionProvider;
     .locals 2
-    .parameter "item"
+    .param p0, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 361
@@ -172,13 +172,13 @@
     .line 362
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0}, Landroid/support/v4/internal/view/SupportMenuItem;->getSupportActionProvider()Landroid/support/v4/view/ActionProvider;
 
     move-result-object v0
 
     .line 367
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :goto_0
     return-object v0
 
@@ -198,7 +198,7 @@
 
 .method public static getActionView(Landroid/view/MenuItem;)Landroid/view/View;
     .locals 1
-    .parameter "item"
+    .param p0, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 322
@@ -209,13 +209,13 @@
     .line 323
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0}, Landroid/support/v4/internal/view/SupportMenuItem;->getActionView()Landroid/view/View;
 
     move-result-object v0
 
     .line 325
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :goto_0
     return-object v0
 
@@ -231,7 +231,7 @@
 
 .method public static isActionViewExpanded(Landroid/view/MenuItem;)Z
     .locals 1
-    .parameter "item"
+    .param p0, "item"    # Landroid/view/MenuItem;
 
     .prologue
     .line 418
@@ -242,13 +242,13 @@
     .line 419
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0}, Landroid/support/v4/internal/view/SupportMenuItem;->isActionViewExpanded()Z
 
     move-result v0
 
     .line 421
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :goto_0
     return v0
 
@@ -264,8 +264,8 @@
 
 .method public static setActionProvider(Landroid/view/MenuItem;Landroid/support/v4/view/ActionProvider;)Landroid/view/MenuItem;
     .locals 2
-    .parameter "item"
-    .parameter "provider"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "provider"    # Landroid/support/v4/view/ActionProvider;
 
     .prologue
     .line 344
@@ -276,7 +276,7 @@
     .line 345
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0, p1}, Landroid/support/v4/internal/view/SupportMenuItem;->setSupportActionProvider(Landroid/support/v4/view/ActionProvider;)Landroid/support/v4/internal/view/SupportMenuItem;
 
     move-result-object p0
@@ -286,7 +286,7 @@
     return-object p0
 
     .line 348
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :cond_0
     const-string v0, "MenuItemCompat"
 
@@ -299,8 +299,8 @@
 
 .method public static setActionView(Landroid/view/MenuItem;I)Landroid/view/MenuItem;
     .locals 1
-    .parameter "item"
-    .parameter "resId"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "resId"    # I
 
     .prologue
     .line 309
@@ -311,7 +311,7 @@
     .line 310
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0, p1}, Landroid/support/v4/internal/view/SupportMenuItem;->setActionView(I)Landroid/view/MenuItem;
 
     move-result-object v0
@@ -320,7 +320,7 @@
     :goto_0
     return-object v0
 
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :cond_0
     sget-object v0, Landroid/support/v4/view/MenuItemCompat;->IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl;
 
@@ -333,8 +333,8 @@
 
 .method public static setActionView(Landroid/view/MenuItem;Landroid/view/View;)Landroid/view/MenuItem;
     .locals 1
-    .parameter "item"
-    .parameter "view"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "view"    # Landroid/view/View;
 
     .prologue
     .line 287
@@ -345,7 +345,7 @@
     .line 288
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0, p1}, Landroid/support/v4/internal/view/SupportMenuItem;->setActionView(Landroid/view/View;)Landroid/view/MenuItem;
 
     move-result-object v0
@@ -354,7 +354,7 @@
     :goto_0
     return-object v0
 
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :cond_0
     sget-object v0, Landroid/support/v4/view/MenuItemCompat;->IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl;
 
@@ -367,8 +367,8 @@
 
 .method public static setOnActionExpandListener(Landroid/view/MenuItem;Landroid/support/v4/view/MenuItemCompat$OnActionExpandListener;)Landroid/view/MenuItem;
     .locals 1
-    .parameter "item"
-    .parameter "listener"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "listener"    # Landroid/support/v4/view/MenuItemCompat$OnActionExpandListener;
 
     .prologue
     .line 435
@@ -379,7 +379,7 @@
     .line 436
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0, p1}, Landroid/support/v4/internal/view/SupportMenuItem;->setSupportOnActionExpandListener(Landroid/support/v4/view/MenuItemCompat$OnActionExpandListener;)Landroid/support/v4/internal/view/SupportMenuItem;
 
     move-result-object v0
@@ -388,7 +388,7 @@
     :goto_0
     return-object v0
 
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :cond_0
     sget-object v0, Landroid/support/v4/view/MenuItemCompat;->IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl;
 
@@ -401,8 +401,8 @@
 
 .method public static setShowAsAction(Landroid/view/MenuItem;I)V
     .locals 1
-    .parameter "item"
-    .parameter "actionEnum"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "actionEnum"    # I
 
     .prologue
     .line 268
@@ -413,7 +413,7 @@
     .line 269
     check-cast p0, Landroid/support/v4/internal/view/SupportMenuItem;
 
-    .end local p0
+    .end local p0    # "item":Landroid/view/MenuItem;
     invoke-interface {p0, p1}, Landroid/support/v4/internal/view/SupportMenuItem;->setShowAsAction(I)V
 
     .line 273
@@ -421,7 +421,7 @@
     return-void
 
     .line 271
-    .restart local p0
+    .restart local p0    # "item":Landroid/view/MenuItem;
     :cond_0
     sget-object v0, Landroid/support/v4/view/MenuItemCompat;->IMPL:Landroid/support/v4/view/MenuItemCompat$MenuVersionImpl;
 

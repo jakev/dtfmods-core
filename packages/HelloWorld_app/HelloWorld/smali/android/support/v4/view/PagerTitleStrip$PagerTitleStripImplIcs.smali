@@ -32,7 +32,7 @@
 # virtual methods
 .method public setSingleLineAllCaps(Landroid/widget/TextView;)V
     .locals 0
-    .parameter "text"
+    .param p1, "text"    # Landroid/widget/TextView;
 
     .prologue
     .line 94

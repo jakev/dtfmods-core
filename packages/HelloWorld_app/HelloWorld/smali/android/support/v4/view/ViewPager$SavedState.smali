@@ -56,8 +56,8 @@
 
 .method constructor <init>(Landroid/os/Parcel;Ljava/lang/ClassLoader;)V
     .locals 1
-    .parameter "in"
-    .parameter "loader"
+    .param p1, "in"    # Landroid/os/Parcel;
+    .param p2, "loader"    # Ljava/lang/ClassLoader;
 
     .prologue
     .line 1249
@@ -99,7 +99,7 @@
 
 .method public constructor <init>(Landroid/os/Parcelable;)V
     .locals 0
-    .parameter "superState"
+    .param p1, "superState"    # Landroid/os/Parcelable;
 
     .prologue
     .line 1219
@@ -165,8 +165,8 @@
 
 .method public writeToParcel(Landroid/os/Parcel;I)V
     .locals 1
-    .parameter "out"
-    .parameter "flags"
+    .param p1, "out"    # Landroid/os/Parcel;
+    .param p2, "flags"    # I
 
     .prologue
     .line 1224

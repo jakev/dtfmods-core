@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/view/PagerTabStrip;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 111
@@ -39,7 +38,7 @@
 # virtual methods
 .method public onClick(Landroid/view/View;)V
     .locals 2
-    .parameter "v"
+    .param p1, "v"    # Landroid/view/View;
 
     .prologue
     .line 114

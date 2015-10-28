@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/print/PrintHelperKitkat$2$1;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 322
@@ -46,7 +45,7 @@
 
     iget-object v0, v0, Landroid/support/v4/print/PrintHelperKitkat$2$1;->this$1:Landroid/support/v4/print/PrintHelperKitkat$2;
 
-    #calls: Landroid/support/v4/print/PrintHelperKitkat$2;->cancelLoad()V
+    # invokes: Landroid/support/v4/print/PrintHelperKitkat$2;->cancelLoad()V
     invoke-static {v0}, Landroid/support/v4/print/PrintHelperKitkat$2;->access$100(Landroid/support/v4/print/PrintHelperKitkat$2;)V
 
     .line 326

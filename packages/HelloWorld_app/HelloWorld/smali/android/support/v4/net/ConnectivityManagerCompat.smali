@@ -100,8 +100,8 @@
 
 .method public static getNetworkInfoFromBroadcast(Landroid/net/ConnectivityManager;Landroid/content/Intent;)Landroid/net/NetworkInfo;
     .locals 2
-    .parameter "cm"
-    .parameter "intent"
+    .param p0, "cm"    # Landroid/net/ConnectivityManager;
+    .param p1, "intent"    # Landroid/content/Intent;
 
     .prologue
     .line 114
@@ -114,7 +114,7 @@
     check-cast v0, Landroid/net/NetworkInfo;
 
     .line 115
-    .local v0, info:Landroid/net/NetworkInfo;
+    .local v0, "info":Landroid/net/NetworkInfo;
     invoke-virtual {v0}, Landroid/net/NetworkInfo;->getType()I
 
     move-result v1
@@ -128,7 +128,7 @@
 
 .method public static isActiveNetworkMetered(Landroid/net/ConnectivityManager;)Z
     .locals 1
-    .parameter "cm"
+    .param p0, "cm"    # Landroid/net/ConnectivityManager;
 
     .prologue
     .line 103

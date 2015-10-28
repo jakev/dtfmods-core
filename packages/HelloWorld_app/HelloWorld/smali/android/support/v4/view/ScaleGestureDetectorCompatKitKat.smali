@@ -17,13 +17,13 @@
 
 .method public static isQuickScaleEnabled(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "scaleGestureDetector"
+    .param p0, "scaleGestureDetector"    # Ljava/lang/Object;
 
     .prologue
     .line 37
     check-cast p0, Landroid/view/ScaleGestureDetector;
 
-    .end local p0
+    .end local p0    # "scaleGestureDetector":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/ScaleGestureDetector;->isQuickScaleEnabled()Z
 
     move-result v0
@@ -33,14 +33,14 @@
 
 .method public static setQuickScaleEnabled(Ljava/lang/Object;Z)V
     .locals 0
-    .parameter "scaleGestureDetector"
-    .parameter "enabled"
+    .param p0, "scaleGestureDetector"    # Ljava/lang/Object;
+    .param p1, "enabled"    # Z
 
     .prologue
     .line 33
     check-cast p0, Landroid/view/ScaleGestureDetector;
 
-    .end local p0
+    .end local p0    # "scaleGestureDetector":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/ScaleGestureDetector;->setQuickScaleEnabled(Z)V
 
     .line 34

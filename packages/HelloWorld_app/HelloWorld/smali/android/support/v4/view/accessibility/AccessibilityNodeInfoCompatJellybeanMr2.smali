@@ -16,13 +16,13 @@
 
 .method public static getViewIdResourceName(Ljava/lang/Object;)Ljava/lang/String;
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Ljava/lang/Object;
 
     .prologue
     .line 28
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/view/accessibility/AccessibilityNodeInfo;->getViewIdResourceName()Ljava/lang/String;
 
     move-result-object v0
@@ -32,14 +32,14 @@
 
 .method public static setViewIdResourceName(Ljava/lang/Object;Ljava/lang/String;)V
     .locals 0
-    .parameter "info"
-    .parameter "viewId"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "viewId"    # Ljava/lang/String;
 
     .prologue
     .line 24
     check-cast p0, Landroid/view/accessibility/AccessibilityNodeInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/view/accessibility/AccessibilityNodeInfo;->setViewIdResourceName(Ljava/lang/String;)V
 
     .line 25

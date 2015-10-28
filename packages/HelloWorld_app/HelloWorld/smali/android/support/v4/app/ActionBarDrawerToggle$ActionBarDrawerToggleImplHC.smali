@@ -30,7 +30,7 @@
 
 .method synthetic constructor <init>(Landroid/support/v4/app/ActionBarDrawerToggle$1;)V
     .locals 0
-    .parameter "x0"
+    .param p1, "x0"    # Landroid/support/v4/app/ActionBarDrawerToggle$1;
 
     .prologue
     .line 120
@@ -43,7 +43,7 @@
 # virtual methods
 .method public getThemeUpIndicator(Landroid/app/Activity;)Landroid/graphics/drawable/Drawable;
     .locals 1
-    .parameter "activity"
+    .param p1, "activity"    # Landroid/app/Activity;
 
     .prologue
     .line 123
@@ -56,9 +56,9 @@
 
 .method public setActionBarDescription(Ljava/lang/Object;Landroid/app/Activity;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "activity"
-    .parameter "contentDescRes"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "activity"    # Landroid/app/Activity;
+    .param p3, "contentDescRes"    # I
 
     .prologue
     .line 135
@@ -71,10 +71,10 @@
 
 .method public setActionBarUpIndicator(Ljava/lang/Object;Landroid/app/Activity;Landroid/graphics/drawable/Drawable;I)Ljava/lang/Object;
     .locals 1
-    .parameter "info"
-    .parameter "activity"
-    .parameter "themeImage"
-    .parameter "contentDescRes"
+    .param p1, "info"    # Ljava/lang/Object;
+    .param p2, "activity"    # Landroid/app/Activity;
+    .param p3, "themeImage"    # Landroid/graphics/drawable/Drawable;
+    .param p4, "contentDescRes"    # I
 
     .prologue
     .line 129

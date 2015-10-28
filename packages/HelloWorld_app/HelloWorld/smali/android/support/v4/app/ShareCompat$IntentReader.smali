@@ -42,7 +42,7 @@
 # direct methods
 .method private constructor <init>(Landroid/app/Activity;)V
     .locals 1
-    .parameter "activity"
+    .param p1, "activity"    # Landroid/app/Activity;
 
     .prologue
     .line 675
@@ -78,7 +78,7 @@
 
 .method public static from(Landroid/app/Activity;)Landroid/support/v4/app/ShareCompat$IntentReader;
     .locals 1
-    .parameter "activity"
+    .param p0, "activity"    # Landroid/app/Activity;
 
     .prologue
     .line 672
@@ -125,7 +125,7 @@
     move-result-object v1
 
     .line 905
-    .local v1, pm:Landroid/content/pm/PackageManager;
+    .local v1, "pm":Landroid/content/pm/PackageManager;
     :try_start_0
     iget-object v3, p0, Landroid/support/v4/app/ShareCompat$IntentReader;->mCallingActivity:Landroid/content/ComponentName;
 
@@ -142,7 +142,7 @@
     move-exception v0
 
     .line 907
-    .local v0, e:Landroid/content/pm/PackageManager$NameNotFoundException;
+    .local v0, "e":Landroid/content/pm/PackageManager$NameNotFoundException;
     const-string v3, "IntentReader"
 
     const-string v4, "Could not retrieve icon for calling activity"
@@ -176,7 +176,7 @@
     move-result-object v1
 
     .line 927
-    .local v1, pm:Landroid/content/pm/PackageManager;
+    .local v1, "pm":Landroid/content/pm/PackageManager;
     :try_start_0
     iget-object v3, p0, Landroid/support/v4/app/ShareCompat$IntentReader;->mCallingPackage:Ljava/lang/String;
 
@@ -193,7 +193,7 @@
     move-exception v0
 
     .line 929
-    .local v0, e:Landroid/content/pm/PackageManager$NameNotFoundException;
+    .local v0, "e":Landroid/content/pm/PackageManager$NameNotFoundException;
     const-string v3, "IntentReader"
 
     const-string v4, "Could not retrieve icon for calling application"
@@ -227,7 +227,7 @@
     move-result-object v1
 
     .line 949
-    .local v1, pm:Landroid/content/pm/PackageManager;
+    .local v1, "pm":Landroid/content/pm/PackageManager;
     :try_start_0
     iget-object v3, p0, Landroid/support/v4/app/ShareCompat$IntentReader;->mCallingPackage:Ljava/lang/String;
 
@@ -250,7 +250,7 @@
     move-exception v0
 
     .line 951
-    .local v0, e:Landroid/content/pm/PackageManager$NameNotFoundException;
+    .local v0, "e":Landroid/content/pm/PackageManager$NameNotFoundException;
     const-string v3, "IntentReader"
 
     const-string v4, "Could not retrieve label for calling application"
@@ -332,7 +332,7 @@
     move-result-object v0
 
     .line 750
-    .local v0, result:Ljava/lang/String;
+    .local v0, "result":Ljava/lang/String;
     if-nez v0, :cond_0
 
     .line 751
@@ -341,7 +341,7 @@
     move-result-object v1
 
     .line 752
-    .local v1, text:Ljava/lang/CharSequence;
+    .local v1, "text":Ljava/lang/CharSequence;
     instance-of v2, v1, Landroid/text/Spanned;
 
     if-eqz v2, :cond_1
@@ -349,7 +349,7 @@
     .line 753
     check-cast v1, Landroid/text/Spanned;
 
-    .end local v1           #text:Ljava/lang/CharSequence;
+    .end local v1    # "text":Ljava/lang/CharSequence;
     invoke-static {v1}, Landroid/text/Html;->toHtml(Landroid/text/Spanned;)Ljava/lang/String;
 
     move-result-object v0
@@ -360,11 +360,12 @@
     return-object v0
 
     .line 754
-    .restart local v1       #text:Ljava/lang/CharSequence;
+    .restart local v1    # "text":Ljava/lang/CharSequence;
     :cond_1
     if-eqz v1, :cond_0
 
     .line 755
+    # getter for: Landroid/support/v4/app/ShareCompat;->IMPL:Landroid/support/v4/app/ShareCompat$ShareCompatImpl;
     invoke-static {}, Landroid/support/v4/app/ShareCompat;->access$000()Landroid/support/v4/app/ShareCompat$ShareCompatImpl;
 
     move-result-object v2
@@ -396,7 +397,7 @@
 
 .method public getStream(I)Landroid/net/Uri;
     .locals 3
-    .parameter "index"
+    .param p1, "index"    # I
 
     .prologue
     .line 786
@@ -640,7 +641,7 @@
     move-result-object v0
 
     .line 692
-    .local v0, action:Ljava/lang/String;
+    .local v0, "action":Ljava/lang/String;
     const-string v1, "android.intent.action.SEND"
 
     invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z

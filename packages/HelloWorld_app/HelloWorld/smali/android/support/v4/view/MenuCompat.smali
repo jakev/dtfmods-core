@@ -16,8 +16,8 @@
 
 .method public static setShowAsAction(Landroid/view/MenuItem;I)V
     .locals 0
-    .parameter "item"
-    .parameter "actionEnum"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "actionEnum"    # I
     .annotation runtime Ljava/lang/Deprecated;
     .end annotation
 

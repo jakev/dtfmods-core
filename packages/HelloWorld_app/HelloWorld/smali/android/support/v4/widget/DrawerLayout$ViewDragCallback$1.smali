@@ -24,7 +24,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 1327
@@ -44,7 +43,7 @@
     .line 1329
     iget-object v0, p0, Landroid/support/v4/widget/DrawerLayout$ViewDragCallback$1;->this$1:Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;
 
-    #calls: Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;->peekDrawer()V
+    # invokes: Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;->peekDrawer()V
     invoke-static {v0}, Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;->access$000(Landroid/support/v4/widget/DrawerLayout$ViewDragCallback;)V
 
     .line 1330

@@ -29,7 +29,7 @@
 # virtual methods
 .method public getMaxScrollX(Ljava/lang/Object;)I
     .locals 1
-    .parameter "record"
+    .param p1, "record"    # Ljava/lang/Object;
 
     .prologue
     .line 479
@@ -42,7 +42,7 @@
 
 .method public getMaxScrollY(Ljava/lang/Object;)I
     .locals 1
-    .parameter "record"
+    .param p1, "record"    # Ljava/lang/Object;
 
     .prologue
     .line 484
@@ -55,8 +55,8 @@
 
 .method public setMaxScrollX(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "record"
-    .parameter "maxScrollX"
+    .param p1, "record"    # Ljava/lang/Object;
+    .param p2, "maxScrollX"    # I
 
     .prologue
     .line 489
@@ -68,8 +68,8 @@
 
 .method public setMaxScrollY(Ljava/lang/Object;I)V
     .locals 0
-    .parameter "record"
-    .parameter "maxScrollY"
+    .param p1, "record"    # Ljava/lang/Object;
+    .param p2, "maxScrollY"    # I
 
     .prologue
     .line 494

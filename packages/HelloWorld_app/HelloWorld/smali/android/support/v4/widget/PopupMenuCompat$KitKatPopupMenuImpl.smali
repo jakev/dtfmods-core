@@ -29,7 +29,7 @@
 # virtual methods
 .method public getDragToOpenListener(Ljava/lang/Object;)Landroid/view/View$OnTouchListener;
     .locals 1
-    .parameter "popupMenu"
+    .param p1, "popupMenu"    # Ljava/lang/Object;
 
     .prologue
     .line 49

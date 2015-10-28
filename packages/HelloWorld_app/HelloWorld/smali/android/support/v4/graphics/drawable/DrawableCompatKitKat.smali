@@ -16,7 +16,7 @@
 
 .method public static isAutoMirrored(Landroid/graphics/drawable/Drawable;)Z
     .locals 1
-    .parameter "drawable"
+    .param p0, "drawable"    # Landroid/graphics/drawable/Drawable;
 
     .prologue
     .line 30
@@ -29,8 +29,8 @@
 
 .method public static setAutoMirrored(Landroid/graphics/drawable/Drawable;Z)V
     .locals 0
-    .parameter "drawable"
-    .parameter "mirrored"
+    .param p0, "drawable"    # Landroid/graphics/drawable/Drawable;
+    .param p1, "mirrored"    # Z
 
     .prologue
     .line 26

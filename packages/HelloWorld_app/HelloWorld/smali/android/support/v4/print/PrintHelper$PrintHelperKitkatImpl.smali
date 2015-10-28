@@ -24,7 +24,7 @@
 # direct methods
 .method constructor <init>(Landroid/content/Context;)V
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 146
@@ -87,8 +87,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/graphics/Bitmap;)V
     .locals 1
-    .parameter "jobName"
-    .parameter "bitmap"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "bitmap"    # Landroid/graphics/Bitmap;
 
     .prologue
     .line 182
@@ -102,8 +102,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/net/Uri;)V
     .locals 1
-    .parameter "jobName"
-    .parameter "imageFile"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "imageFile"    # Landroid/net/Uri;
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/io/FileNotFoundException;
@@ -122,7 +122,7 @@
 
 .method public setColorMode(I)V
     .locals 1
-    .parameter "colorMode"
+    .param p1, "colorMode"    # I
 
     .prologue
     .line 162
@@ -136,7 +136,7 @@
 
 .method public setOrientation(I)V
     .locals 1
-    .parameter "orientation"
+    .param p1, "orientation"    # I
 
     .prologue
     .line 172
@@ -150,7 +150,7 @@
 
 .method public setScaleMode(I)V
     .locals 1
-    .parameter "scaleMode"
+    .param p1, "scaleMode"    # I
 
     .prologue
     .line 152

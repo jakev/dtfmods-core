@@ -51,7 +51,7 @@
 
 .method synthetic constructor <init>(Landroid/support/v4/print/PrintHelper$1;)V
     .locals 0
-    .parameter "x0"
+    .param p1, "x0"    # Landroid/support/v4/print/PrintHelper$1;
 
     .prologue
     .line 101
@@ -94,8 +94,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/graphics/Bitmap;)V
     .locals 0
-    .parameter "jobName"
-    .parameter "bitmap"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "bitmap"    # Landroid/graphics/Bitmap;
 
     .prologue
     .line 133
@@ -104,8 +104,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/net/Uri;)V
     .locals 0
-    .parameter "jobName"
-    .parameter "imageFile"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "imageFile"    # Landroid/net/Uri;
 
     .prologue
     .line 137
@@ -114,7 +114,7 @@
 
 .method public setColorMode(I)V
     .locals 0
-    .parameter "colorMode"
+    .param p1, "colorMode"    # I
 
     .prologue
     .line 117
@@ -126,7 +126,7 @@
 
 .method public setOrientation(I)V
     .locals 0
-    .parameter "orientation"
+    .param p1, "orientation"    # I
 
     .prologue
     .line 121
@@ -137,7 +137,7 @@
 
 .method public setScaleMode(I)V
     .locals 0
-    .parameter "scaleMode"
+    .param p1, "scaleMode"    # I
 
     .prologue
     .line 107

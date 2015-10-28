@@ -12,7 +12,7 @@
     <Item type="module"
           name="appdexdb"
           majorVersion="1"
-          minorVersion="3"
+          minorVersion="4"
           health="stable"
           author="Jake Valletta (jakev)"
           about="Create dexdb for an application or all AOSP applications."

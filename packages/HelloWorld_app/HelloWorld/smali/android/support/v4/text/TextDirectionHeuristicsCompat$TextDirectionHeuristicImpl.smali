@@ -24,7 +24,7 @@
 # direct methods
 .method public constructor <init>(Landroid/support/v4/text/TextDirectionHeuristicsCompat$TextDirectionAlgorithm;)V
     .locals 0
-    .parameter "algorithm"
+    .param p1, "algorithm"    # Landroid/support/v4/text/TextDirectionHeuristicsCompat$TextDirectionAlgorithm;
 
     .prologue
     .line 114
@@ -39,9 +39,9 @@
 
 .method private doCheck(Ljava/lang/CharSequence;II)Z
     .locals 1
-    .parameter "cs"
-    .parameter "start"
-    .parameter "count"
+    .param p1, "cs"    # Ljava/lang/CharSequence;
+    .param p2, "start"    # I
+    .param p3, "count"    # I
 
     .prologue
     .line 140
@@ -88,9 +88,9 @@
 
 .method public isRtl(Ljava/lang/CharSequence;II)Z
     .locals 1
-    .parameter "cs"
-    .parameter "start"
-    .parameter "count"
+    .param p1, "cs"    # Ljava/lang/CharSequence;
+    .param p2, "start"    # I
+    .param p3, "count"    # I
 
     .prologue
     .line 130
@@ -141,9 +141,9 @@
 
 .method public isRtl([CII)Z
     .locals 1
-    .parameter "array"
-    .parameter "start"
-    .parameter "count"
+    .param p1, "array"    # [C
+    .param p2, "start"    # I
+    .param p3, "count"    # I
 
     .prologue
     .line 125

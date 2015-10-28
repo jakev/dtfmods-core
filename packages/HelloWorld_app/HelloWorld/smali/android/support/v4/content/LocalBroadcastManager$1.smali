@@ -21,8 +21,7 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/content/LocalBroadcastManager;Landroid/os/Looper;)V
     .locals 0
-    .parameter
-    .parameter "x0"
+    .param p2, "x0"    # Landroid/os/Looper;
 
     .prologue
     .line 110
@@ -37,7 +36,7 @@
 # virtual methods
 .method public handleMessage(Landroid/os/Message;)V
     .locals 1
-    .parameter "msg"
+    .param p1, "msg"    # Landroid/os/Message;
 
     .prologue
     .line 114
@@ -56,7 +55,7 @@
     :pswitch_0
     iget-object v0, p0, Landroid/support/v4/content/LocalBroadcastManager$1;->this$0:Landroid/support/v4/content/LocalBroadcastManager;
 
-    #calls: Landroid/support/v4/content/LocalBroadcastManager;->executePendingBroadcasts()V
+    # invokes: Landroid/support/v4/content/LocalBroadcastManager;->executePendingBroadcasts()V
     invoke-static {v0}, Landroid/support/v4/content/LocalBroadcastManager;->access$000(Landroid/support/v4/content/LocalBroadcastManager;)V
 
     goto :goto_0

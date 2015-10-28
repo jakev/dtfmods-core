@@ -49,8 +49,8 @@
 
 .method public constructor <init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
     .locals 3
-    .parameter "context"
-    .parameter "attrs"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "attrs"    # Landroid/util/AttributeSet;
 
     .prologue
     .line 2871
@@ -62,6 +62,7 @@
     iput v1, p0, Landroid/support/v4/view/ViewPager$LayoutParams;->widthFactor:F
 
     .line 2873
+    # getter for: Landroid/support/v4/view/ViewPager;->LAYOUT_ATTRS:[I
     invoke-static {}, Landroid/support/v4/view/ViewPager;->access$400()[I
 
     move-result-object v1
@@ -71,7 +72,7 @@
     move-result-object v0
 
     .line 2874
-    .local v0, a:Landroid/content/res/TypedArray;
+    .local v0, "a":Landroid/content/res/TypedArray;
     const/4 v1, 0x0
 
     const/16 v2, 0x30

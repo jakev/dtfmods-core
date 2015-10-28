@@ -80,10 +80,8 @@
 # direct methods
 .method public constructor <init>(Landroid/support/v4/app/LoaderManagerImpl;ILandroid/os/Bundle;Landroid/support/v4/app/LoaderManager$LoaderCallbacks;)V
     .locals 0
-    .parameter
-    .parameter "id"
-    .parameter "args"
-    .parameter
+    .param p2, "id"    # I
+    .param p3, "args"    # Landroid/os/Bundle;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(I",
@@ -97,7 +95,7 @@
 
     .prologue
     .line 228
-    .local p4, callbacks:Landroid/support/v4/app/LoaderManager$LoaderCallbacks;,"Landroid/support/v4/app/LoaderManager$LoaderCallbacks<Ljava/lang/Object;>;"
+    .local p4, "callbacks":Landroid/support/v4/app/LoaderManager$LoaderCallbacks;, "Landroid/support/v4/app/LoaderManager$LoaderCallbacks<Ljava/lang/Object;>;"
     iput-object p1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->this$0:Landroid/support/v4/app/LoaderManagerImpl;
 
     invoke-direct {p0}, Ljava/lang/Object;-><init>()V
@@ -119,8 +117,7 @@
 # virtual methods
 .method callOnLoadFinished(Landroid/support/v4/content/Loader;Ljava/lang/Object;)V
     .locals 4
-    .parameter
-    .parameter "data"
+    .param p2, "data"    # Ljava/lang/Object;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -135,7 +132,7 @@
 
     .prologue
     .line 418
-    .local p1, loader:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<Ljava/lang/Object;>;"
+    .local p1, "loader":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<Ljava/lang/Object;>;"
     iget-object v1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mCallbacks:Landroid/support/v4/app/LoaderManager$LoaderCallbacks;
 
     if-eqz v1, :cond_3
@@ -144,7 +141,7 @@
     const/4 v0, 0x0
 
     .line 420
-    .local v0, lastBecause:Ljava/lang/String;
+    .local v0, "lastBecause":Ljava/lang/String;
     iget-object v1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->this$0:Landroid/support/v4/app/LoaderManagerImpl;
 
     iget-object v1, v1, Landroid/support/v4/app/LoaderManagerImpl;->mActivity:Landroid/support/v4/app/FragmentActivity;
@@ -245,12 +242,12 @@
     iput-boolean v1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mDeliveredData:Z
 
     .line 435
-    .end local v0           #lastBecause:Ljava/lang/String;
+    .end local v0    # "lastBecause":Ljava/lang/String;
     :cond_3
     return-void
 
     .line 429
-    .restart local v0       #lastBecause:Ljava/lang/String;
+    .restart local v0    # "lastBecause":Ljava/lang/String;
     :catchall_0
     move-exception v1
 
@@ -318,7 +315,7 @@
     iget-boolean v1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mDeliveredData:Z
 
     .line 330
-    .local v1, needReset:Z
+    .local v1, "needReset":Z
     iput-boolean v5, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mDeliveredData:Z
 
     .line 331
@@ -368,7 +365,7 @@
     const/4 v0, 0x0
 
     .line 334
-    .local v0, lastBecause:Ljava/lang/String;
+    .local v0, "lastBecause":Ljava/lang/String;
     iget-object v2, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->this$0:Landroid/support/v4/app/LoaderManagerImpl;
 
     iget-object v2, v2, Landroid/support/v4/app/LoaderManagerImpl;->mActivity:Landroid/support/v4/app/FragmentActivity;
@@ -423,7 +420,7 @@
     iput-object v0, v2, Landroid/support/v4/app/FragmentManagerImpl;->mNoTransactionsBecause:Ljava/lang/String;
 
     .line 346
-    .end local v0           #lastBecause:Ljava/lang/String;
+    .end local v0    # "lastBecause":Ljava/lang/String;
     :cond_3
     iput-object v6, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mCallbacks:Landroid/support/v4/app/LoaderManager$LoaderCallbacks;
 
@@ -473,7 +470,7 @@
     return-void
 
     .line 341
-    .restart local v0       #lastBecause:Ljava/lang/String;
+    .restart local v0    # "lastBecause":Ljava/lang/String;
     :catchall_0
     move-exception v2
 
@@ -498,10 +495,10 @@
 
 .method public dump(Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/PrintWriter;[Ljava/lang/String;)V
     .locals 3
-    .parameter "prefix"
-    .parameter "fd"
-    .parameter "writer"
-    .parameter "args"
+    .param p1, "prefix"    # Ljava/lang/String;
+    .param p2, "fd"    # Ljava/io/FileDescriptor;
+    .param p3, "writer"    # Ljava/io/PrintWriter;
+    .param p4, "args"    # [Ljava/lang/String;
 
     .prologue
     .line 451
@@ -809,8 +806,7 @@
 
 .method public onLoadComplete(Landroid/support/v4/content/Loader;Ljava/lang/Object;)V
     .locals 6
-    .parameter
-    .parameter "data"
+    .param p2, "data"    # Ljava/lang/Object;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -824,7 +820,7 @@
     .end annotation
 
     .prologue
-    .local p1, loader:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<Ljava/lang/Object;>;"
+    .local p1, "loader":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<Ljava/lang/Object;>;"
     const/4 v5, 0x0
 
     .line 362
@@ -908,7 +904,7 @@
     iget-object v1, p0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;->mPendingLoader:Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
 
     .line 377
-    .local v1, pending:Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
+    .local v1, "pending":Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
     if-eqz v1, :cond_5
 
     .line 381
@@ -1003,7 +999,7 @@
     check-cast v0, Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
 
     .line 406
-    .local v0, info:Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
+    .local v0, "info":Landroid/support/v4/app/LoaderManagerImpl$LoaderInfo;
     if-eqz v0, :cond_8
 
     if-eq v0, p0, :cond_8
@@ -1395,7 +1391,7 @@
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(I)V
 
     .line 440
-    .local v0, sb:Ljava/lang/StringBuilder;
+    .local v0, "sb":Ljava/lang/StringBuilder;
     const-string v1, "LoaderInfo{"
 
     invoke-virtual {v0, v1}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;

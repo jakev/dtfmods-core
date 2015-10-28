@@ -25,7 +25,7 @@
 
 .method public static enableDebugLogging(Z)V
     .locals 0
-    .parameter "enabled"
+    .param p0, "enabled"    # Z
 
     .prologue
     .line 177

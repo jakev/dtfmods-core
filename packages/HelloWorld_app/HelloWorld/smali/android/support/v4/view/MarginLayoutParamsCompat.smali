@@ -26,7 +26,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 128
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0x11
 
     if-lt v0, v1, :cond_0
@@ -66,7 +66,7 @@
 
 .method public static getLayoutDirection(Landroid/view/ViewGroup$MarginLayoutParams;)I
     .locals 1
-    .parameter "lp"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
 
     .prologue
     .line 211
@@ -81,7 +81,7 @@
 
 .method public static getMarginEnd(Landroid/view/ViewGroup$MarginLayoutParams;)I
     .locals 1
-    .parameter "lp"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
 
     .prologue
     .line 162
@@ -96,7 +96,7 @@
 
 .method public static getMarginStart(Landroid/view/ViewGroup$MarginLayoutParams;)I
     .locals 1
-    .parameter "lp"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
 
     .prologue
     .line 147
@@ -111,7 +111,7 @@
 
 .method public static isMarginRelative(Landroid/view/ViewGroup$MarginLayoutParams;)Z
     .locals 1
-    .parameter "lp"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
 
     .prologue
     .line 201
@@ -126,8 +126,8 @@
 
 .method public static resolveLayoutDirection(Landroid/view/ViewGroup$MarginLayoutParams;I)V
     .locals 1
-    .parameter "lp"
-    .parameter "layoutDirection"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
+    .param p1, "layoutDirection"    # I
 
     .prologue
     .line 231
@@ -141,8 +141,8 @@
 
 .method public static setLayoutDirection(Landroid/view/ViewGroup$MarginLayoutParams;I)V
     .locals 1
-    .parameter "lp"
-    .parameter "layoutDirection"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
+    .param p1, "layoutDirection"    # I
 
     .prologue
     .line 222
@@ -156,8 +156,8 @@
 
 .method public static setMarginEnd(Landroid/view/ViewGroup$MarginLayoutParams;I)V
     .locals 1
-    .parameter "lp"
-    .parameter "marginEnd"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
+    .param p1, "marginEnd"    # I
 
     .prologue
     .line 192
@@ -171,8 +171,8 @@
 
 .method public static setMarginStart(Landroid/view/ViewGroup$MarginLayoutParams;I)V
     .locals 1
-    .parameter "lp"
-    .parameter "marginStart"
+    .param p0, "lp"    # Landroid/view/ViewGroup$MarginLayoutParams;
+    .param p1, "marginStart"    # I
 
     .prologue
     .line 177

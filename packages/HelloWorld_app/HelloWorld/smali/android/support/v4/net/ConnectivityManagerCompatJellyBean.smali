@@ -16,7 +16,7 @@
 
 .method public static isActiveNetworkMetered(Landroid/net/ConnectivityManager;)Z
     .locals 1
-    .parameter "cm"
+    .param p0, "cm"    # Landroid/net/ConnectivityManager;
 
     .prologue
     .line 26

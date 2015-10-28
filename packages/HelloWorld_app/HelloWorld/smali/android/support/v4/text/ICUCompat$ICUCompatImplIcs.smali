@@ -32,7 +32,7 @@
 # virtual methods
 .method public addLikelySubtags(Ljava/lang/String;)Ljava/lang/String;
     .locals 1
-    .parameter "locale"
+    .param p1, "locale"    # Ljava/lang/String;
 
     .prologue
     .line 48
@@ -45,7 +45,7 @@
 
 .method public getScript(Ljava/lang/String;)Ljava/lang/String;
     .locals 1
-    .parameter "locale"
+    .param p1, "locale"    # Ljava/lang/String;
 
     .prologue
     .line 43

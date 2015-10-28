@@ -29,7 +29,7 @@
 # virtual methods
 .method public jumpToCurrentState(Landroid/graphics/drawable/Drawable;)V
     .locals 0
-    .parameter "drawable"
+    .param p1, "drawable"    # Landroid/graphics/drawable/Drawable;
 
     .prologue
     .line 59

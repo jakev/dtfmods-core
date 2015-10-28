@@ -16,7 +16,7 @@
 
 .method public static getAccessibilityLiveRegion(Landroid/view/View;)I
     .locals 1
-    .parameter "view"
+    .param p0, "view"    # Landroid/view/View;
 
     .prologue
     .line 26
@@ -29,8 +29,8 @@
 
 .method public static setAccessibilityLiveRegion(Landroid/view/View;I)V
     .locals 0
-    .parameter "view"
-    .parameter "mode"
+    .param p0, "view"    # Landroid/view/View;
+    .param p1, "mode"    # I
 
     .prologue
     .line 30

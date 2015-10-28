@@ -16,7 +16,7 @@
 
 .method public static getCapabilities(Landroid/accessibilityservice/AccessibilityServiceInfo;)I
     .locals 1
-    .parameter "info"
+    .param p0, "info"    # Landroid/accessibilityservice/AccessibilityServiceInfo;
 
     .prologue
     .line 28

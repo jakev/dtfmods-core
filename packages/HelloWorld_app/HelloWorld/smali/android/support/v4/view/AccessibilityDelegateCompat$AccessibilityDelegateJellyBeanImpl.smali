@@ -29,8 +29,8 @@
 # virtual methods
 .method public getAccessibilityNodeProvider(Ljava/lang/Object;Landroid/view/View;)Landroid/support/v4/view/accessibility/AccessibilityNodeProviderCompat;
     .locals 2
-    .parameter "delegate"
-    .parameter "host"
+    .param p1, "delegate"    # Ljava/lang/Object;
+    .param p2, "host"    # Landroid/view/View;
 
     .prologue
     .line 275
@@ -39,7 +39,7 @@
     move-result-object v0
 
     .line 277
-    .local v0, provider:Ljava/lang/Object;
+    .local v0, "provider":Ljava/lang/Object;
     if-eqz v0, :cond_0
 
     .line 278
@@ -59,7 +59,7 @@
 
 .method public newAccessiblityDelegateBridge(Landroid/support/v4/view/AccessibilityDelegateCompat;)Ljava/lang/Object;
     .locals 1
-    .parameter "compat"
+    .param p1, "compat"    # Landroid/support/v4/view/AccessibilityDelegateCompat;
 
     .prologue
     .line 217
@@ -76,10 +76,10 @@
 
 .method public performAccessibilityAction(Ljava/lang/Object;Landroid/view/View;ILandroid/os/Bundle;)Z
     .locals 1
-    .parameter "delegate"
-    .parameter "host"
-    .parameter "action"
-    .parameter "args"
+    .param p1, "delegate"    # Ljava/lang/Object;
+    .param p2, "host"    # Landroid/view/View;
+    .param p3, "action"    # I
+    .param p4, "args"    # Landroid/os/Bundle;
 
     .prologue
     .line 286

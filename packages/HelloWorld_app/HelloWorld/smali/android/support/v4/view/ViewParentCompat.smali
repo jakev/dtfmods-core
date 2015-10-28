@@ -26,7 +26,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 63
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0xe
 
     if-lt v0, v1, :cond_0
@@ -66,9 +66,9 @@
 
 .method public static requestSendAccessibilityEvent(Landroid/view/ViewParent;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "parent"
-    .parameter "child"
-    .parameter "event"
+    .param p0, "parent"    # Landroid/view/ViewParent;
+    .param p1, "child"    # Landroid/view/View;
+    .param p2, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 96

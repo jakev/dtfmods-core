@@ -49,10 +49,10 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 2
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v1, 0x0
 
     .line 91
@@ -93,7 +93,7 @@
 
     .prologue
     .line 262
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v0, 0x1
 
     iput-boolean v0, p0, Landroid/support/v4/content/Loader;->mAbandoned:Z
@@ -110,7 +110,7 @@
 
     .prologue
     .line 328
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v0, 0x0
 
     iput-boolean v0, p0, Landroid/support/v4/content/Loader;->mProcessingChange:Z
@@ -121,7 +121,6 @@
 
 .method public dataToString(Ljava/lang/Object;)Ljava/lang/String;
     .locals 2
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(TD;)",
@@ -131,8 +130,8 @@
 
     .prologue
     .line 368
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
-    .local p1, data:Ljava/lang/Object;,"TD;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
+    .local p1, "data":Ljava/lang/Object;, "TD;"
     new-instance v0, Ljava/lang/StringBuilder;
 
     const/16 v1, 0x40
@@ -140,7 +139,7 @@
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(I)V
 
     .line 369
-    .local v0, sb:Ljava/lang/StringBuilder;
+    .local v0, "sb":Ljava/lang/StringBuilder;
     invoke-static {p1, v0}, Landroid/support/v4/util/DebugUtils;->buildShortClassTag(Ljava/lang/Object;Ljava/lang/StringBuilder;)V
 
     .line 370
@@ -158,7 +157,6 @@
 
 .method public deliverResult(Ljava/lang/Object;)V
     .locals 1
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(TD;)V"
@@ -167,8 +165,8 @@
 
     .prologue
     .line 103
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
-    .local p1, data:Ljava/lang/Object;,"TD;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
+    .local p1, "data":Ljava/lang/Object;, "TD;"
     iget-object v0, p0, Landroid/support/v4/content/Loader;->mListener:Landroid/support/v4/content/Loader$OnLoadCompleteListener;
 
     if-eqz v0, :cond_0
@@ -185,14 +183,14 @@
 
 .method public dump(Ljava/lang/String;Ljava/io/FileDescriptor;Ljava/io/PrintWriter;[Ljava/lang/String;)V
     .locals 1
-    .parameter "prefix"
-    .parameter "fd"
-    .parameter "writer"
-    .parameter "args"
+    .param p1, "prefix"    # Ljava/lang/String;
+    .param p2, "fd"    # Ljava/io/FileDescriptor;
+    .param p3, "writer"    # Ljava/io/PrintWriter;
+    .param p4, "args"    # [Ljava/lang/String;
 
     .prologue
     .line 393
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     invoke-virtual {p3, p1}, Ljava/io/PrintWriter;->print(Ljava/lang/String;)V
 
     const-string v0, "mId="
@@ -296,7 +294,7 @@
 
     .prologue
     .line 218
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     invoke-virtual {p0}, Landroid/support/v4/content/Loader;->onForceLoad()V
 
     .line 219
@@ -308,7 +306,7 @@
 
     .prologue
     .line 112
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-object v0, p0, Landroid/support/v4/content/Loader;->mContext:Landroid/content/Context;
 
     return-object v0
@@ -319,7 +317,7 @@
 
     .prologue
     .line 119
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget v0, p0, Landroid/support/v4/content/Loader;->mId:I
 
     return v0
@@ -330,7 +328,7 @@
 
     .prologue
     .line 167
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mAbandoned:Z
 
     return v0
@@ -341,7 +339,7 @@
 
     .prologue
     .line 176
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mReset:Z
 
     return v0
@@ -352,7 +350,7 @@
 
     .prologue
     .line 158
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mStarted:Z
 
     return v0
@@ -363,7 +361,7 @@
 
     .prologue
     .line 276
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     return-void
 .end method
 
@@ -372,7 +370,7 @@
 
     .prologue
     .line 353
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mStarted:Z
 
     if-eqz v0, :cond_0
@@ -398,7 +396,7 @@
 
     .prologue
     .line 226
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     return-void
 .end method
 
@@ -407,7 +405,7 @@
 
     .prologue
     .line 306
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     return-void
 .end method
 
@@ -416,7 +414,7 @@
 
     .prologue
     .line 207
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     return-void
 .end method
 
@@ -425,14 +423,13 @@
 
     .prologue
     .line 254
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     return-void
 .end method
 
 .method public registerListener(ILandroid/support/v4/content/Loader$OnLoadCompleteListener;)V
     .locals 2
-    .parameter "id"
-    .parameter
+    .param p1, "id"    # I
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(I",
@@ -443,8 +440,8 @@
 
     .prologue
     .line 130
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
-    .local p2, listener:Landroid/support/v4/content/Loader$OnLoadCompleteListener;,"Landroid/support/v4/content/Loader$OnLoadCompleteListener<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
+    .local p2, "listener":Landroid/support/v4/content/Loader$OnLoadCompleteListener;, "Landroid/support/v4/content/Loader$OnLoadCompleteListener<TD;>;"
     iget-object v0, p0, Landroid/support/v4/content/Loader;->mListener:Landroid/support/v4/content/Loader$OnLoadCompleteListener;
 
     if-eqz v0, :cond_0
@@ -473,7 +470,7 @@
     .locals 2
 
     .prologue
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v1, 0x0
 
     .line 291
@@ -505,7 +502,7 @@
 
     .prologue
     .line 339
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mProcessingChange:Z
 
     if-eqz v0, :cond_0
@@ -524,7 +521,7 @@
     .locals 2
 
     .prologue
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v1, 0x0
 
     .line 195
@@ -550,7 +547,7 @@
 
     .prologue
     .line 243
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     const/4 v0, 0x0
 
     iput-boolean v0, p0, Landroid/support/v4/content/Loader;->mStarted:Z
@@ -567,11 +564,11 @@
 
     .prologue
     .line 314
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     iget-boolean v0, p0, Landroid/support/v4/content/Loader;->mContentChanged:Z
 
     .line 315
-    .local v0, res:Z
+    .local v0, "res":Z
     const/4 v1, 0x0
 
     iput-boolean v1, p0, Landroid/support/v4/content/Loader;->mContentChanged:Z
@@ -592,7 +589,7 @@
 
     .prologue
     .line 376
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
     new-instance v0, Ljava/lang/StringBuilder;
 
     const/16 v1, 0x40
@@ -600,7 +597,7 @@
     invoke-direct {v0, v1}, Ljava/lang/StringBuilder;-><init>(I)V
 
     .line 377
-    .local v0, sb:Ljava/lang/StringBuilder;
+    .local v0, "sb":Ljava/lang/StringBuilder;
     invoke-static {p0, v0}, Landroid/support/v4/util/DebugUtils;->buildShortClassTag(Ljava/lang/Object;Ljava/lang/StringBuilder;)V
 
     .line 378
@@ -628,7 +625,6 @@
 
 .method public unregisterListener(Landroid/support/v4/content/Loader$OnLoadCompleteListener;)V
     .locals 2
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -639,8 +635,8 @@
 
     .prologue
     .line 143
-    .local p0, this:Landroid/support/v4/content/Loader;,"Landroid/support/v4/content/Loader<TD;>;"
-    .local p1, listener:Landroid/support/v4/content/Loader$OnLoadCompleteListener;,"Landroid/support/v4/content/Loader$OnLoadCompleteListener<TD;>;"
+    .local p0, "this":Landroid/support/v4/content/Loader;, "Landroid/support/v4/content/Loader<TD;>;"
+    .local p1, "listener":Landroid/support/v4/content/Loader$OnLoadCompleteListener;, "Landroid/support/v4/content/Loader$OnLoadCompleteListener<TD;>;"
     iget-object v0, p0, Landroid/support/v4/content/Loader;->mListener:Landroid/support/v4/content/Loader$OnLoadCompleteListener;
 
     if-nez v0, :cond_0

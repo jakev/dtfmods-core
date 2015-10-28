@@ -30,7 +30,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/net/TrafficStatsCompat$BaseTrafficStatsCompatImpl;)V
     .locals 0
-    .parameter
 
     .prologue
     .line 45

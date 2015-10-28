@@ -29,7 +29,7 @@
 # virtual methods
 .method public getLayoutMode(Landroid/view/ViewGroup;)I
     .locals 1
-    .parameter "group"
+    .param p1, "group"    # Landroid/view/ViewGroup;
 
     .prologue
     .line 94
@@ -42,8 +42,8 @@
 
 .method public setLayoutMode(Landroid/view/ViewGroup;I)V
     .locals 0
-    .parameter "group"
-    .parameter "mode"
+    .param p1, "group"    # Landroid/view/ViewGroup;
+    .param p2, "mode"    # I
 
     .prologue
     .line 99

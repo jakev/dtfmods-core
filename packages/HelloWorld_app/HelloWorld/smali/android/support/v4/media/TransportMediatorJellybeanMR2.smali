@@ -44,10 +44,10 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;Landroid/media/AudioManager;Landroid/view/View;Landroid/support/v4/media/TransportMediatorCallback;)V
     .locals 2
-    .parameter "context"
-    .parameter "audioManager"
-    .parameter "view"
-    .parameter "transportCallback"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "audioManager"    # Landroid/media/AudioManager;
+    .param p3, "view"    # Landroid/view/View;
+    .param p4, "transportCallback"    # Landroid/support/v4/media/TransportMediatorCallback;
 
     .prologue
     .line 86
@@ -355,7 +355,7 @@
 
 .method public onPlaybackPositionUpdate(J)V
     .locals 1
-    .parameter "newPositionMs"
+    .param p1, "newPositionMs"    # J
 
     .prologue
     .line 155
@@ -398,9 +398,9 @@
 
 .method public refreshState(ZJI)V
     .locals 3
-    .parameter "playing"
-    .parameter "position"
-    .parameter "transportControls"
+    .param p1, "playing"    # Z
+    .param p2, "position"    # J
+    .param p4, "transportControls"    # I
 
     .prologue
     .line 159
@@ -420,7 +420,7 @@
     :goto_0
     if-eqz p1, :cond_2
 
-    const/high16 v0, 0x3f80
+    const/high16 v0, 0x3f800000    # 1.0f
 
     :goto_1
     invoke-virtual {v2, v1, p2, p3, v0}, Landroid/media/RemoteControlClient;->setPlaybackState(IJF)V
@@ -556,7 +556,7 @@
 
     iget-object v2, p0, Landroid/support/v4/media/TransportMediatorJellybeanMR2;->mIntent:Landroid/content/Intent;
 
-    const/high16 v3, 0x1000
+    const/high16 v3, 0x10000000
 
     invoke-static {v0, v1, v2, v3}, Landroid/app/PendingIntent;->getBroadcast(Landroid/content/Context;ILandroid/content/Intent;I)Landroid/app/PendingIntent;
 

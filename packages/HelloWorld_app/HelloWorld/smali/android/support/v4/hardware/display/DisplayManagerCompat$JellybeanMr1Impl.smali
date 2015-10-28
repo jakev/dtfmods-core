@@ -21,7 +21,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 135
@@ -42,7 +42,7 @@
 # virtual methods
 .method public getDisplay(I)Landroid/view/Display;
     .locals 1
-    .parameter "displayId"
+    .param p1, "displayId"    # I
 
     .prologue
     .line 141
@@ -71,7 +71,7 @@
 
 .method public getDisplays(Ljava/lang/String;)[Landroid/view/Display;
     .locals 1
-    .parameter "category"
+    .param p1, "category"    # Ljava/lang/String;
 
     .prologue
     .line 151

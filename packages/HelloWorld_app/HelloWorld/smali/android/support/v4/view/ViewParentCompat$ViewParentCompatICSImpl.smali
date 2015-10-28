@@ -29,9 +29,9 @@
 # virtual methods
 .method public requestSendAccessibilityEvent(Landroid/view/ViewParent;Landroid/view/View;Landroid/view/accessibility/AccessibilityEvent;)Z
     .locals 1
-    .parameter "parent"
-    .parameter "child"
-    .parameter "event"
+    .param p1, "parent"    # Landroid/view/ViewParent;
+    .param p2, "child"    # Landroid/view/View;
+    .param p3, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 56

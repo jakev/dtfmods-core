@@ -32,8 +32,8 @@
 # virtual methods
 .method public getXVelocity(Landroid/view/VelocityTracker;I)F
     .locals 1
-    .parameter "tracker"
-    .parameter "pointerId"
+    .param p1, "tracker"    # Landroid/view/VelocityTracker;
+    .param p2, "pointerId"    # I
 
     .prologue
     .line 40
@@ -46,8 +46,8 @@
 
 .method public getYVelocity(Landroid/view/VelocityTracker;I)F
     .locals 1
-    .parameter "tracker"
-    .parameter "pointerId"
+    .param p1, "tracker"    # Landroid/view/VelocityTracker;
+    .param p2, "pointerId"    # I
 
     .prologue
     .line 44

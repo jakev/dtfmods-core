@@ -29,7 +29,7 @@
 # virtual methods
 .method public getCurrVelocity(Ljava/lang/Object;)F
     .locals 1
-    .parameter "scroller"
+    .param p1, "scroller"    # Ljava/lang/Object;
 
     .prologue
     .line 234

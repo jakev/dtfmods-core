@@ -38,7 +38,7 @@
 # direct methods
 .method constructor <init>(Landroid/content/Context;)V
     .locals 2
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     const/4 v1, 0x2
@@ -78,11 +78,11 @@
 
 .method static synthetic access$000(Landroid/support/v4/print/PrintHelperKitkat;IILandroid/graphics/RectF;I)Landroid/graphics/Matrix;
     .locals 1
-    .parameter "x0"
-    .parameter "x1"
-    .parameter "x2"
-    .parameter "x3"
-    .parameter "x4"
+    .param p0, "x0"    # Landroid/support/v4/print/PrintHelperKitkat;
+    .param p1, "x1"    # I
+    .param p2, "x2"    # I
+    .param p3, "x3"    # Landroid/graphics/RectF;
+    .param p4, "x4"    # I
 
     .prologue
     .line 46
@@ -95,9 +95,9 @@
 
 .method static synthetic access$200(Landroid/support/v4/print/PrintHelperKitkat;Landroid/net/Uri;I)Landroid/graphics/Bitmap;
     .locals 1
-    .parameter "x0"
-    .parameter "x1"
-    .parameter "x2"
+    .param p0, "x0"    # Landroid/support/v4/print/PrintHelperKitkat;
+    .param p1, "x1"    # Landroid/net/Uri;
+    .param p2, "x2"    # I
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/io/FileNotFoundException;
@@ -115,7 +115,7 @@
 
 .method static synthetic access$300(Landroid/support/v4/print/PrintHelperKitkat;)Ljava/lang/Object;
     .locals 1
-    .parameter "x0"
+    .param p0, "x0"    # Landroid/support/v4/print/PrintHelperKitkat;
 
     .prologue
     .line 46
@@ -126,13 +126,13 @@
 
 .method private getMatrix(IILandroid/graphics/RectF;I)Landroid/graphics/Matrix;
     .locals 7
-    .parameter "imageWidth"
-    .parameter "imageHeight"
-    .parameter "content"
-    .parameter "fittingMode"
+    .param p1, "imageWidth"    # I
+    .param p2, "imageHeight"    # I
+    .param p3, "content"    # Landroid/graphics/RectF;
+    .param p4, "fittingMode"    # I
 
     .prologue
-    const/high16 v6, 0x4000
+    const/high16 v6, 0x40000000    # 2.0f
 
     .line 257
     new-instance v0, Landroid/graphics/Matrix;
@@ -140,7 +140,7 @@
     invoke-direct {v0}, Landroid/graphics/Matrix;-><init>()V
 
     .line 260
-    .local v0, matrix:Landroid/graphics/Matrix;
+    .local v0, "matrix":Landroid/graphics/Matrix;
     invoke-virtual {p3}, Landroid/graphics/RectF;->width()F
 
     move-result v4
@@ -150,7 +150,7 @@
     div-float v1, v4, v5
 
     .line 261
-    .local v1, scale:F
+    .local v1, "scale":F
     const/4 v4, 0x2
 
     if-ne p4, v4, :cond_0
@@ -186,7 +186,7 @@
     div-float v2, v4, v6
 
     .line 271
-    .local v2, translateX:F
+    .local v2, "translateX":F
     invoke-virtual {p3}, Landroid/graphics/RectF;->height()F
 
     move-result v4
@@ -200,15 +200,15 @@
     div-float v3, v4, v6
 
     .line 273
-    .local v3, translateY:F
+    .local v3, "translateY":F
     invoke-virtual {v0, v2, v3}, Landroid/graphics/Matrix;->postTranslate(FF)Z
 
     .line 274
     return-object v0
 
     .line 264
-    .end local v2           #translateX:F
-    .end local v3           #translateY:F
+    .end local v2    # "translateX":F
+    .end local v3    # "translateY":F
     :cond_0
     invoke-virtual {p3}, Landroid/graphics/RectF;->height()F
 
@@ -227,8 +227,8 @@
 
 .method private loadBitmap(Landroid/net/Uri;Landroid/graphics/BitmapFactory$Options;)Landroid/graphics/Bitmap;
     .locals 5
-    .parameter "uri"
-    .parameter "o"
+    .param p1, "uri"    # Landroid/net/Uri;
+    .param p2, "o"    # Landroid/graphics/BitmapFactory$Options;
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/io/FileNotFoundException;
@@ -258,7 +258,7 @@
     const/4 v0, 0x0
 
     .line 512
-    .local v0, is:Ljava/io/InputStream;
+    .local v0, "is":Ljava/io/InputStream;
     :try_start_0
     iget-object v2, p0, Landroid/support/v4/print/PrintHelperKitkat;->mContext:Landroid/content/Context;
 
@@ -298,7 +298,7 @@
     move-exception v1
 
     .line 519
-    .local v1, t:Ljava/io/IOException;
+    .local v1, "t":Ljava/io/IOException;
     const-string v3, "PrintHelperKitkat"
 
     const-string v4, "close fail "
@@ -308,7 +308,7 @@
     goto :goto_0
 
     .line 515
-    .end local v1           #t:Ljava/io/IOException;
+    .end local v1    # "t":Ljava/io/IOException;
     :catchall_0
     move-exception v2
 
@@ -330,7 +330,7 @@
     move-exception v1
 
     .line 519
-    .restart local v1       #t:Ljava/io/IOException;
+    .restart local v1    # "t":Ljava/io/IOException;
     const-string v3, "PrintHelperKitkat"
 
     const-string v4, "close fail "
@@ -342,8 +342,8 @@
 
 .method private loadConstrainedBitmap(Landroid/net/Uri;I)Landroid/graphics/Bitmap;
     .locals 9
-    .parameter "uri"
-    .parameter "maxSideLength"
+    .param p1, "uri"    # Landroid/net/Uri;
+    .param p2, "maxSideLength"    # I
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/io/FileNotFoundException;
@@ -381,7 +381,7 @@
     invoke-direct {v3}, Landroid/graphics/BitmapFactory$Options;-><init>()V
 
     .line 462
-    .local v3, opt:Landroid/graphics/BitmapFactory$Options;
+    .local v3, "opt":Landroid/graphics/BitmapFactory$Options;
     iput-boolean v8, v3, Landroid/graphics/BitmapFactory$Options;->inJustDecodeBounds:Z
 
     .line 463
@@ -391,11 +391,11 @@
     iget v5, v3, Landroid/graphics/BitmapFactory$Options;->outWidth:I
 
     .line 466
-    .local v5, w:I
+    .local v5, "w":I
     iget v1, v3, Landroid/graphics/BitmapFactory$Options;->outHeight:I
 
     .line 469
-    .local v1, h:I
+    .local v1, "h":I
     if-lez v5, :cond_2
 
     if-gtz v1, :cond_3
@@ -412,11 +412,11 @@
     move-result v2
 
     .line 476
-    .local v2, imageSide:I
+    .local v2, "imageSide":I
     const/4 v4, 0x1
 
     .line 477
-    .local v4, sampleSize:I
+    .local v4, "sampleSize":I
     :goto_1
     if-le v2, p2, :cond_4
 
@@ -444,7 +444,7 @@
     const/4 v0, 0x0
 
     .line 487
-    .local v0, decodeOptions:Landroid/graphics/BitmapFactory$Options;
+    .local v0, "decodeOptions":Landroid/graphics/BitmapFactory$Options;
     iget-object v7, p0, Landroid/support/v4/print/PrintHelperKitkat;->mLock:Ljava/lang/Object;
 
     monitor-enter v7
@@ -587,8 +587,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/graphics/Bitmap;)V
     .locals 6
-    .parameter "jobName"
-    .parameter "bitmap"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "bitmap"    # Landroid/graphics/Bitmap;
 
     .prologue
     .line 164
@@ -603,7 +603,7 @@
     iget v1, p0, Landroid/support/v4/print/PrintHelperKitkat;->mScaleMode:I
 
     .line 168
-    .local v1, fittingMode:I
+    .local v1, "fittingMode":I
     iget-object v4, p0, Landroid/support/v4/print/PrintHelperKitkat;->mContext:Landroid/content/Context;
 
     const-string v5, "print"
@@ -615,11 +615,11 @@
     check-cast v3, Landroid/print/PrintManager;
 
     .line 169
-    .local v3, printManager:Landroid/print/PrintManager;
+    .local v3, "printManager":Landroid/print/PrintManager;
     sget-object v2, Landroid/print/PrintAttributes$MediaSize;->UNKNOWN_PORTRAIT:Landroid/print/PrintAttributes$MediaSize;
 
     .line 170
-    .local v2, mediaSize:Landroid/print/PrintAttributes$MediaSize;
+    .local v2, "mediaSize":Landroid/print/PrintAttributes$MediaSize;
     invoke-virtual {p2}, Landroid/graphics/Bitmap;->getWidth()I
 
     move-result v4
@@ -654,7 +654,7 @@
     move-result-object v0
 
     .line 178
-    .local v0, attr:Landroid/print/PrintAttributes;
+    .local v0, "attr":Landroid/print/PrintAttributes;
     new-instance v4, Landroid/support/v4/print/PrintHelperKitkat$1;
 
     invoke-direct {v4, p0, p1, p2, v1}, Landroid/support/v4/print/PrintHelperKitkat$1;-><init>(Landroid/support/v4/print/PrintHelperKitkat;Ljava/lang/String;Landroid/graphics/Bitmap;I)V
@@ -666,8 +666,8 @@
 
 .method public printBitmap(Ljava/lang/String;Landroid/net/Uri;)V
     .locals 7
-    .parameter "jobName"
-    .parameter "imageFile"
+    .param p1, "jobName"    # Ljava/lang/String;
+    .param p2, "imageFile"    # Landroid/net/Uri;
     .annotation system Ldalvik/annotation/Throws;
         value = {
             Ljava/io/FileNotFoundException;
@@ -679,13 +679,13 @@
     iget v2, p0, Landroid/support/v4/print/PrintHelperKitkat;->mScaleMode:I
 
     .line 289
-    .local v2, fittingMode:I
+    .local v2, "fittingMode":I
     new-instance v3, Landroid/support/v4/print/PrintHelperKitkat$2;
 
     invoke-direct {v3, p0, p1, p2, v2}, Landroid/support/v4/print/PrintHelperKitkat$2;-><init>(Landroid/support/v4/print/PrintHelperKitkat;Ljava/lang/String;Landroid/net/Uri;I)V
 
     .line 434
-    .local v3, printDocumentAdapter:Landroid/print/PrintDocumentAdapter;
+    .local v3, "printDocumentAdapter":Landroid/print/PrintDocumentAdapter;
     iget-object v5, p0, Landroid/support/v4/print/PrintHelperKitkat;->mContext:Landroid/content/Context;
 
     const-string v6, "print"
@@ -697,13 +697,13 @@
     check-cast v4, Landroid/print/PrintManager;
 
     .line 435
-    .local v4, printManager:Landroid/print/PrintManager;
+    .local v4, "printManager":Landroid/print/PrintManager;
     new-instance v1, Landroid/print/PrintAttributes$Builder;
 
     invoke-direct {v1}, Landroid/print/PrintAttributes$Builder;-><init>()V
 
     .line 436
-    .local v1, builder:Landroid/print/PrintAttributes$Builder;
+    .local v1, "builder":Landroid/print/PrintAttributes$Builder;
     iget v5, p0, Landroid/support/v4/print/PrintHelperKitkat;->mColorMode:I
 
     invoke-virtual {v1, v5}, Landroid/print/PrintAttributes$Builder;->setColorMode(I)Landroid/print/PrintAttributes$Builder;
@@ -728,14 +728,14 @@
     move-result-object v0
 
     .line 445
-    .local v0, attr:Landroid/print/PrintAttributes;
+    .local v0, "attr":Landroid/print/PrintAttributes;
     invoke-virtual {v4, p1, v3, v0}, Landroid/print/PrintManager;->print(Ljava/lang/String;Landroid/print/PrintDocumentAdapter;Landroid/print/PrintAttributes;)Landroid/print/PrintJob;
 
     .line 446
     return-void
 
     .line 440
-    .end local v0           #attr:Landroid/print/PrintAttributes;
+    .end local v0    # "attr":Landroid/print/PrintAttributes;
     :cond_1
     iget v5, p0, Landroid/support/v4/print/PrintHelperKitkat;->mOrientation:I
 
@@ -753,7 +753,7 @@
 
 .method public setColorMode(I)V
     .locals 0
-    .parameter "colorMode"
+    .param p1, "colorMode"    # I
 
     .prologue
     .line 124
@@ -765,7 +765,7 @@
 
 .method public setOrientation(I)V
     .locals 0
-    .parameter "orientation"
+    .param p1, "orientation"    # I
 
     .prologue
     .line 134
@@ -777,7 +777,7 @@
 
 .method public setScaleMode(I)V
     .locals 0
-    .parameter "scaleMode"
+    .param p1, "scaleMode"    # I
 
     .prologue
     .line 102

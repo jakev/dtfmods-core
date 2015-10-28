@@ -17,8 +17,8 @@
 
 .method public static appendSelectionArgs([Ljava/lang/String;[Ljava/lang/String;)[Ljava/lang/String;
     .locals 4
-    .parameter "originalValues"
-    .parameter "newValues"
+    .param p0, "originalValues"    # [Ljava/lang/String;
+    .param p1, "newValues"    # [Ljava/lang/String;
 
     .prologue
     const/4 v3, 0x0
@@ -48,7 +48,7 @@
     new-array v0, v1, [Ljava/lang/String;
 
     .line 54
-    .local v0, result:[Ljava/lang/String;
+    .local v0, "result":[Ljava/lang/String;
     array-length v1, p0
 
     invoke-static {p0, v3, v0, v3, v1}, Ljava/lang/System;->arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V
@@ -65,8 +65,8 @@
 
 .method public static concatenateWhere(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
     .locals 2
-    .parameter "a"
-    .parameter "b"
+    .param p0, "a"    # Ljava/lang/String;
+    .param p1, "b"    # Ljava/lang/String;
 
     .prologue
     .line 35
@@ -77,12 +77,12 @@
     if-eqz v0, :cond_0
 
     .line 42
-    .end local p1
+    .end local p1    # "b":Ljava/lang/String;
     :goto_0
     return-object p1
 
     .line 38
-    .restart local p1
+    .restart local p1    # "b":Ljava/lang/String;
     :cond_0
     invoke-static {p1}, Landroid/text/TextUtils;->isEmpty(Ljava/lang/CharSequence;)Z
 

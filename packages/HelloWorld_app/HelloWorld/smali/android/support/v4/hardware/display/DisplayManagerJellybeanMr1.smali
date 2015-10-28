@@ -16,14 +16,14 @@
 
 .method public static getDisplay(Ljava/lang/Object;I)Landroid/view/Display;
     .locals 1
-    .parameter "displayManagerObj"
-    .parameter "displayId"
+    .param p0, "displayManagerObj"    # Ljava/lang/Object;
+    .param p1, "displayId"    # I
 
     .prologue
     .line 28
     check-cast p0, Landroid/hardware/display/DisplayManager;
 
-    .end local p0
+    .end local p0    # "displayManagerObj":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/hardware/display/DisplayManager;->getDisplay(I)Landroid/view/Display;
 
     move-result-object v0
@@ -33,7 +33,7 @@
 
 .method public static getDisplayManager(Landroid/content/Context;)Ljava/lang/Object;
     .locals 1
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     .line 24
@@ -48,13 +48,13 @@
 
 .method public static getDisplays(Ljava/lang/Object;)[Landroid/view/Display;
     .locals 1
-    .parameter "displayManagerObj"
+    .param p0, "displayManagerObj"    # Ljava/lang/Object;
 
     .prologue
     .line 32
     check-cast p0, Landroid/hardware/display/DisplayManager;
 
-    .end local p0
+    .end local p0    # "displayManagerObj":Ljava/lang/Object;
     invoke-virtual {p0}, Landroid/hardware/display/DisplayManager;->getDisplays()[Landroid/view/Display;
 
     move-result-object v0
@@ -64,14 +64,14 @@
 
 .method public static getDisplays(Ljava/lang/Object;Ljava/lang/String;)[Landroid/view/Display;
     .locals 1
-    .parameter "displayManagerObj"
-    .parameter "category"
+    .param p0, "displayManagerObj"    # Ljava/lang/Object;
+    .param p1, "category"    # Ljava/lang/String;
 
     .prologue
     .line 36
     check-cast p0, Landroid/hardware/display/DisplayManager;
 
-    .end local p0
+    .end local p0    # "displayManagerObj":Ljava/lang/Object;
     invoke-virtual {p0, p1}, Landroid/hardware/display/DisplayManager;->getDisplays(Ljava/lang/String;)[Landroid/view/Display;
 
     move-result-object v0

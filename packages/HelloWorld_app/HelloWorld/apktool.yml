@@ -1,4 +1,4 @@
-version: 1.5.2
+version: 2.0.3-83f327-SNAPSHOT
 apkFileName: HelloWorld.apk
 isFrameworkApk: false
 usesFramework:
@@ -8,6 +8,10 @@ sdkInfo:
   minSdkVersion: '10'
   targetSdkVersion: '10'
 packageInfo:
-  cur_package: com.helloworld
-  orig_package: com.helloworld
-compressionType: false
+  forced-package-id: '127'
+versionInfo:
+  versionCode: '1'
+  versionName: '1.0'
+sharedLibrary: false
+doNotCompress:
+- arsc

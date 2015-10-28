@@ -51,7 +51,7 @@
 
 .method public static getThemeUpIndicator(Landroid/app/Activity;)Landroid/graphics/drawable/Drawable;
     .locals 3
-    .parameter "activity"
+    .param p0, "activity"    # Landroid/app/Activity;
 
     .prologue
     .line 86
@@ -62,7 +62,7 @@
     move-result-object v0
 
     .line 87
-    .local v0, a:Landroid/content/res/TypedArray;
+    .local v0, "a":Landroid/content/res/TypedArray;
     const/4 v2, 0x0
 
     invoke-virtual {v0, v2}, Landroid/content/res/TypedArray;->getDrawable(I)Landroid/graphics/drawable/Drawable;
@@ -70,7 +70,7 @@
     move-result-object v1
 
     .line 88
-    .local v1, result:Landroid/graphics/drawable/Drawable;
+    .local v1, "result":Landroid/graphics/drawable/Drawable;
     invoke-virtual {v0}, Landroid/content/res/TypedArray;->recycle()V
 
     .line 89
@@ -79,9 +79,9 @@
 
 .method public static setActionBarDescription(Ljava/lang/Object;Landroid/app/Activity;I)Ljava/lang/Object;
     .locals 7
-    .parameter "info"
-    .parameter "activity"
-    .parameter "contentDescRes"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "activity"    # Landroid/app/Activity;
+    .param p2, "contentDescRes"    # I
 
     .prologue
     .line 70
@@ -90,7 +90,7 @@
     .line 71
     new-instance p0, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-direct {p0, p1}, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;-><init>(Landroid/app/Activity;)V
 
     :cond_0
@@ -100,7 +100,7 @@
     check-cast v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
 
     .line 74
-    .local v2, sii:Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
+    .local v2, "sii":Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
     iget-object v3, v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;->setHomeAsUpIndicator:Ljava/lang/reflect/Method;
 
     if-eqz v3, :cond_1
@@ -112,7 +112,7 @@
     move-result-object v0
 
     .line 77
-    .local v0, actionBar:Landroid/app/ActionBar;
+    .local v0, "actionBar":Landroid/app/ActionBar;
     iget-object v3, v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;->setHomeActionContentDescription:Ljava/lang/reflect/Method;
 
     const/4 v4, 0x1
@@ -132,7 +132,7 @@
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
     .line 82
-    .end local v0           #actionBar:Landroid/app/ActionBar;
+    .end local v0    # "actionBar":Landroid/app/ActionBar;
     :cond_1
     :goto_0
     return-object p0
@@ -142,7 +142,7 @@
     move-exception v1
 
     .line 79
-    .local v1, e:Ljava/lang/Exception;
+    .local v1, "e":Ljava/lang/Exception;
     const-string v3, "ActionBarDrawerToggleHoneycomb"
 
     const-string v4, "Couldn\'t set content description via JB-MR2 API"
@@ -154,10 +154,10 @@
 
 .method public static setActionBarUpIndicator(Ljava/lang/Object;Landroid/app/Activity;Landroid/graphics/drawable/Drawable;I)Ljava/lang/Object;
     .locals 7
-    .parameter "info"
-    .parameter "activity"
-    .parameter "drawable"
-    .parameter "contentDescRes"
+    .param p0, "info"    # Ljava/lang/Object;
+    .param p1, "activity"    # Landroid/app/Activity;
+    .param p2, "drawable"    # Landroid/graphics/drawable/Drawable;
+    .param p3, "contentDescRes"    # I
 
     .prologue
     .line 48
@@ -166,7 +166,7 @@
     .line 49
     new-instance p0, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
 
-    .end local p0
+    .end local p0    # "info":Ljava/lang/Object;
     invoke-direct {p0, p1}, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;-><init>(Landroid/app/Activity;)V
 
     :cond_0
@@ -176,7 +176,7 @@
     check-cast v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
 
     .line 52
-    .local v2, sii:Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
+    .local v2, "sii":Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;
     iget-object v3, v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;->setHomeAsUpIndicator:Ljava/lang/reflect/Method;
 
     if-eqz v3, :cond_1
@@ -188,7 +188,7 @@
     move-result-object v0
 
     .line 55
-    .local v0, actionBar:Landroid/app/ActionBar;
+    .local v0, "actionBar":Landroid/app/ActionBar;
     iget-object v3, v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;->setHomeAsUpIndicator:Ljava/lang/reflect/Method;
 
     const/4 v4, 0x1
@@ -221,7 +221,7 @@
     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 
     .line 65
-    .end local v0           #actionBar:Landroid/app/ActionBar;
+    .end local v0    # "actionBar":Landroid/app/ActionBar;
     :goto_0
     return-object p0
 
@@ -230,7 +230,7 @@
     move-exception v1
 
     .line 58
-    .local v1, e:Ljava/lang/Exception;
+    .local v1, "e":Ljava/lang/Exception;
     const-string v3, "ActionBarDrawerToggleHoneycomb"
 
     const-string v4, "Couldn\'t set home-as-up indicator via JB-MR2 API"
@@ -240,7 +240,7 @@
     goto :goto_0
 
     .line 60
-    .end local v1           #e:Ljava/lang/Exception;
+    .end local v1    # "e":Ljava/lang/Exception;
     :cond_1
     iget-object v3, v2, Landroid/support/v4/app/ActionBarDrawerToggleHoneycomb$SetIndicatorInfo;->upIndicatorView:Landroid/widget/ImageView;
 

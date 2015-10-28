@@ -42,8 +42,8 @@
 # virtual methods
 .method public compare(Landroid/support/v4/view/ViewPager$ItemInfo;Landroid/support/v4/view/ViewPager$ItemInfo;)I
     .locals 2
-    .parameter "lhs"
-    .parameter "rhs"
+    .param p1, "lhs"    # Landroid/support/v4/view/ViewPager$ItemInfo;
+    .param p2, "rhs"    # Landroid/support/v4/view/ViewPager$ItemInfo;
 
     .prologue
     .line 119
@@ -58,17 +58,17 @@
 
 .method public bridge synthetic compare(Ljava/lang/Object;Ljava/lang/Object;)I
     .locals 1
-    .parameter "x0"
-    .parameter "x1"
+    .param p1, "x0"    # Ljava/lang/Object;
+    .param p2, "x1"    # Ljava/lang/Object;
 
     .prologue
     .line 116
     check-cast p1, Landroid/support/v4/view/ViewPager$ItemInfo;
 
-    .end local p1
+    .end local p1    # "x0":Ljava/lang/Object;
     check-cast p2, Landroid/support/v4/view/ViewPager$ItemInfo;
 
-    .end local p2
+    .end local p2    # "x1":Ljava/lang/Object;
     invoke-virtual {p0, p1, p2}, Landroid/support/v4/view/ViewPager$1;->compare(Landroid/support/v4/view/ViewPager$ItemInfo;Landroid/support/v4/view/ViewPager$ItemInfo;)I
 
     move-result v0

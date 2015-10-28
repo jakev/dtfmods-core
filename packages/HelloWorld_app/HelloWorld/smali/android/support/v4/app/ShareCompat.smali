@@ -98,9 +98,9 @@
 
 .method public static configureMenuItem(Landroid/view/Menu;ILandroid/support/v4/app/ShareCompat$IntentBuilder;)V
     .locals 4
-    .parameter "menu"
-    .parameter "menuItemId"
-    .parameter "shareIntent"
+    .param p0, "menu"    # Landroid/view/Menu;
+    .param p1, "menuItemId"    # I
+    .param p2, "shareIntent"    # Landroid/support/v4/app/ShareCompat$IntentBuilder;
 
     .prologue
     .line 244
@@ -109,7 +109,7 @@
     move-result-object v0
 
     .line 245
-    .local v0, item:Landroid/view/MenuItem;
+    .local v0, "item":Landroid/view/MenuItem;
     if-nez v0, :cond_0
 
     .line 246
@@ -153,8 +153,8 @@
 
 .method public static configureMenuItem(Landroid/view/MenuItem;Landroid/support/v4/app/ShareCompat$IntentBuilder;)V
     .locals 1
-    .parameter "item"
-    .parameter "shareIntent"
+    .param p0, "item"    # Landroid/view/MenuItem;
+    .param p1, "shareIntent"    # Landroid/support/v4/app/ShareCompat$IntentBuilder;
 
     .prologue
     .line 232
@@ -168,7 +168,7 @@
 
 .method public static getCallingActivity(Landroid/app/Activity;)Landroid/content/ComponentName;
     .locals 3
-    .parameter "calledActivity"
+    .param p0, "calledActivity"    # Landroid/app/Activity;
 
     .prologue
     .line 193
@@ -177,7 +177,7 @@
     move-result-object v0
 
     .line 194
-    .local v0, result:Landroid/content/ComponentName;
+    .local v0, "result":Landroid/content/ComponentName;
     if-nez v0, :cond_0
 
     .line 195
@@ -191,18 +191,18 @@
 
     move-result-object v0
 
-    .end local v0           #result:Landroid/content/ComponentName;
+    .end local v0    # "result":Landroid/content/ComponentName;
     check-cast v0, Landroid/content/ComponentName;
 
     .line 197
-    .restart local v0       #result:Landroid/content/ComponentName;
+    .restart local v0    # "result":Landroid/content/ComponentName;
     :cond_0
     return-object v0
 .end method
 
 .method public static getCallingPackage(Landroid/app/Activity;)Ljava/lang/String;
     .locals 3
-    .parameter "calledActivity"
+    .param p0, "calledActivity"    # Landroid/app/Activity;
 
     .prologue
     .line 173
@@ -211,7 +211,7 @@
     move-result-object v0
 
     .line 174
-    .local v0, result:Ljava/lang/String;
+    .local v0, "result":Ljava/lang/String;
     if-nez v0, :cond_0
 
     .line 175

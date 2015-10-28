@@ -44,10 +44,6 @@
 # direct methods
 .method constructor <init>(Landroid/support/v4/print/PrintHelperKitkat;Ljava/lang/String;Landroid/net/Uri;I)V
     .locals 1
-    .parameter
-    .parameter
-    .parameter
-    .parameter
 
     .prologue
     .line 289
@@ -71,7 +67,7 @@
 
 .method static synthetic access$100(Landroid/support/v4/print/PrintHelperKitkat$2;)V
     .locals 0
-    .parameter "x0"
+    .param p0, "x0"    # Landroid/support/v4/print/PrintHelperKitkat$2;
 
     .prologue
     .line 289
@@ -87,7 +83,7 @@
     .line 371
     iget-object v0, p0, Landroid/support/v4/print/PrintHelperKitkat$2;->this$0:Landroid/support/v4/print/PrintHelperKitkat;
 
-    #getter for: Landroid/support/v4/print/PrintHelperKitkat;->mLock:Ljava/lang/Object;
+    # getter for: Landroid/support/v4/print/PrintHelperKitkat;->mLock:Ljava/lang/Object;
     invoke-static {v0}, Landroid/support/v4/print/PrintHelperKitkat;->access$300(Landroid/support/v4/print/PrintHelperKitkat;)Ljava/lang/Object;
 
     move-result-object v1
@@ -159,11 +155,11 @@
 
 .method public onLayout(Landroid/print/PrintAttributes;Landroid/print/PrintAttributes;Landroid/os/CancellationSignal;Landroid/print/PrintDocumentAdapter$LayoutResultCallback;Landroid/os/Bundle;)V
     .locals 9
-    .parameter "oldPrintAttributes"
-    .parameter "newPrintAttributes"
-    .parameter "cancellationSignal"
-    .parameter "layoutResultCallback"
-    .parameter "bundle"
+    .param p1, "oldPrintAttributes"    # Landroid/print/PrintAttributes;
+    .param p2, "newPrintAttributes"    # Landroid/print/PrintAttributes;
+    .param p3, "cancellationSignal"    # Landroid/os/CancellationSignal;
+    .param p4, "layoutResultCallback"    # Landroid/print/PrintDocumentAdapter$LayoutResultCallback;
+    .param p5, "bundle"    # Landroid/os/Bundle;
 
     .prologue
     const/4 v8, 0x0
@@ -213,7 +209,7 @@
     move-result-object v7
 
     .line 311
-    .local v7, info:Landroid/print/PrintDocumentInfo;
+    .local v7, "info":Landroid/print/PrintDocumentInfo;
     invoke-virtual {p2, p1}, Landroid/print/PrintAttributes;->equals(Ljava/lang/Object;)Z
 
     move-result v0
@@ -221,13 +217,13 @@
     if-nez v0, :cond_1
 
     .line 312
-    .local v6, changed:Z
+    .local v6, "changed":Z
     :goto_1
     invoke-virtual {p4, v7, v6}, Landroid/print/PrintDocumentAdapter$LayoutResultCallback;->onLayoutFinished(Landroid/print/PrintDocumentInfo;Z)V
 
     goto :goto_0
 
-    .end local v6           #changed:Z
+    .end local v6    # "changed":Z
     :cond_1
     move v6, v8
 
@@ -235,7 +231,7 @@
     goto :goto_1
 
     .line 316
-    .end local v7           #info:Landroid/print/PrintDocumentInfo;
+    .end local v7    # "info":Landroid/print/PrintDocumentInfo;
     :cond_2
     new-instance v0, Landroid/support/v4/print/PrintHelperKitkat$2$1;
 
@@ -268,10 +264,10 @@
 
 .method public onWrite([Landroid/print/PageRange;Landroid/os/ParcelFileDescriptor;Landroid/os/CancellationSignal;Landroid/print/PrintDocumentAdapter$WriteResultCallback;)V
     .locals 9
-    .parameter "pageRanges"
-    .parameter "fileDescriptor"
-    .parameter "cancellationSignal"
-    .parameter "writeResultCallback"
+    .param p1, "pageRanges"    # [Landroid/print/PageRange;
+    .param p2, "fileDescriptor"    # Landroid/os/ParcelFileDescriptor;
+    .param p3, "cancellationSignal"    # Landroid/os/CancellationSignal;
+    .param p4, "writeResultCallback"    # Landroid/print/PrintDocumentAdapter$WriteResultCallback;
 
     .prologue
     .line 390
@@ -286,7 +282,7 @@
     invoke-direct {v4, v5, v6}, Landroid/print/pdf/PrintedPdfDocument;-><init>(Landroid/content/Context;Landroid/print/PrintAttributes;)V
 
     .line 394
-    .local v4, pdfDocument:Landroid/print/pdf/PrintedPdfDocument;
+    .local v4, "pdfDocument":Landroid/print/pdf/PrintedPdfDocument;
     const/4 v5, 0x1
 
     :try_start_0
@@ -295,7 +291,7 @@
     move-result-object v3
 
     .line 395
-    .local v3, page:Landroid/graphics/pdf/PdfDocument$Page;
+    .local v3, "page":Landroid/graphics/pdf/PdfDocument$Page;
     new-instance v0, Landroid/graphics/RectF;
 
     invoke-virtual {v3}, Landroid/graphics/pdf/PdfDocument$Page;->getInfo()Landroid/graphics/pdf/PdfDocument$PageInfo;
@@ -309,7 +305,7 @@
     invoke-direct {v0, v5}, Landroid/graphics/RectF;-><init>(Landroid/graphics/Rect;)V
 
     .line 398
-    .local v0, content:Landroid/graphics/RectF;
+    .local v0, "content":Landroid/graphics/RectF;
     iget-object v5, p0, Landroid/support/v4/print/PrintHelperKitkat$2;->this$0:Landroid/support/v4/print/PrintHelperKitkat;
 
     iget-object v6, p0, Landroid/support/v4/print/PrintHelperKitkat$2;->mBitmap:Landroid/graphics/Bitmap;
@@ -326,13 +322,13 @@
 
     iget v8, p0, Landroid/support/v4/print/PrintHelperKitkat$2;->val$fittingMode:I
 
-    #calls: Landroid/support/v4/print/PrintHelperKitkat;->getMatrix(IILandroid/graphics/RectF;I)Landroid/graphics/Matrix;
+    # invokes: Landroid/support/v4/print/PrintHelperKitkat;->getMatrix(IILandroid/graphics/RectF;I)Landroid/graphics/Matrix;
     invoke-static {v5, v6, v7, v0, v8}, Landroid/support/v4/print/PrintHelperKitkat;->access$000(Landroid/support/v4/print/PrintHelperKitkat;IILandroid/graphics/RectF;I)Landroid/graphics/Matrix;
 
     move-result-object v2
 
     .line 402
-    .local v2, matrix:Landroid/graphics/Matrix;
+    .local v2, "matrix":Landroid/graphics/Matrix;
     invoke-virtual {v3}, Landroid/graphics/pdf/PdfDocument$Page;->getCanvas()Landroid/graphics/Canvas;
 
     move-result-object v5
@@ -373,8 +369,8 @@
 
     invoke-virtual {p4, v5}, Landroid/print/PrintDocumentAdapter$WriteResultCallback;->onWriteFinished([Landroid/print/PageRange;)V
     :try_end_1
-    .catchall {:try_start_1 .. :try_end_1} :catchall_0
     .catch Ljava/io/IOException; {:try_start_1 .. :try_end_1} :catch_0
+    .catchall {:try_start_1 .. :try_end_1} :catchall_0
 
     .line 420
     :goto_0
@@ -403,7 +399,7 @@
     move-exception v1
 
     .line 416
-    .local v1, ioe:Ljava/io/IOException;
+    .local v1, "ioe":Ljava/io/IOException;
     :try_start_3
     const-string v5, "PrintHelperKitkat"
 
@@ -421,10 +417,10 @@
     goto :goto_0
 
     .line 420
-    .end local v0           #content:Landroid/graphics/RectF;
-    .end local v1           #ioe:Ljava/io/IOException;
-    .end local v2           #matrix:Landroid/graphics/Matrix;
-    .end local v3           #page:Landroid/graphics/pdf/PdfDocument$Page;
+    .end local v0    # "content":Landroid/graphics/RectF;
+    .end local v1    # "ioe":Ljava/io/IOException;
+    .end local v2    # "matrix":Landroid/graphics/Matrix;
+    .end local v3    # "page":Landroid/graphics/pdf/PdfDocument$Page;
     :catchall_0
     move-exception v5
 
@@ -449,17 +445,17 @@
     throw v5
 
     .line 426
-    .restart local v0       #content:Landroid/graphics/RectF;
-    .restart local v2       #matrix:Landroid/graphics/Matrix;
-    .restart local v3       #page:Landroid/graphics/pdf/PdfDocument$Page;
+    .restart local v0    # "content":Landroid/graphics/RectF;
+    .restart local v2    # "matrix":Landroid/graphics/Matrix;
+    .restart local v3    # "page":Landroid/graphics/pdf/PdfDocument$Page;
     :catch_1
     move-exception v5
 
     goto :goto_1
 
-    .end local v0           #content:Landroid/graphics/RectF;
-    .end local v2           #matrix:Landroid/graphics/Matrix;
-    .end local v3           #page:Landroid/graphics/pdf/PdfDocument$Page;
+    .end local v0    # "content":Landroid/graphics/RectF;
+    .end local v2    # "matrix":Landroid/graphics/Matrix;
+    .end local v3    # "page":Landroid/graphics/pdf/PdfDocument$Page;
     :catch_2
     move-exception v6
 

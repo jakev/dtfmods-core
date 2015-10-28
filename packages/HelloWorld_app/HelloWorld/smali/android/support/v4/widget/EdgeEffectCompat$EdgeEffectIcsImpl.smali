@@ -32,8 +32,8 @@
 # virtual methods
 .method public draw(Ljava/lang/Object;Landroid/graphics/Canvas;)Z
     .locals 1
-    .parameter "edgeEffect"
-    .parameter "canvas"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
+    .param p2, "canvas"    # Landroid/graphics/Canvas;
 
     .prologue
     .line 120
@@ -46,7 +46,7 @@
 
 .method public finish(Ljava/lang/Object;)V
     .locals 0
-    .parameter "edgeEffect"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
 
     .prologue
     .line 104
@@ -58,7 +58,7 @@
 
 .method public isFinished(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "edgeEffect"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
 
     .prologue
     .line 100
@@ -71,7 +71,7 @@
 
 .method public newEdgeEffect(Landroid/content/Context;)Ljava/lang/Object;
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 92
@@ -84,8 +84,8 @@
 
 .method public onAbsorb(Ljava/lang/Object;I)Z
     .locals 1
-    .parameter "edgeEffect"
-    .parameter "velocity"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
+    .param p2, "velocity"    # I
 
     .prologue
     .line 116
@@ -98,8 +98,8 @@
 
 .method public onPull(Ljava/lang/Object;F)Z
     .locals 1
-    .parameter "edgeEffect"
-    .parameter "deltaDistance"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
+    .param p2, "deltaDistance"    # F
 
     .prologue
     .line 108
@@ -112,7 +112,7 @@
 
 .method public onRelease(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "edgeEffect"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
 
     .prologue
     .line 112
@@ -125,9 +125,9 @@
 
 .method public setSize(Ljava/lang/Object;II)V
     .locals 0
-    .parameter "edgeEffect"
-    .parameter "width"
-    .parameter "height"
+    .param p1, "edgeEffect"    # Ljava/lang/Object;
+    .param p2, "width"    # I
+    .param p3, "height"    # I
 
     .prologue
     .line 96

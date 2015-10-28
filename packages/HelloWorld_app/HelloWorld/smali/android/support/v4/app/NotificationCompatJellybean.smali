@@ -10,22 +10,22 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;Landroid/app/Notification;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;Landroid/widget/RemoteViews;ILandroid/app/PendingIntent;Landroid/app/PendingIntent;Landroid/graphics/Bitmap;IIZZILjava/lang/CharSequence;)V
     .locals 7
-    .parameter "context"
-    .parameter "n"
-    .parameter "contentTitle"
-    .parameter "contentText"
-    .parameter "contentInfo"
-    .parameter "tickerView"
-    .parameter "number"
-    .parameter "contentIntent"
-    .parameter "fullScreenIntent"
-    .parameter "largeIcon"
-    .parameter "mProgressMax"
-    .parameter "mProgress"
-    .parameter "mProgressIndeterminate"
-    .parameter "useChronometer"
-    .parameter "priority"
-    .parameter "subText"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "n"    # Landroid/app/Notification;
+    .param p3, "contentTitle"    # Ljava/lang/CharSequence;
+    .param p4, "contentText"    # Ljava/lang/CharSequence;
+    .param p5, "contentInfo"    # Ljava/lang/CharSequence;
+    .param p6, "tickerView"    # Landroid/widget/RemoteViews;
+    .param p7, "number"    # I
+    .param p8, "contentIntent"    # Landroid/app/PendingIntent;
+    .param p9, "fullScreenIntent"    # Landroid/app/PendingIntent;
+    .param p10, "largeIcon"    # Landroid/graphics/Bitmap;
+    .param p11, "mProgressMax"    # I
+    .param p12, "mProgress"    # I
+    .param p13, "mProgressIndeterminate"    # Z
+    .param p14, "useChronometer"    # Z
+    .param p15, "priority"    # I
+    .param p16, "subText"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 33
@@ -237,9 +237,9 @@
 # virtual methods
 .method public addAction(ILjava/lang/CharSequence;Landroid/app/PendingIntent;)V
     .locals 1
-    .parameter "icon"
-    .parameter "title"
-    .parameter "intent"
+    .param p1, "icon"    # I
+    .param p2, "title"    # Ljava/lang/CharSequence;
+    .param p3, "intent"    # Landroid/app/PendingIntent;
 
     .prologue
     .line 62
@@ -253,12 +253,12 @@
 
 .method public addBigPictureStyle(Ljava/lang/CharSequence;ZLjava/lang/CharSequence;Landroid/graphics/Bitmap;Landroid/graphics/Bitmap;Z)V
     .locals 3
-    .parameter "bigContentTitle"
-    .parameter "useSummary"
-    .parameter "summaryText"
-    .parameter "bigPicture"
-    .parameter "bigLargeIcon"
-    .parameter "bigLargeIconSet"
+    .param p1, "bigContentTitle"    # Ljava/lang/CharSequence;
+    .param p2, "useSummary"    # Z
+    .param p3, "summaryText"    # Ljava/lang/CharSequence;
+    .param p4, "bigPicture"    # Landroid/graphics/Bitmap;
+    .param p5, "bigLargeIcon"    # Landroid/graphics/Bitmap;
+    .param p6, "bigLargeIconSet"    # Z
 
     .prologue
     .line 78
@@ -277,7 +277,7 @@
     move-result-object v0
 
     .line 81
-    .local v0, style:Landroid/app/Notification$BigPictureStyle;
+    .local v0, "style":Landroid/app/Notification$BigPictureStyle;
     if-eqz p6, :cond_0
 
     .line 82
@@ -297,10 +297,10 @@
 
 .method public addBigTextStyle(Ljava/lang/CharSequence;ZLjava/lang/CharSequence;Ljava/lang/CharSequence;)V
     .locals 3
-    .parameter "bigContentTitle"
-    .parameter "useSummary"
-    .parameter "summaryText"
-    .parameter "bigText"
+    .param p1, "bigContentTitle"    # Ljava/lang/CharSequence;
+    .param p2, "useSummary"    # Z
+    .param p3, "summaryText"    # Ljava/lang/CharSequence;
+    .param p4, "bigText"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 67
@@ -319,7 +319,7 @@
     move-result-object v0
 
     .line 70
-    .local v0, style:Landroid/app/Notification$BigTextStyle;
+    .local v0, "style":Landroid/app/Notification$BigTextStyle;
     if-eqz p2, :cond_0
 
     .line 71
@@ -332,10 +332,9 @@
 
 .method public addInboxStyle(Ljava/lang/CharSequence;ZLjava/lang/CharSequence;Ljava/util/ArrayList;)V
     .locals 5
-    .parameter "bigContentTitle"
-    .parameter "useSummary"
-    .parameter "summaryText"
-    .parameter
+    .param p1, "bigContentTitle"    # Ljava/lang/CharSequence;
+    .param p2, "useSummary"    # Z
+    .param p3, "summaryText"    # Ljava/lang/CharSequence;
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "(",
@@ -351,7 +350,7 @@
 
     .prologue
     .line 91
-    .local p4, texts:Ljava/util/ArrayList;,"Ljava/util/ArrayList<Ljava/lang/CharSequence;>;"
+    .local p4, "texts":Ljava/util/ArrayList;, "Ljava/util/ArrayList<Ljava/lang/CharSequence;>;"
     new-instance v3, Landroid/app/Notification$InboxStyle;
 
     iget-object v4, p0, Landroid/support/v4/app/NotificationCompatJellybean;->b:Landroid/app/Notification$Builder;
@@ -363,7 +362,7 @@
     move-result-object v1
 
     .line 93
-    .local v1, style:Landroid/app/Notification$InboxStyle;
+    .local v1, "style":Landroid/app/Notification$InboxStyle;
     if-eqz p2, :cond_0
 
     .line 94
@@ -375,7 +374,7 @@
 
     move-result-object v0
 
-    .local v0, i$:Ljava/util/Iterator;
+    .local v0, "i$":Ljava/util/Iterator;
     :goto_0
     invoke-interface {v0}, Ljava/util/Iterator;->hasNext()Z
 
@@ -390,13 +389,13 @@
     check-cast v2, Ljava/lang/CharSequence;
 
     .line 97
-    .local v2, text:Ljava/lang/CharSequence;
+    .local v2, "text":Ljava/lang/CharSequence;
     invoke-virtual {v1, v2}, Landroid/app/Notification$InboxStyle;->addLine(Ljava/lang/CharSequence;)Landroid/app/Notification$InboxStyle;
 
     goto :goto_0
 
     .line 99
-    .end local v2           #text:Ljava/lang/CharSequence;
+    .end local v2    # "text":Ljava/lang/CharSequence;
     :cond_1
     return-void
 .end method

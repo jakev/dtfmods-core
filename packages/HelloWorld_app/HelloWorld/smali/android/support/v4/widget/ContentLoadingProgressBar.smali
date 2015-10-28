@@ -26,7 +26,7 @@
 # direct methods
 .method public constructor <init>(Landroid/content/Context;)V
     .locals 1
-    .parameter "context"
+    .param p1, "context"    # Landroid/content/Context;
 
     .prologue
     .line 65
@@ -40,8 +40,8 @@
 
 .method public constructor <init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
     .locals 3
-    .parameter "context"
-    .parameter "attrs"
+    .param p1, "context"    # Landroid/content/Context;
+    .param p2, "attrs"    # Landroid/util/AttributeSet;
 
     .prologue
     const/4 v2, 0x0
@@ -83,8 +83,8 @@
 
 .method static synthetic access$002(Landroid/support/v4/widget/ContentLoadingProgressBar;Z)Z
     .locals 0
-    .parameter "x0"
-    .parameter "x1"
+    .param p0, "x0"    # Landroid/support/v4/widget/ContentLoadingProgressBar;
+    .param p1, "x1"    # Z
 
     .prologue
     .line 30
@@ -95,8 +95,8 @@
 
 .method static synthetic access$102(Landroid/support/v4/widget/ContentLoadingProgressBar;J)J
     .locals 0
-    .parameter "x0"
-    .parameter "x1"
+    .param p0, "x0"    # Landroid/support/v4/widget/ContentLoadingProgressBar;
+    .param p1, "x1"    # J
 
     .prologue
     .line 30
@@ -107,8 +107,8 @@
 
 .method static synthetic access$202(Landroid/support/v4/widget/ContentLoadingProgressBar;Z)Z
     .locals 0
-    .parameter "x0"
-    .parameter "x1"
+    .param p0, "x0"    # Landroid/support/v4/widget/ContentLoadingProgressBar;
+    .param p1, "x1"    # Z
 
     .prologue
     .line 30
@@ -119,7 +119,7 @@
 
 .method static synthetic access$300(Landroid/support/v4/widget/ContentLoadingProgressBar;)Z
     .locals 1
-    .parameter "x0"
+    .param p0, "x0"    # Landroid/support/v4/widget/ContentLoadingProgressBar;
 
     .prologue
     .line 30
@@ -174,7 +174,7 @@
     sub-long v0, v2, v4
 
     .line 98
-    .local v0, diff:J
+    .local v0, "diff":J
     cmp-long v2, v0, v7
 
     if-gez v2, :cond_0

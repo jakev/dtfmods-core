@@ -25,7 +25,6 @@
 
 .method public static newCreator(Landroid/support/v4/os/ParcelableCompatCreatorCallbacks;)Landroid/os/Parcelable$Creator;
     .locals 2
-    .parameter
     .annotation system Ldalvik/annotation/Signature;
         value = {
             "<T:",
@@ -40,7 +39,7 @@
 
     .prologue
     .line 36
-    .local p0, callbacks:Landroid/support/v4/os/ParcelableCompatCreatorCallbacks;,"Landroid/support/v4/os/ParcelableCompatCreatorCallbacks<TT;>;"
+    .local p0, "callbacks":Landroid/support/v4/os/ParcelableCompatCreatorCallbacks;, "Landroid/support/v4/os/ParcelableCompatCreatorCallbacks<TT;>;"
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     const/16 v1, 0xd

@@ -17,9 +17,13 @@
 
 import sqlite3
 from os.path import isfile, isdir
-from pydtf import dtflog as log
-from pydtf import dtfglobals
-from pydtf import dtfconfig
+#from pydtf import dtflog as log
+import dtf.logging as log
+
+#from pydtf import dtfglobals
+import dtf.globals as globals
+#from pydtf import dtfconfig
+import dtf.properties as prop
 import base64
 
 _TAG = "AppDb"
@@ -41,8 +45,10 @@ PROTECTION_MASK_BASE = 0x0f
 # Check if we can the api data
 def isAOSPDataInstalled():
 
-    sdk = dtfconfig.get_prop("Info", "sdk")
-    dtf_packages = dtfglobals.DTF_PACKAGES
+    #sdk = dtfconfig.get_prop("Info", "sdk")
+    sdk = prop.get_prop("Info", "sdk")
+    #dtf_packages = dtfglobals.DTF_PACKAGES
+    dtf_packages = globals.DTF_PACKAGES_DIR
 
     if isdir(dtf_packages + '/' + AOSP_PACKAGE_PREFIX + sdk):
         return True

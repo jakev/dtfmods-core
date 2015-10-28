@@ -30,10 +30,10 @@
 
 .method private static withinStyle(Ljava/lang/StringBuilder;Ljava/lang/CharSequence;II)V
     .locals 5
-    .parameter "out"
-    .parameter "text"
-    .parameter "start"
-    .parameter "end"
+    .param p0, "out"    # Ljava/lang/StringBuilder;
+    .param p1, "text"    # Ljava/lang/CharSequence;
+    .param p2, "start"    # I
+    .param p3, "end"    # I
 
     .prologue
     const/16 v4, 0x20
@@ -41,7 +41,7 @@
     .line 98
     move v1, p2
 
-    .local v1, i:I
+    .local v1, "i":I
     :goto_0
     if-ge v1, p3, :cond_7
 
@@ -51,7 +51,7 @@
     move-result v0
 
     .line 101
-    .local v0, c:C
+    .local v0, "c":C
     const/16 v2, 0x3c
 
     if-ne v0, v2, :cond_0
@@ -172,7 +172,7 @@
     goto :goto_1
 
     .line 120
-    .end local v0           #c:C
+    .end local v0    # "c":C
     :cond_7
     return-void
 .end method
@@ -181,8 +181,8 @@
 # virtual methods
 .method public configureMenuItem(Landroid/view/MenuItem;Landroid/support/v4/app/ShareCompat$IntentBuilder;)V
     .locals 1
-    .parameter "item"
-    .parameter "shareIntent"
+    .param p1, "item"    # Landroid/view/MenuItem;
+    .param p2, "shareIntent"    # Landroid/support/v4/app/ShareCompat$IntentBuilder;
 
     .prologue
     .line 87
@@ -198,7 +198,7 @@
 
 .method public escapeHtml(Ljava/lang/CharSequence;)Ljava/lang/String;
     .locals 3
-    .parameter "text"
+    .param p1, "text"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 91
@@ -207,7 +207,7 @@
     invoke-direct {v0}, Ljava/lang/StringBuilder;-><init>()V
 
     .line 92
-    .local v0, out:Ljava/lang/StringBuilder;
+    .local v0, "out":Ljava/lang/StringBuilder;
     const/4 v1, 0x0
 
     invoke-interface {p1}, Ljava/lang/CharSequence;->length()I

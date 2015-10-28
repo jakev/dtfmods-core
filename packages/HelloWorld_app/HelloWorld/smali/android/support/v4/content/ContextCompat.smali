@@ -28,35 +28,35 @@
 
 .method private static varargs buildPath(Ljava/io/File;[Ljava/lang/String;)Ljava/io/File;
     .locals 6
-    .parameter "base"
-    .parameter "segments"
+    .param p0, "base"    # Ljava/io/File;
+    .param p1, "segments"    # [Ljava/lang/String;
 
     .prologue
     .line 290
     move-object v1, p0
 
     .line 291
-    .local v1, cur:Ljava/io/File;
+    .local v1, "cur":Ljava/io/File;
     move-object v0, p1
 
-    .local v0, arr$:[Ljava/lang/String;
+    .local v0, "arr$":[Ljava/lang/String;
     array-length v4, v0
 
-    .local v4, len$:I
+    .local v4, "len$":I
     const/4 v3, 0x0
 
-    .local v3, i$:I
+    .local v3, "i$":I
     move-object v2, v1
 
-    .end local v1           #cur:Ljava/io/File;
-    .local v2, cur:Ljava/io/File;
+    .end local v1    # "cur":Ljava/io/File;
+    .local v2, "cur":Ljava/io/File;
     :goto_0
     if-ge v3, v4, :cond_1
 
     aget-object v5, v0, v3
 
     .line 292
-    .local v5, segment:Ljava/lang/String;
+    .local v5, "segment":Ljava/lang/String;
     if-nez v2, :cond_0
 
     .line 293
@@ -65,15 +65,15 @@
     invoke-direct {v1, v5}, Ljava/io/File;-><init>(Ljava/lang/String;)V
 
     .line 291
-    .end local v2           #cur:Ljava/io/File;
-    .restart local v1       #cur:Ljava/io/File;
+    .end local v2    # "cur":Ljava/io/File;
+    .restart local v1    # "cur":Ljava/io/File;
     :goto_1
     add-int/lit8 v3, v3, 0x1
 
     move-object v2, v1
 
-    .end local v1           #cur:Ljava/io/File;
-    .restart local v2       #cur:Ljava/io/File;
+    .end local v1    # "cur":Ljava/io/File;
+    .restart local v2    # "cur":Ljava/io/File;
     goto :goto_0
 
     .line 294
@@ -85,29 +85,29 @@
 
     invoke-direct {v1, v2, v5}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
-    .end local v2           #cur:Ljava/io/File;
-    .restart local v1       #cur:Ljava/io/File;
+    .end local v2    # "cur":Ljava/io/File;
+    .restart local v1    # "cur":Ljava/io/File;
     goto :goto_1
 
     .line 298
-    .end local v1           #cur:Ljava/io/File;
-    .end local v5           #segment:Ljava/lang/String;
-    .restart local v2       #cur:Ljava/io/File;
+    .end local v1    # "cur":Ljava/io/File;
+    .end local v5    # "segment":Ljava/lang/String;
+    .restart local v2    # "cur":Ljava/io/File;
     :cond_1
     return-object v2
 
-    .restart local v5       #segment:Ljava/lang/String;
+    .restart local v5    # "segment":Ljava/lang/String;
     :cond_2
     move-object v1, v2
 
-    .end local v2           #cur:Ljava/io/File;
-    .restart local v1       #cur:Ljava/io/File;
+    .end local v2    # "cur":Ljava/io/File;
+    .restart local v1    # "cur":Ljava/io/File;
     goto :goto_1
 .end method
 
 .method public static getExternalCacheDirs(Landroid/content/Context;)[Ljava/io/File;
     .locals 8
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     const/4 v7, 0x1
@@ -118,7 +118,7 @@
     sget v1, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 275
-    .local v1, version:I
+    .local v1, "version":I
     const/16 v2, 0x13
 
     if-lt v1, v2, :cond_0
@@ -144,7 +144,7 @@
     move-result-object v0
 
     .line 285
-    .local v0, single:Ljava/io/File;
+    .local v0, "single":Ljava/io/File;
     :goto_1
     new-array v2, v7, [Ljava/io/File;
 
@@ -153,7 +153,7 @@
     goto :goto_0
 
     .line 282
-    .end local v0           #single:Ljava/io/File;
+    .end local v0    # "single":Ljava/io/File;
     :cond_1
     invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
@@ -189,14 +189,14 @@
 
     move-result-object v0
 
-    .restart local v0       #single:Ljava/io/File;
+    .restart local v0    # "single":Ljava/io/File;
     goto :goto_1
 .end method
 
 .method public static getExternalFilesDirs(Landroid/content/Context;Ljava/lang/String;)[Ljava/io/File;
     .locals 8
-    .parameter "context"
-    .parameter "type"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "type"    # Ljava/lang/String;
 
     .prologue
     const/4 v7, 0x1
@@ -207,7 +207,7 @@
     sget v1, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 215
-    .local v1, version:I
+    .local v1, "version":I
     const/16 v2, 0x13
 
     if-lt v1, v2, :cond_0
@@ -233,7 +233,7 @@
     move-result-object v0
 
     .line 225
-    .local v0, single:Ljava/io/File;
+    .local v0, "single":Ljava/io/File;
     :goto_1
     new-array v2, v7, [Ljava/io/File;
 
@@ -242,7 +242,7 @@
     goto :goto_0
 
     .line 222
-    .end local v0           #single:Ljava/io/File;
+    .end local v0    # "single":Ljava/io/File;
     :cond_1
     invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
@@ -282,13 +282,13 @@
 
     move-result-object v0
 
-    .restart local v0       #single:Ljava/io/File;
+    .restart local v0    # "single":Ljava/io/File;
     goto :goto_1
 .end method
 
 .method public static getObbDirs(Landroid/content/Context;)[Ljava/io/File;
     .locals 8
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     const/4 v7, 0x1
@@ -299,7 +299,7 @@
     sget v1, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 155
-    .local v1, version:I
+    .local v1, "version":I
     const/16 v2, 0x13
 
     if-lt v1, v2, :cond_0
@@ -325,7 +325,7 @@
     move-result-object v0
 
     .line 165
-    .local v0, single:Ljava/io/File;
+    .local v0, "single":Ljava/io/File;
     :goto_1
     new-array v2, v7, [Ljava/io/File;
 
@@ -334,7 +334,7 @@
     goto :goto_0
 
     .line 162
-    .end local v0           #single:Ljava/io/File;
+    .end local v0    # "single":Ljava/io/File;
     :cond_1
     invoke-static {}, Landroid/os/Environment;->getExternalStorageDirectory()Ljava/io/File;
 
@@ -364,14 +364,14 @@
 
     move-result-object v0
 
-    .restart local v0       #single:Ljava/io/File;
+    .restart local v0    # "single":Ljava/io/File;
     goto :goto_1
 .end method
 
 .method public static startActivities(Landroid/content/Context;[Landroid/content/Intent;)Z
     .locals 1
-    .parameter "context"
-    .parameter "intents"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "intents"    # [Landroid/content/Intent;
 
     .prologue
     .line 67
@@ -386,9 +386,9 @@
 
 .method public static startActivities(Landroid/content/Context;[Landroid/content/Intent;Landroid/os/Bundle;)Z
     .locals 3
-    .parameter "context"
-    .parameter "intents"
-    .parameter "options"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "intents"    # [Landroid/content/Intent;
+    .param p2, "options"    # Landroid/os/Bundle;
 
     .prologue
     const/4 v1, 0x1
@@ -397,7 +397,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 100
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v2, 0x10
 
     if-lt v0, v2, :cond_0

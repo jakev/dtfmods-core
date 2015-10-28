@@ -16,7 +16,7 @@
 
 .method public static makeMainActivity(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "mainActivity"
+    .param p0, "mainActivity"    # Landroid/content/ComponentName;
 
     .prologue
     .line 24
@@ -29,7 +29,7 @@
 
 .method public static makeRestartActivityTask(Landroid/content/ComponentName;)Landroid/content/Intent;
     .locals 1
-    .parameter "mainActivity"
+    .param p0, "mainActivity"    # Landroid/content/ComponentName;
 
     .prologue
     .line 28

@@ -16,7 +16,7 @@
 
 .method public static escapeHtml(Ljava/lang/CharSequence;)Ljava/lang/String;
     .locals 1
-    .parameter "html"
+    .param p0, "html"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 23

@@ -29,7 +29,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 59
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0x13
 
     if-lt v0, v1, :cond_0
@@ -68,7 +68,7 @@
 
 .method public static isQuickScaleEnabled(Ljava/lang/Object;)Z
     .locals 1
-    .parameter "scaleGestureDetector"
+    .param p0, "scaleGestureDetector"    # Ljava/lang/Object;
 
     .prologue
     .line 83
@@ -83,8 +83,8 @@
 
 .method public static setQuickScaleEnabled(Ljava/lang/Object;Z)V
     .locals 1
-    .parameter "scaleGestureDetector"
-    .parameter "enabled"
+    .param p0, "scaleGestureDetector"    # Ljava/lang/Object;
+    .param p1, "enabled"    # Z
 
     .prologue
     .line 75

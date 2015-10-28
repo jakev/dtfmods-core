@@ -10,7 +10,7 @@
 # direct methods
 .method private constructor <init>(Landroid/app/ActivityOptions;)V
     .locals 0
-    .parameter "activityOptions"
+    .param p1, "activityOptions"    # Landroid/app/ActivityOptions;
 
     .prologue
     .line 47
@@ -25,9 +25,9 @@
 
 .method public static makeCustomAnimation(Landroid/content/Context;II)Landroid/support/v4/app/ActivityOptionsCompatJB;
     .locals 2
-    .parameter "context"
-    .parameter "enterResId"
-    .parameter "exitResId"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "enterResId"    # I
+    .param p2, "exitResId"    # I
 
     .prologue
     .line 29
@@ -44,11 +44,11 @@
 
 .method public static makeScaleUpAnimation(Landroid/view/View;IIII)Landroid/support/v4/app/ActivityOptionsCompatJB;
     .locals 2
-    .parameter "source"
-    .parameter "startX"
-    .parameter "startY"
-    .parameter "startWidth"
-    .parameter "startHeight"
+    .param p0, "source"    # Landroid/view/View;
+    .param p1, "startX"    # I
+    .param p2, "startY"    # I
+    .param p3, "startWidth"    # I
+    .param p4, "startHeight"    # I
 
     .prologue
     .line 35
@@ -65,10 +65,10 @@
 
 .method public static makeThumbnailScaleUpAnimation(Landroid/view/View;Landroid/graphics/Bitmap;II)Landroid/support/v4/app/ActivityOptionsCompatJB;
     .locals 2
-    .parameter "source"
-    .parameter "thumbnail"
-    .parameter "startX"
-    .parameter "startY"
+    .param p0, "source"    # Landroid/view/View;
+    .param p1, "thumbnail"    # Landroid/graphics/Bitmap;
+    .param p2, "startX"    # I
+    .param p3, "startY"    # I
 
     .prologue
     .line 41
@@ -101,7 +101,7 @@
 
 .method public update(Landroid/support/v4/app/ActivityOptionsCompatJB;)V
     .locals 2
-    .parameter "otherOptions"
+    .param p1, "otherOptions"    # Landroid/support/v4/app/ActivityOptionsCompatJB;
 
     .prologue
     .line 56

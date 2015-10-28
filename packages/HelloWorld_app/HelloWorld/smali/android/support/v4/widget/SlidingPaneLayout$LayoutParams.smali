@@ -69,8 +69,8 @@
 
 .method public constructor <init>(II)V
     .locals 1
-    .parameter "width"
-    .parameter "height"
+    .param p1, "width"    # I
+    .param p2, "height"    # I
 
     .prologue
     .line 1277
@@ -87,8 +87,8 @@
 
 .method public constructor <init>(Landroid/content/Context;Landroid/util/AttributeSet;)V
     .locals 3
-    .parameter "c"
-    .parameter "attrs"
+    .param p1, "c"    # Landroid/content/Context;
+    .param p2, "attrs"    # Landroid/util/AttributeSet;
 
     .prologue
     const/4 v2, 0x0
@@ -107,7 +107,7 @@
     move-result-object v0
 
     .line 1297
-    .local v0, a:Landroid/content/res/TypedArray;
+    .local v0, "a":Landroid/content/res/TypedArray;
     const/4 v1, 0x0
 
     invoke-virtual {v0, v1, v2}, Landroid/content/res/TypedArray;->getFloat(IF)F
@@ -125,7 +125,7 @@
 
 .method public constructor <init>(Landroid/support/v4/widget/SlidingPaneLayout$LayoutParams;)V
     .locals 1
-    .parameter "source"
+    .param p1, "source"    # Landroid/support/v4/widget/SlidingPaneLayout$LayoutParams;
 
     .prologue
     .line 1289
@@ -147,7 +147,7 @@
 
 .method public constructor <init>(Landroid/view/ViewGroup$LayoutParams;)V
     .locals 1
-    .parameter "source"
+    .param p1, "source"    # Landroid/view/ViewGroup$LayoutParams;
 
     .prologue
     .line 1281
@@ -164,7 +164,7 @@
 
 .method public constructor <init>(Landroid/view/ViewGroup$MarginLayoutParams;)V
     .locals 1
-    .parameter "source"
+    .param p1, "source"    # Landroid/view/ViewGroup$MarginLayoutParams;
 
     .prologue
     .line 1285

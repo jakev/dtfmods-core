@@ -32,7 +32,7 @@
 # virtual methods
 .method public getScaledPagingTouchSlop(Landroid/view/ViewConfiguration;)I
     .locals 1
-    .parameter "config"
+    .param p1, "config"    # Landroid/view/ViewConfiguration;
 
     .prologue
     .line 49

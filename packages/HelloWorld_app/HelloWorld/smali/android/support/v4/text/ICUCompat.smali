@@ -26,7 +26,7 @@
     sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
 
     .line 56
-    .local v0, version:I
+    .local v0, "version":I
     const/16 v1, 0xe
 
     if-lt v0, v1, :cond_0
@@ -66,7 +66,7 @@
 
 .method public static addLikelySubtags(Ljava/lang/String;)Ljava/lang/String;
     .locals 1
-    .parameter "locale"
+    .param p0, "locale"    # Ljava/lang/String;
 
     .prologue
     .line 96
@@ -81,7 +81,7 @@
 
 .method public static getScript(Ljava/lang/String;)Ljava/lang/String;
     .locals 1
-    .parameter "locale"
+    .param p0, "locale"    # Ljava/lang/String;
 
     .prologue
     .line 70

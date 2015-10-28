@@ -32,8 +32,8 @@
 # virtual methods
 .method public invalidateChildRegion(Landroid/support/v4/widget/SlidingPaneLayout;Landroid/view/View;)V
     .locals 4
-    .parameter "parent"
-    .parameter "child"
+    .param p1, "parent"    # Landroid/support/v4/widget/SlidingPaneLayout;
+    .param p2, "child"    # Landroid/view/View;
 
     .prologue
     .line 1339

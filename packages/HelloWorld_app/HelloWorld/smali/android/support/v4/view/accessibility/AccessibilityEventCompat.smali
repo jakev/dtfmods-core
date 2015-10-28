@@ -14,7 +14,7 @@
 
 
 # static fields
-.field private static final IMPL:Landroid/support/v4/view/accessibility/AccessibilityEventCompat$AccessibilityEventVersionImpl; = null
+.field private static final IMPL:Landroid/support/v4/view/accessibility/AccessibilityEventCompat$AccessibilityEventVersionImpl;
 
 .field public static final TYPES_ALL_MASK:I = -0x1
 
@@ -96,8 +96,8 @@
 
 .method public static appendRecord(Landroid/view/accessibility/AccessibilityEvent;Landroid/support/v4/view/accessibility/AccessibilityRecordCompat;)V
     .locals 2
-    .parameter "event"
-    .parameter "record"
+    .param p0, "event"    # Landroid/view/accessibility/AccessibilityEvent;
+    .param p1, "record"    # Landroid/support/v4/view/accessibility/AccessibilityRecordCompat;
 
     .prologue
     .line 206
@@ -115,7 +115,7 @@
 
 .method public static asRecord(Landroid/view/accessibility/AccessibilityEvent;)Landroid/support/v4/view/accessibility/AccessibilityRecordCompat;
     .locals 1
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 233
@@ -128,8 +128,8 @@
 
 .method public static getRecord(Landroid/view/accessibility/AccessibilityEvent;I)Landroid/support/v4/view/accessibility/AccessibilityRecordCompat;
     .locals 2
-    .parameter "event"
-    .parameter "index"
+    .param p0, "event"    # Landroid/view/accessibility/AccessibilityEvent;
+    .param p1, "index"    # I
 
     .prologue
     .line 216
@@ -148,7 +148,7 @@
 
 .method public static getRecordCount(Landroid/view/accessibility/AccessibilityEvent;)I
     .locals 1
-    .parameter "event"
+    .param p0, "event"    # Landroid/view/accessibility/AccessibilityEvent;
 
     .prologue
     .line 194

@@ -16,7 +16,7 @@
 
 .method public static isActiveNetworkMetered(Landroid/net/ConnectivityManager;)Z
     .locals 3
-    .parameter "cm"
+    .param p0, "cm"    # Landroid/net/ConnectivityManager;
 
     .prologue
     const/4 v2, 0x1
@@ -27,7 +27,7 @@
     move-result-object v0
 
     .line 38
-    .local v0, info:Landroid/net/NetworkInfo;
+    .local v0, "info":Landroid/net/NetworkInfo;
     if-nez v0, :cond_0
 
     .line 58
@@ -42,7 +42,7 @@
     move-result v1
 
     .line 44
-    .local v1, type:I
+    .local v1, "type":I
     packed-switch v1, :pswitch_data_0
 
     :pswitch_1

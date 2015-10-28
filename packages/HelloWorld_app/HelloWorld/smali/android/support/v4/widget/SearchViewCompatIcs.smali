@@ -25,7 +25,7 @@
 
 .method public static newSearchView(Landroid/content/Context;)Landroid/view/View;
     .locals 1
-    .parameter "context"
+    .param p0, "context"    # Landroid/content/Context;
 
     .prologue
     .line 43
@@ -38,14 +38,14 @@
 
 .method public static setImeOptions(Landroid/view/View;I)V
     .locals 0
-    .parameter "searchView"
-    .parameter "imeOptions"
+    .param p0, "searchView"    # Landroid/view/View;
+    .param p1, "imeOptions"    # I
 
     .prologue
     .line 47
     check-cast p0, Landroid/widget/SearchView;
 
-    .end local p0
+    .end local p0    # "searchView":Landroid/view/View;
     invoke-virtual {p0, p1}, Landroid/widget/SearchView;->setImeOptions(I)V
 
     .line 48
@@ -54,14 +54,14 @@
 
 .method public static setInputType(Landroid/view/View;I)V
     .locals 0
-    .parameter "searchView"
-    .parameter "inputType"
+    .param p0, "searchView"    # Landroid/view/View;
+    .param p1, "inputType"    # I
 
     .prologue
     .line 51
     check-cast p0, Landroid/widget/SearchView;
 
-    .end local p0
+    .end local p0    # "searchView":Landroid/view/View;
     invoke-virtual {p0, p1}, Landroid/widget/SearchView;->setInputType(I)V
 
     .line 52

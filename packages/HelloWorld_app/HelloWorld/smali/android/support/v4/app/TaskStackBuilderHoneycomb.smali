@@ -16,10 +16,10 @@
 
 .method public static getActivitiesPendingIntent(Landroid/content/Context;I[Landroid/content/Intent;I)Landroid/app/PendingIntent;
     .locals 1
-    .parameter "context"
-    .parameter "requestCode"
-    .parameter "intents"
-    .parameter "flags"
+    .param p0, "context"    # Landroid/content/Context;
+    .param p1, "requestCode"    # I
+    .param p2, "intents"    # [Landroid/content/Intent;
+    .param p3, "flags"    # I
 
     .prologue
     .line 29

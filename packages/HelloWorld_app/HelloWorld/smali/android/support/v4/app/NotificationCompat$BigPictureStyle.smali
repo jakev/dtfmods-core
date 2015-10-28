@@ -36,7 +36,7 @@
 
 .method public constructor <init>(Landroid/support/v4/app/NotificationCompat$Builder;)V
     .locals 0
-    .parameter "builder"
+    .param p1, "builder"    # Landroid/support/v4/app/NotificationCompat$Builder;
 
     .prologue
     .line 659
@@ -53,7 +53,7 @@
 # virtual methods
 .method public bigLargeIcon(Landroid/graphics/Bitmap;)Landroid/support/v4/app/NotificationCompat$BigPictureStyle;
     .locals 1
-    .parameter "b"
+    .param p1, "b"    # Landroid/graphics/Bitmap;
 
     .prologue
     .line 693
@@ -70,7 +70,7 @@
 
 .method public bigPicture(Landroid/graphics/Bitmap;)Landroid/support/v4/app/NotificationCompat$BigPictureStyle;
     .locals 0
-    .parameter "b"
+    .param p1, "b"    # Landroid/graphics/Bitmap;
 
     .prologue
     .line 685
@@ -82,7 +82,7 @@
 
 .method public setBigContentTitle(Ljava/lang/CharSequence;)Landroid/support/v4/app/NotificationCompat$BigPictureStyle;
     .locals 0
-    .parameter "title"
+    .param p1, "title"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 668
@@ -94,7 +94,7 @@
 
 .method public setSummaryText(Ljava/lang/CharSequence;)Landroid/support/v4/app/NotificationCompat$BigPictureStyle;
     .locals 1
-    .parameter "cs"
+    .param p1, "cs"    # Ljava/lang/CharSequence;
 
     .prologue
     .line 676
