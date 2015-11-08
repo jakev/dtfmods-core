@@ -16,8 +16,10 @@
 # API for working with frameworks
 import sqlite3
 from os.path import isfile, isdir
-from pydtf import dtfglobals
-from pydtf import dtfconfig
+
+from dtf.globals import DTF_PACKAGES_DIR
+
+import dtf.properties as prop
 
 _TAG = "FrameworkDb"
 
@@ -28,10 +30,9 @@ AOSP_PACKAGE_PREFIX = "aosp-data-"
 # Check if we can the api data
 def isAOSPDataInstalled():
 
-    sdk = dtfconfig.get_prop("Info", "sdk")
-    dtf_packages = dtfglobals.DTF_PACKAGES
+    sdk = prop.get_prop("Info", "sdk")
 
-    if isdir(dtf_packages + '/' + AOSP_PACKAGE_PREFIX + sdk):
+    if isdir(DTF_PACKAGES_DIR + '/' + AOSP_PACKAGE_PREFIX + sdk):
         return True
     else:
         return False

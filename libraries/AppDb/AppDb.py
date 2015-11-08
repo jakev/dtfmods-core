@@ -405,7 +405,8 @@ class AppDb(object):
     def __init__(self, db_path, safe=False):
 
         # Make sure the DB exists, don't create it.
-        if safe and not isfile(db_path): raise AppDbException("Database file not found : %s!" % db_path)
+        if safe and not isfile(db_path):
+            raise AppDbException("Database file not found : %s!" % db_path)
 
         self.db_path = db_path
         self.app_db = sqlite3.connect(db_path)     
@@ -492,6 +493,29 @@ class AppDb(object):
             return -1
 
         return 0
+
+    def createAppsTable(self):
+
+        """Create the 'apps' table"""
+
+        sql = ('CREATE TABLE IF NOT EXISTS apps('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+               'package_name TEXT, '
+               'project_name TEXT UNIQUE NOT NULL, '
+               'decoded_path TEXT, '
+               'has_native INTEGER DEFAULT 0, '
+               'min_sdk_version INTEGER DEFAULT 0, '
+               'target_sdk_version INTEGER DEFAULT 0, '
+               'version_name TEXT, '
+               'version_code TEXT, '
+               'permission INTEGER DEFAULT 0, '
+               'debuggable INTEGER, '
+               'successfully_pulled INTEGER DEFAULT 0, '
+               'successfully_unpacked INTEGER DEFAULT 0, '
+               'shared_user_id TEXT, '
+               'shared_user_label TEXT)')
+
+        return self.app_db.execute(sql)
 
     def createPermissionGroupsTable(self):
 
@@ -792,6 +816,18 @@ class AppDb(object):
             return 0
 
 #### Table Modification Methods ############################
+    def addNewApp(self, app):
+
+        """Add just the application name to our DB"""
+
+        package_name, project_name = app
+        sql = ('INSERT INTO apps(package_name, project_name) '
+               'VALUES (?, ?)')
+
+        self.app_db.execute(sql, (package_name, project_name))
+        self.app_db.commit()
+        return 0
+
     def addPermissionGroup(self, permission_group):
 
         name = permission_group.name
@@ -1098,7 +1134,7 @@ class AppDb(object):
     # End Table Modification
 
 #### Table Querying Methods ############################
-    def getApps(self,dont_resolve=False):
+    def getApps(self, dont_resolve=False):
 
         app_list = list()
 
@@ -1141,6 +1177,25 @@ class AppDb(object):
                                 version_name, version_code, permission,
                                 debuggable, shared_user_id, shared_user_label,
                                 id=id))
+        return app_list
+
+    def getFailedToPullApps(self):
+
+        """Return only the failed to pull applications"""
+
+        app_list = list()
+
+        sql = ('SELECT package_name, project_name '
+               'FROM apps '
+               'WHERE successfully_pulled=0 '
+               'ORDER BY project_name')
+
+        for line in self.app_db.execute(sql):
+
+            package_name = line[0]
+            project_name = line[1]
+
+            app_list.append((package_name, project_name))
         return app_list
 
 

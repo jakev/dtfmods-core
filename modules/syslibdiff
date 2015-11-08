@@ -19,7 +19,7 @@
 #@Health: broken
 #@Version: 1.0
 
-. dtf_core.sh
+. $DTF_CORE
 
 sdk=$(dtf prop get Info sdk)
 system_libs_dir=$(dtf prop get Local system-libs-dir)
@@ -29,8 +29,6 @@ aosp_syslib_file=${DTF_PACKAGES}/aosp-data-${sdk}/systemlibraries
 IFS=$'\r\n' aosp_array=($(cat ${aosp_syslib_file}))
 
 IFS=$'\r\n' local_array=($(find ${system_libs_dir} -type f |sed 's/^\.\///g'| sed "s/^${system_libs_dir}\///g"))
-
-echo ${local_array[@]}
 
 for lib in "${local_array[@]}"; do
 

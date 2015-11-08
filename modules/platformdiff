@@ -16,10 +16,10 @@
 #
 """platform.xml diffing support"""
 
-import dtf.properties as prop
 import dtf.logging as log
-from dtf.module import Module
+import dtf.properties as prop
 from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
 
 import AppDb
 
@@ -143,8 +143,8 @@ class platformdiff(Module):
                 prop_diff_dir = None
 
             if prop_diff_dir != None:
-                diff_platform_xml = "%s/%s" % (prop_diff_dir,
-                                               PLATFORM_XML_NAME)
+                diff_platform_xml = "%s/permissions/%s" % (prop_diff_dir,
+                                                           PLATFORM_XML_NAME)
 
                 if not isfile(diff_platform_xml):
                     log.e(TAG, "Diff file '%s' doesn't exist!" %
@@ -159,7 +159,7 @@ class platformdiff(Module):
                     log.e(TAG, "Missing diffing data for this API!")
                     return None
 
-                diff_platform_xml = ("%s/aosp-data-%s/%s" %
+                diff_platform_xml = ("%s/aosp-data-%s/permissions/%s" %
                                          (DTF_PACKAGES_DIR,
                                           prop.get_prop("Info", "sdk"),
                                           PLATFORM_XML_NAME))
@@ -168,7 +168,8 @@ class platformdiff(Module):
 
         # It is set, use it.
         else:
-            diff_platform_xml = "%s/%s" % (args_diff_dir, PLATFORM_XML_NAME)
+            diff_platform_xml = ("%s/permissions/%s"
+                                    % (args_diff_dir, PLATFORM_XML_NAME))
 
             if not isfile(diff_platform_xml):
                 log.e(TAG, "Diff file '%s' doesn't exist!" %

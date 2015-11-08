@@ -122,11 +122,11 @@ if [ "$1" = "--aosp-db" ]; then
 
 # No argument, check for prop.
 else
-    aosp_prop_db=$(dtf prop get Local aosp-data-dir)
-    if [ "${aosp_prop_db}" = "" ]; then
-        AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/dbs/dev.db
+    diff_prop_dir=$(dtf prop get Local diff-data-dir)
+    if [ "${diff_prop_dir}" = "" ]; then
+        AOSP_DB_NAME=${DTF_PACKAGES}/aosp-data-${sdk}/.dbs/dev.db
     else
-        AOSP_DB_NAME=${aosp_prop_db}/dev.db
+        AOSP_DB_NAME=${diff_prop_dir}/.dbs/dev.db
     fi
 fi
 

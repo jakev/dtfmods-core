@@ -14,141 +14,169 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Shared ID Searching
+"""Shared ID Searching"""
 from argparse import ArgumentParser
 from os.path import isfile
-from pydtf import dtfconfig
-from pydtf import dtflog as log
-from pydtf.dtfglobals import DTF_PACKAGES
-from sys import argv
+
+import dtf.logging as log
+import dtf.properties as prop
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
 
 import AppDb
 
-__VERSION__ = "1.1"
+TAG = 'sharedid'
+SYSAPPS_DB_NAME = 'sysapps.db'
 
-# dtf Python Module declaration
-dtf_module = {"About" : "Find apps with a shared ID or by shared ID.",
-              "Author" : "Jake Valletta (jakev)",
-              "Health" : "stable",
-              "Version" : __VERSION__}
+class sharedid(Module):
 
-# Debug
-#log.LOG_LEVEL_STDOUT = 5
+    """Module class for searching SharedIds"""
 
-PROJECT_DB = ""
-AOSP_DB = ""
+    about = 'Find apps with a shared ID or by shared ID.'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'platformdiff'
+    version = '1.1'
 
-TAG = "sharedid"
+    @classmethod
+    def determine_diff_database(cls, args):
 
-# Lookup the property associated with AOSP Databases
-def getAospDirProp():
-    try:
-        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/sysapps.db"
-    except:
-        return None
+        """Determine which diffing sysappdb to use"""
 
-def main():
+        args_diff_dir = args.diff_dir
 
-    global AOSP_DB
-    global PROJECT_DB
+        # First check if we no arg is set
+        if args_diff_dir == None:
 
-    PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
-    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
-                                               dtfconfig.get_prop("Info", "sdk"))
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
 
-    list_mode = False
+            if prop_diff_dir != None:
+                diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  SYSAPPS_DB_NAME)
 
-    oem_apps = list()
-    aosp_apps = list()
-
-    parser = ArgumentParser(prog='sharedid',
-                    description='Find apps with a shared ID or by shared ID.')
-    parser.add_argument('shared_id', metavar="shared_id", type=str,
-                    nargs='?', default=None, help='The (optional) shared ID.')
-    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?',
-                    default=None, help='Use the specified AOSP database.')
-
-    args = parser.parse_args()
-
-    shared_id = args.shared_id
-
-    if shared_id == None:
-        list_mode = True
-
-    # Determine which AOSP to use.
-    if args.aosp_db == None:
-
-        prop_aosp_db = getAospDirProp()
-        if prop_aosp_db != None:
-            aosp_db = prop_aosp_db
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-        else:
-            aosp_db = AOSP_DB
-
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
-    else:
-        aosp_db = args.aosp_db
-        if not isfile(aosp_db):
-            print "[ERROR] File '%s' not found. Exiting." % aosp_db
-            return -3
-
-    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
-
-    # Get a handle to our DBs
-    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
-    aosp_appdb = AppDb.AppDb(aosp_db)
-
-    # List only
-    if list_mode:
-
-        shared_apps = dict()
-
-        for app in appdb.getApps():
-
-            shared_id = app.shared_user_id
-            if shared_id == None: continue
-
-            if shared_id not in shared_apps:
-                shared_apps[shared_id] = [app.project_name]
+                if not isfile(diff_sysapps_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_sysapps_db)
+                    return None
+                else:
+                    return diff_sysapps_db
+            # Not set
             else:
-                shared_apps[shared_id].append(app.project_name)
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
 
-        # Print it out
-        for shared_id, apps in shared_apps.iteritems():
+                diff_sysapps_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          SYSAPPS_DB_NAME))
 
-            print "Shared ID '%s':" % shared_id
-            for app in sorted(apps):
+                return diff_sysapps_db
+
+        # It is set, use it.
+        else:
+            diff_sysapps_db = "%s/.dbs/%s" % (args_diff_dir, SYSAPPS_DB_NAME)
+
+            if not isfile(diff_sysapps_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_sysapps_db)
+                return None
+            else:
+                return diff_sysapps_db
+
+    @classmethod
+    def do_diff(cls, local_sysapps_db, diff_sysapps_db, shared_id, list_mode):
+
+        """Perform the diffing"""
+
+        oem_apps = list()
+        aosp_apps = list()
+
+        # List only
+        if list_mode:
+
+            shared_apps = dict()
+
+            for app in local_sysapps_db.getApps():
+
+                shared_id = app.shared_user_id
+                if shared_id == None:
+                    continue
+
+                if shared_id not in shared_apps:
+                    shared_apps[shared_id] = [app.project_name]
+                else:
+                    shared_apps[shared_id].append(app.project_name)
+
+            # Print it out
+            for shared_id, apps in shared_apps.iteritems():
+
+                print "Shared ID '%s':" % shared_id
+                for app in sorted(apps):
+                    print "   [+] %s" % app
+
+        # Lookup apps by the given shared ID
+        else:
+            for app in local_sysapps_db.getAppsBySharedUserId(shared_id):
+
+                project_name = app.project_name
+
+                # Is it AOSP?
+                if diff_sysapps_db.getAppByName(project_name) == None:
+                    oem_apps.append(project_name)
+                else:
+                    aosp_apps.append(project_name)
+
+            # Print it out
+            print "AOSP Shared:"
+            for app in aosp_apps:
                 print "   [+] %s" % app
 
-    # Lookup apps by the given shared ID
-    else:
+            print "OEM Shared:"
+            for app in oem_apps:
+                print "   [+] %s" % app
 
-        for app in appdb.getAppsBySharedUserId(shared_id):
+            return 0
 
-            project_name = app.project_name
+    def execute(self, args):
 
-            # Is it AOSP?
-            if aosp_appdb.getAppByName(project_name) == None:
-                oem_apps.append(project_name)
-            else:
-                aosp_apps.append(project_name)               
+        """Main module executor"""
 
-        # Print it out
-        print "AOSP Shared:"
-        for app in aosp_apps:
-            print "   [+] %s" % app
+        list_mode = False
 
-        print "OEM Shared:"
-        for app in oem_apps:
-            print "   [+] %s" % app
+        parser = ArgumentParser(prog=self.name,
+                    description='Find apps with a shared ID or by shared ID.')
+        parser.add_argument('shared_id', metavar="shared_id", type=str,
+                    nargs='?', default=None, help='The (optional) shared ID.')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                    nargs='?', default=None,
+                    help='Use the specified diff directory .')
 
-        return 0
+        parsed_args = parser.parse_args(args)
 
-if __name__ == '__main__':
+        shared_id = parsed_args.shared_id
 
-    exit(main())
+        if shared_id == None:
+            list_mode = True
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+        # Try to open local DB first.
+        local_sysapps_db = AppDb.AppDb(local_sysapps_db_name, safe=True)
+
+        # Now try to open or diff DB
+        diff_sysapps_db_name = self.determine_diff_database(parsed_args)
+        if diff_sysapps_db_name is None:
+            log.e(TAG, "Error getting diff DB file.")
+            return -2
+
+        diff_sysapps_db = AppDb.AppDb(diff_sysapps_db_name)
+
+        return self.do_diff(local_sysapps_db, diff_sysapps_db,
+                            shared_id, list_mode)

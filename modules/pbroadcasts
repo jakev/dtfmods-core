@@ -14,28 +14,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Protected Broadcast Listing
-from pydtf import dtfconfig
+"""Protected Broadcast Listing"""
+
+import dtf.properties as prop
+from dtf.module import Module
 
 import AppDb
 
-__VERSION__ = "1.0"
+class pbroadcasts(Module):
 
-# dtf Python Module declaration
-dtf_module = {"About" : "Print protected broadcast actions.",
-              "Author" : "Jake Valletta (jakev)",
-              "Health" : "beta",
-              "Version" : __VERSION__}
+    """Module class for listing protected broadcasts"""
 
-def main():
+    about = 'Print protected broadcast actions.'
+    author = 'Jake Valletta (jakev)'
+    health = 'beta'
+    name = 'pbroadcasts'
+    version = '1.0'
+  
+    def execute(self, args):
+  
+        """Main module executor"""
+        project_db_path = prop.get_prop("Local", "db-dir") + "/sysapps.db"
 
-    project_db_path = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
+        appdb = AppDb.AppDb(project_db_path)
 
-    appdb = AppDb.AppDb(project_db_path)
-
-    for app in appdb.getProtectedActions():
-        print app
-
-if __name__ == '__main__':
-
-    exit(main())
+        for app in appdb.getProtectedActions():
+            print app
