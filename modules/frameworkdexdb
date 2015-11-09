@@ -14,289 +14,372 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Generate DEX Databases
+"""Manipulate framework DEX DBs"""
+
 from argparse import ArgumentParser
-from os import mkdir
-from os.path import isdir, isfile
-from pydtf import dtfconfig
-from pydtf.dtfcore import launch_binary
-from pydtf.dtfglobals import DTF_PACKAGES
-from pydtf import dtflog as log
-from sys import argv, exit
+
+import os
+import os.path
+
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
+from dtf.packages import launch_binary
+
+import dtf.properties as prop
+import dtf.logging as log
 
 import FrameworkDb
 
-import sqlite3
+FRAMEWORKS_DB_NAME = 'frameworks.db'
+FRAMEWORKDEX_DBS_DIR = 'frameworkdexdbs'
 
-__VERSION__ = "1.3"
+TAG = 'frameworkdexdb'
 
-# dtf Python Module declaration
-dtf_module = {"About" : "Create dexdb for a framework file or all frameworks.",
-              "Author" : "Jake Valletta (jakev)",
-              "Health" : "stable",
-              "Version" : __VERSION__}
+class frameworkdexdb(Module):
 
-AOSP_DB = ''
-FW_DEX_DBS_DIR = ''
-PROJECT_DB = ''
+    """Module class manipulating framework DEX DBs"""
 
-log.LOG_LEVEL_STDOUT = 5
+    about = 'Create and compare framework DEX DBs.'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'frameworkdexdb'
+    version = '1.3'
 
-TAG = "frameworkdexdb"
+    def usage(self):
 
-def usage():
-    print "FrameworkDexDb dtf Module Version %s" % __VERSION__
-    print ""
-    print "Submodules:"
-    print "    create       Create DEX db for AOSP framework(s)."
-    print "    diff         Diff the DEX for AOSP framework(s)."
-    print ""
-    exit(0)
+        """Print usage message"""
 
-# Lookup the property associated with AOSP Databases
-def getAospDataDirProp():
-    try:
-        return dtfconfig.get_prop("Local", "aosp-data-dir")
-    except:
-        return None
+        print "FrameworkDexDb dtf Module v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create       Create DEX DB for AOSP framework(s)."
+        print "    diff         Diff the DEX DB against AOSP framework(s)."
+        print ""
 
-def runDiff(local_dex_db, aosp_dex_db):
-    out, err, rtn = launch_binary("dexdiff.py", "%s %s" % (local_dex_db,
-                                                                   aosp_dex_db))
-    # Hack
-    print "\n".join(out)
-    return rtn
+        return 0
 
-class FrameworkDexDb(object):
+    @classmethod
+    def determine_diff_database(cls, args):
 
-    def __init__(self):
+        """Determine which diffing frameworks DB to use"""
 
-        self.local_fwdb = FrameworkDb.FrameworkDb("%s/%s" %
-                                (dtfconfig.get_prop("Local", "db-dir"), "frameworks.db"))
-        self.aosp_fwdb = None
-        self.sdk = dtfconfig.get_prop("Info", "sdk")
-        self.framework_dir =  dtfconfig.get_prop("Local", "framework-dir")
-        self.fwdex_dir = ("%s/frameworkdexdbs" %
-                                    dtfconfig.get_prop("Local", "db-dir"))
+        args_diff_dir = args.diff_dir
 
-    def processFramework(self, in_file, out_file):
- 
-        if not isfile(in_file):
-            print "[ERROR] framework file '%s' does not exist." % in_file
+        # First check if we no arg is set
+        if args_diff_dir == None:
+
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
+
+            if prop_diff_dir != None:
+                diff_frameworks_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                     FRAMEWORKS_DB_NAME)
+
+                if not os.path.isfile(diff_frameworks_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_frameworks_db)
+                    return None
+                else:
+                    return diff_frameworks_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not FrameworkDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_frameworks_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          FRAMEWORKS_DB_NAME))
+
+                return diff_frameworks_db
+
+        # It is set, use it.
+        else:
+            diff_frameworks_db = "%s/.dbs/%s" % (args_diff_dir,
+                                                FRAMEWORKS_DB_NAME)
+
+            if not os.path.isfile(diff_frameworks_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_frameworks_db)
+                return None
+            else:
+                return diff_frameworks_db
+
+    @classmethod
+    def determine_fw_dex_diff_database(cls, args, fw_name):
+
+        """Determine which frameworkdexdb to use"""
+
+        args_diff_dir = args.diff_dir
+
+        # First check if we no arg is set
+        if args_diff_dir == None:
+
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
+
+            if prop_diff_dir != None:
+                diff_frameworkdex_db = ("%s/.dbs/%s/%s.db"
+                                    % (prop_diff_dir, FRAMEWORKDEX_DBS_DIR,
+                                       fw_name))
+
+                if not os.path.isfile(diff_frameworkdex_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!"
+                                                    % diff_frameworkdex_db)
+                    return None
+                else:
+                    return diff_frameworkdex_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not FrameworkDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_frameworkdex_db = ("%s/aosp-data-%s/.dbs/%s/%s.db"
+                                        % (DTF_PACKAGES_DIR,
+                                           prop.get_prop("Info", "sdk"),
+                                           FRAMEWORKDEX_DBS_DIR,
+                                           fw_name))
+
+                if not os.path.isfile(diff_frameworkdex_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!"
+                                % diff_frameworkdex_db)
+                    return None
+                else:
+                    return diff_frameworkdex_db
+
+        # It is set, use it.
+        else:
+            diff_frameworkdex_db = ("%s/.dbs/%s/%s.db"
+                                % (args_diff_dir, FRAMEWORKDEX_DBS_DIR,
+                                   fw_name))
+
+            if not os.path.isfile(diff_frameworkdex_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_frameworkdex_db)
+                return None
+            else:
+                return diff_frameworkdex_db
+
+    # Creation related
+    def process_framework(self, in_file, out_file):
+
+        """Process our frameworks"""
+
+        if not os.path.isfile(in_file):
+            log.e(TAG, "Framework file '%s' does not exist." % in_file)
             return -1
 
-        out, err, rtn = launch_binary("dexdumpsql.jar", "-i %s -o %s -a %s" % (in_file, out_file, self.sdk), launcher="java -jar")
+        cmd_args = "-i %s -o %s -a %s" % (in_file, out_file, self.sdk)
+
+        out, err, rtn = launch_binary('dexdumpsql.jar', cmd_args,
+                                      launcher="java -jar")
         log.d(TAG, "Processing completed : %d" % rtn)
         return rtn
 
-    def processFrameworks(self, fw_list):
+
+    def process_frameworks(self, fw_list):
+
+        """Process list of frameworks"""
 
         rtn = 0
 
-        if not isdir(self.fwdex_dir):
-            mkdir(self.fwdex_dir)
+        if not os.path.isdir(self.frameworkdexdbs_dir):
+            os.mkdir(self.frameworkdexdbs_dir)
 
-        for fw in fw_list:
-            log.i(TAG, "Processing '%s'..." % fw)
+        for framework in fw_list:
+            log.i(TAG, "Processing '%s'..." % framework)
 
-            base_name = fw.replace(".jar", '')
- 
-            vm_type = dtfconfig.get_prop("Info", "vmtype")
+            base_name = framework.replace(".jar", '')
 
-            odex_name = "%s/%s.odex" % (self.framework_dir, base_name)
-            jar_name = "%s/%s.jar" % (self.framework_dir, base_name)
-            out_name = "%s/%s.db" % (self.fwdex_dir, base_name)
+            vm_type = prop.get_prop("Info", "vmtype")
+
+            odex_name = "%s/%s.odex" % (self.frameworks_dir, base_name)
+            jar_name = "%s/%s.jar" % (self.frameworks_dir, base_name)
+            out_name = "%s/%s.db" % (self.frameworkdexdbs_dir, base_name)
 
             if vm_type[:3] == "ART":
                 # Need to handle the ELF BS.
-                if isfile(odex_name):
+                if os.path.isfile(odex_name):
                     log.d(TAG, "ART ODEX mode selected.")
-                    rtn |= self.processFramework(odex_name, out_name)   
+                    rtn |= self.process_framework(odex_name, out_name)
                 else:
-                    log.w(TAG, "No ODEX file found for package '%s'" % base_name)                    
-            elif isfile(odex_name):
+                    log.w(TAG, "No ODEX file found for package '%s'"
+                                                            % base_name)
+            elif os.path.isfile(odex_name):
                 log.d(TAG, "ODEX mode selected.")
-                rtn |= self.processFramework(odex_name, out_name)
+                rtn |= self.process_framework(odex_name, out_name)
             else:
                 log.d(TAG, "JAR mode selected.")
-                rtn |= self.processFramework(jar_name, out_name)
+                rtn |= self.process_framework(jar_name, out_name)
 
         return rtn
 
-    def getAllFrameworks(self):
+    def get_all_frameworks(self):
+
+        """Return list of all frameworks"""
 
         return self.local_fwdb.getFrameworks()
 
-    def getAllAospFrameworks(self):
+    def get_all_aosp_frameworks(self):
+
+        """Return list of all AOSP frameworks"""
 
         local_frameworks = list()
         diff_frameworks = list()
         tmp_frameworks = list()
 
         local_frameworks = self.local_fwdb.getFrameworks()
-        diff_frameworks = self.aosp_fwdb.getFrameworks()
+        diff_frameworks = self.diff_fwdb.getFrameworks()
 
         for lcl in local_frameworks:
             if lcl in diff_frameworks:
                 tmp_frameworks.append(lcl)
 
         return tmp_frameworks
+    # End creation related
 
-def cmdCreate(args):
+    # Diff related
+    @classmethod
+    def do_diff(cls, local_dex_db, diff_dex_db):
 
-    parser = ArgumentParser(prog='frameworkdexdb create',
-                    description='Create dexdb for a framework file or all frameworks.')
-    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='*', default=None,
-                        help='Process a single framework file.')
-    parser.add_argument('--all-aosp', dest='aosp_mode', action='store_const', const=True,
-                        default=False, help='Convert all AOSP framework files.')
-    parser.add_argument('--all', dest='all_mode', action='store_const', const=True,
-                        default=False, help='Convert all framework files.')
-    parser.add_argument('--aosp-db', dest='aosp_db', default=None,
-                        help='Use the specified AOSP database.')
+        """Do actual diffing"""
 
-    args = parser.parse_args()
+        cmd_args = "%s %s" % (local_dex_db, diff_dex_db)
 
-    fwdexdb = FrameworkDexDb()
+        out, err, rtn = launch_binary("dexdiff.py", cmd_args)
 
-    # Is this all mode?
-    if args.all_mode:
-        log.i(TAG, "Doing all frameworks...")
-        return fwdexdb.processFrameworks(fwdexdb.getAllFrameworks())
+        # Hack
+        print "\n".join(out)
+        return rtn
+    # End diff related
 
-    # What about only AOSP?
-    elif args.aosp_mode:
+    def cmd_create(self, args):
 
-        # No argument provided, check if sysapp.db exists by property.
-        if args.aosp_db == None:
-            aosp_data_dir = getAospDataDirProp()
+        """Create DEX db(s)"""
 
-            if aosp_data_dir != None:
-                aosp_db = "%s/%s" % (aosp_data_dir, "frameworks.db")
-                if not isfile(aosp_db):
-                    print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                    return -3
-            else:
-                # The property is not set, use default AOSP_DB.
-                if not FrameworkDb.isAOSPDataInstalled():
-                    print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                    return -2
+        rtn = 0
 
-                aosp_db = AOSP_DB
+        parser = ArgumentParser(prog='frameworkdexdb create',
+                            description='Create DEX DB for a framework(s).')
+        parser.add_argument('framework_name', metavar="framework_name",
+                            type=str, nargs='*', default=None,
+                            help='Process a single framework.')
+        parser.add_argument('--all-aosp', dest='aosp_mode',
+                            action='store_const', const=True, default=False,
+                            help='Convert all AOSP frameworks.')
+        parser.add_argument('--all', dest='all_mode', action='store_const',
+                            const=True, default=False,
+                            help='Convert all frameworks.')
+        parser.add_argument('--diff-dir', dest='diff_dir', default=None,
+                            help='Use data in specified dir to diff.')
 
-        # Argument provided
-        else:
-            aosp_db = args.aosp_db
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
+        parsed_args = parser.parse_args(args)
 
-        log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
+        db_dir = prop.get_prop('Local', 'db-dir')
+        frameworks_dir = prop.get_prop("Local", "framework-dir")
+        local_frameworks_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                 FRAMEWORKS_DB_NAME)
 
-        fwdexdb.aosp_fwdb = FrameworkDb.FrameworkDb(aosp_db)
-        log.i(TAG, "Doing all AOSP Frameworks...")
-        return fwdexdb.processFrameworks(fwdexdb.getAllAospFrameworks())
+        self.local_fwdb = FrameworkDb.FrameworkDb(local_frameworks_db_name,
+                                                  safe=True)
+        self.diff_fwdb = None
 
-    # Single
-    elif args.framework_name != []:
+        self.sdk = prop.get_prop("Info", "sdk")
+        self.frameworks_dir = "%s/%s" % (prop.TOP, frameworks_dir)
+        self.frameworkdexdbs_dir = "%s/%s" % (db_dir, FRAMEWORKDEX_DBS_DIR)
 
-        fw = args.framework_name
-        return fwdexdb.processFrameworks(fw)
+        # Is this all mode?
+        if parsed_args.all_mode:
+            log.i(TAG, "Doing all frameworks...")
+            rtn = self.process_frameworks(self.get_all_frameworks())
 
-    # ERROR
-    else:
-        print "[ERROR] You must supply a framework name or --all/--all-aosp."
-        return -1
+        # What about only AOSP?
+        elif parsed_args.aosp_mode:
 
-def cmdDiff(args):
-
-    global AOSP_DB
-    global FW_DEX_DBS_DIR
-
-    rtn = 0
-
-    parser = ArgumentParser(prog='frameworkdexdb diff',
-                            description='Compare the DEX code of framework against AOSP version.')
-    parser.add_argument('framework_name', metavar="framework_name", type=str, nargs='?', default=None,
-                        help='Diff a single framework.')
-    parser.add_argument('--aosp-db', dest='aosp_db', default=None,
-                        help='Use the specified AOSP database.')
-
-    args = parser.parse_args()
-
-    framework_name = args.framework_name
-
-    # Do the diffing
-    if framework_name == None:
-        print "[ERROR] You must supply a framework name!"
-        return -3
-
-    # Determine which AOSP DB to use
-    # No argument provided
-    if args.aosp_db == None:
-
-        aosp_data_dir = getAospDataDirProp()
-        if aosp_data_dir != None:
-            aosp_db = "%s/frameworkdexdbs/%s.db" % (aosp_data_dir, framework_name)
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-        else:
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
+            diff_db = self.determine_diff_database(parsed_args)
+            if diff_db is None:
+                log.e(TAG, "Unable to determine diff DB!")
                 return -2
 
-            aosp_db = "%s/%s.db" % (FW_DEX_DBS_DIR, framework_name)
+            log.d(TAG, "Using diff DB: '%s'" % diff_db)
 
-    # Argument provided
-    else:
-        aosp_db = args.aosp_db
-        if not isfile(aosp_db):
-            print "[ERROR] File '%s' not found. Exiting." % aosp_db
-            return -3
+            self.diff_fwdb = FrameworkDb.FrameworkDb(diff_db)
+            log.i(TAG, "Doing all AOSP frameworks...")
+            rtn = self.process_frameworks(self.get_all_aosp_frameworks())
 
-    log.d(TAG, "Using AOSP app DB '%s'" % aosp_db)
+        # Single
+        elif parsed_args.framework_name != None:
 
-    # Do the diffing
-    fw_dex_db = "%s/%s.db" % (FW_DEX_DBS_DIR, framework_name)
+            framework = parsed_args.framework_name
+            return self.process_frameworks(framework)
 
-    if not isfile(fw_dex_db):
-       print "[ERROR] No local DEX DB for framework '%s'" % framework_name
-       return -2
+        # ERROR
+        else:
+            log.e(TAG, "Supply a framework name, --all, or --all-aosp.")
+            rtn = -1
 
-    rtn |= runDiff(fw_dex_db, aosp_db)
+        return rtn
 
-    # No errors
-    return rtn
+    def cmd_diff(self, args):
 
-def main(argv):
+        """Diff DEX db(s)"""
 
-    global AOSP_DB
-    global FW_DEX_DBS_DIR
+        parser = ArgumentParser(prog='frameworkdexdb diff',
+                            description='Compare framework DEX to another.')
+        parser.add_argument('framework_name', metavar="framework_name",
+                            type=str, default=None,
+                            help='Diff a single framework.')
+        parser.add_argument('--diff-dir', dest='diff_dir', default=None,
+                            help='Diff against data in specified dir.')
 
-    AOSP_DB = "%s/aosp-data-%s/dbs/frameworks.db" % (DTF_PACKAGES,
-                                               dtfconfig.get_prop("Info", "sdk"))
+        parsed_args = parser.parse_args(args)
 
-    FW_DEX_DBS_DIR = "%s/frameworkdexdbs" % dtfconfig.get_prop("Local", "db-dir")
+        framework_name = parsed_args.framework_name
+        db_dir = prop.get_prop('Local', 'db-dir')
 
-    # We can pop the program name off
-    argv.pop(0)
+        self.frameworkdexdbs_dir = "%s/%s" % (db_dir, FRAMEWORKDEX_DBS_DIR)
 
-    # Get the mode
-    mode = argv[0]
+        # Determine the frameworkdexdb/*.db to diff against
+        diff_fwdex_db = self.determine_fw_dex_diff_database(parsed_args,
+                                                              framework_name)
+        if diff_fwdex_db is None:
+            log.e(TAG, "Unable to determine diff frameworkdex DB!")
+            return -2
 
-    if mode == 'create':
-        return cmdCreate(argv)
-    elif mode == "diff":
-        return cmdDiff(argv)
-    else:
-        return usage()
+        log.d(TAG, "Using diff frameworkdex DB: '%s'" % diff_fwdex_db)
 
-if __name__ == '__main__':
+        # Make sure the local DEX db exist.
+        local_fwdex_db = "%s/%s.db" % (self.frameworkdexdbs_dir,
+                                       framework_name)
 
-    if len(argv) < 2:
-        exit(usage())
-    else:
-        exit(main(argv))
+        if not os.path.isfile(local_fwdex_db):
+            log.e(TAG, "No local DEX DB for application '%s'"
+                                                    % framework_name)
+            return -4
 
+        return self.do_diff(local_fwdex_db, diff_fwdex_db)
+
+    def execute(self, args):
+
+        """Main module execution"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'create':
+            return self.cmd_create(args)
+        elif mode == 'diff':
+            return self.cmd_diff(args)
+        else:
+            return self.usage()

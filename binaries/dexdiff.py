@@ -1,5 +1,21 @@
-#!/usr/bin/python
-from pydtf import dtfglobals, dtfconfig
+#!/usr/bin/env python
+# Android Device Testing Framework ("dtf")
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""Compare DEX DBs"""
+
 import sqlite3
 import os
 from sys import argv
@@ -38,7 +54,7 @@ def createAccessFlagStr(flags, forWhat):
                   "?",
                   "verified",
                   "optimized"
-                  ],  
+                  ],
                   [       # Method
                   "public",
                   "private",
@@ -58,7 +74,7 @@ def createAccessFlagStr(flags, forWhat):
                   "miranda",
                   "constructor",
                   "declared_synchronized"
-                  ],  
+                  ],
                   [      # Field
                   "public",
                   "private",
@@ -77,27 +93,27 @@ def createAccessFlagStr(flags, forWhat):
                   "enum",
                   "?",
                   "?",
-                  "?" 
-                  ]   
-                 ]  
+                  "?"
+                  ]
+                 ]
 
     count = countOnes(flags)
 
     cp = ""
 
     for i in range(0, NUM_FLAGS):
-        if (flags & 0x01):
+        if flags & 0x01:
             accessStr = kAccessStrings[forWhat][i]
             if cp != "":
-                cp+=' '+accessStr
+                cp += ' '+accessStr
             else:
                 cp = accessStr
 
-        flags>>=1
+        flags >>= 1
     return cp
 
-db1=argv[1]
-db2=argv[2]
+db1 = argv[1]
+db2 = argv[2]
 
 if not os.path.isfile(db1):
     print "[ERROR] File \'%s\' does not exist." % db1
@@ -108,7 +124,7 @@ if not os.path.isfile(db2):
     exit(-1)
 
 conn_local = sqlite3.connect(db1)
-conn_aosp  = sqlite3.connect(db2)
+conn_aosp = sqlite3.connect(db2)
 
 cur_aosp = conn_aosp.cursor()
 
@@ -135,7 +151,8 @@ for row in conn_local.execute(sql):
         if class_access_flags == 0:
             class_access_flag_str = "public"
         else:
-            class_access_flag_str = createAccessFlagStr(class_access_flags, kAccessForClass)
+            class_access_flag_str = createAccessFlagStr(class_access_flags,
+                                                        kAccessForClass)
 
         print "[New Class] %s %s" % (class_access_flag_str, class_name)
 
@@ -150,11 +167,13 @@ for row in conn_local.execute(sql):
             sfield_type = row[1]
             sfield_access_flags = int(row[2])
 
-            sfield_access_flags_str = createAccessFlagStr(sfield_access_flags, kAccessForField)
+            sfield_access_flags_str = createAccessFlagStr(sfield_access_flags,
+                                                          kAccessForField)
             if sfield_access_flags_str == '':
                 sfield_line = "%s %s" % (sfield_type, sfield_name)
             else:
-                sfield_line = "%s %s %s" % (sfield_access_flags_str, sfield_type, sfield_name)
+                sfield_line = "%s %s %s" % (sfield_access_flags_str,
+                                            sfield_type, sfield_name)
 
             print "   [Static Field] %s" % (sfield_line)
 
@@ -169,11 +188,13 @@ for row in conn_local.execute(sql):
             ifield_type = row[1]
             ifield_access_flags = int(row[2])
 
-            ifield_access_flags_str = createAccessFlagStr(ifield_access_flags, kAccessForField)
+            ifield_access_flags_str = createAccessFlagStr(ifield_access_flags,
+                                                          kAccessForField)
             if ifield_access_flags_str == '':
                 ifield_line = "%s %s" % (ifield_type, ifield_name)
             else:
-                ifield_line = "%s %s %s" % (ifield_access_flags_str, ifield_type, ifield_name)
+                ifield_line = "%s %s %s" % (ifield_access_flags_str,
+                                            ifield_type, ifield_name)
 
             print "   [Instance Field] %s" % (ifield_line)
 
@@ -186,13 +207,15 @@ for row in conn_local.execute(sql):
 
             method_name = row[0]
             method_descriptor = row[1]
-            method_access_flags = int(row[2]) 
+            method_access_flags = int(row[2])
 
-            method_access_flags_str = createAccessFlagStr(method_access_flags, kAccessForMethod)
+            method_access_flags_str = createAccessFlagStr(method_access_flags,
+                                                          kAccessForMethod)
             if method_access_flags_str == '':
                 method_line = "%s%s" % (method_name, method_descriptor)
             else:
-                method_line = "%s %s%s" % (method_access_flags_str, method_name, method_descriptor)
+                method_line = "%s %s%s" % (method_access_flags_str,
+                                           method_name, method_descriptor)
 
             print "   [Method] %s" % (method_line)
     else:
