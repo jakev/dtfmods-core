@@ -64,13 +64,13 @@
           localName="modules/devdiff" />
 
     <Item type="module"
-          name="drozer"
+          name="drozercfg"
           majorVersion="1"
-          minorVersion="1"
+          minorVersion="0"
           health="stable"
           author="Jake Valletta (jakev)"
-          about="Starts a drozer session on the device (requires Drozer install)."
-          localName="modules/drozer" />
+          about="Drozer client manager."
+          localName="modules/drozercfg" />
 
     <Item type="module"
           name="findimp"
@@ -143,15 +143,6 @@
           author="Jake Valletta (jakev)"
           about="Get app system libraries off the device."
           localName="modules/getsyslibs" />
-
-    <Item type="module"
-          name="installdrozer"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Installs Drozer APK on the test device."
-          localName="modules/installdrozer" />
 
     <Item type="module"
           name="intentsender"
