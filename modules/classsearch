@@ -188,7 +188,7 @@ class classsearch(Module):
 
         if class_name is None and method_name is None:
             log.e(TAG, "You need to specify a class_name to search for!")
-            exit(2)
+            return -2
 
         db_dir = prop.get_prop("Local", "db-dir")
 

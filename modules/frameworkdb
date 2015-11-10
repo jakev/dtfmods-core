@@ -167,6 +167,21 @@ class frameworkdb(Module):
 
     # Zip Stuff
     @classmethod
+    def file_in_zip(cls, zip_file, file_name):
+
+        """Determine if file in ZIP"""
+
+        cmd = ("unzip -t %s %s" % (zip_file, file_name)).split(' ')
+
+        p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
+        p.wait()
+
+        if p.returncode == 0:
+            return True
+        else:
+            return False
+
+    @classmethod
     def extract_from_zip_to(cls, zip_file, extract_path, file_name=None):
 
         """Extract a file from a ZIP"""
@@ -188,6 +203,113 @@ class frameworkdb(Module):
     # End Zip Stuff
 
     # Unpack related
+    def do_unpack_fw(self, fwdb, framework, sdk, frameworks_dir):
+
+        """Do actual unpack"""
+        framework_jar = "%s/%s.jar" % (frameworks_dir, framework)
+        framework_odex = "%s/%s.odex" % (frameworks_dir, framework)
+
+        out_dir = "%s/%s" % (UNFRAMEWORKS_DIR, framework)
+        out_framework_dex = "%s/classes.dex" % out_dir
+        out_framework_meta = "%s/META-INF" % out_dir
+
+        # There should be a JAR, but might not be
+        if isfile(framework_jar):
+
+            log.d(TAG, "Trying JAR mode")
+            # There is a JAR, but is there a 'classs.dex' inside?
+            if self.file_in_zip(framework_jar, 'classes.dex'):
+
+                log.d(TAG, "classes.dex found, trying to unpack")
+                # Unzip the classes.dex
+                if self.extract_from_zip_to(framework_jar, out_dir) != 0:
+                    log.e(TAG, "Unable to extact ZIP '%s'" % framework_jar)
+
+                    # Mark Failed
+                    if self.reporting:
+                        self.report.add_failed(framework)
+                # Unzip success, do unpack!
+                else:
+                    log.d(TAG, "Unpacking DEX framework")
+                    out, err, rtn = baksmali("-a %s -o %s %s"
+                                             % (sdk, out_dir,
+                                                out_framework_dex))
+                    # Error
+                    if rtn != 0:
+                        log.e(TAG, "Error unpacking framework DEX (%d)" % rtn)
+
+                        # Mark failure
+                        if self.reporting:
+                            self.report.add_failed(framework)
+                    # Success!
+                    else:
+                        fwdb.markUnpacked(framework)
+                        rmtree(out_framework_meta, ignore_errors=True)
+                        self.rmfile(out_framework_dex)
+                        if self.reporting:
+                            self.report.add_completed(framework)
+
+            # JAR, no classes.dex, ODEX?
+            elif isfile(framework_odex):
+
+                log.d(TAG, "Unpacking ODEX framework")
+                out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
+                            (sdk, out_dir, frameworks_dir, framework_odex))
+
+                # Mark failure
+                if rtn != 0:
+                    log.e(TAG, "Error unpacking framework ODEX (%d)" % rtn)
+
+                    # Mark Failed
+                    if self.reporting:
+                        self.report.add_failed(framework)
+                # Success!
+                else:
+                    fwdb.markUnpacked(framework)
+                    rmtree(out_framework_meta, ignore_errors=True)
+                    if self.reporting:
+                        self.report.add_completed(framework)
+
+            # None of the above, another error/continue
+            else:
+                log.w(TAG, "No ODEX or classes.dex in JAR!")
+
+                # Mark Failed
+                fwdb.markUnpacked(framework)
+                if self.reporting:
+                    self.report.add_completed(framework)
+
+        # Ok, no JAR. How about an ODEX?
+        elif isfile(framework_odex):
+
+            log.d(TAG, "Unpacking ODEX framework")
+            out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
+                        (sdk, out_dir, frameworks_dir, framework_odex))
+
+            # Mark failure
+            if rtn != 0:
+                log.e(TAG, "Error unpacking framework ODEX (%d)" % rtn)
+
+                # Mark Failed
+                if self.reporting:
+                    self.report.add_failed(framework)
+            # Success!
+            else:
+                fwdb.markUnpacked(framework)
+                rmtree(out_framework_meta, ignore_errors=True)
+                if self.reporting:
+                    self.report.add_completed(framework)
+
+        # Neither
+        else:
+            log.e(TAG, "No JAR or ODEX!")
+
+            # Mark Failed
+            if self.reporting:
+                self.report.add_failed(framework)
+
+        return 0
+
     def do_unpack(self, local_db):
 
         """Perform the unpack"""
@@ -199,108 +321,7 @@ class frameworkdb(Module):
         for framework in fwdb.getFrameworks():
 
             log.i(TAG, "Unframeworking '%s'..." % framework)
-
-            framework_jar = "%s/%s.jar" % (frameworks_dir, framework)
-            framework_odex = "%s/%s.odex" % (frameworks_dir, framework)
-
-            out_dir = "%s/%s" % (UNFRAMEWORKS_DIR, framework)
-            out_framework_dex = "%s/classes.dex" % out_dir
-            out_framework_meta = "%s/META-INF" % out_dir
-
-            # There should be a JAR, but there might not be.
-            if isfile(framework_jar):
-
-                log.d(TAG, "Doing JAR mode")
-
-                # There is a JAR, so unzip first.
-                if self.extract_from_zip_to(framework_jar, out_dir) != 0:
-                    log.e(TAG, "Unable to extact ZIP '%s'" % framework_jar)
-
-                    # Mark Failed
-                    if self.reporting:
-                        self.report.add_failed(framework)
-                    continue
-
-                # Now, check for ODEX, and handle that.
-                if isfile(framework_odex):
-
-                    log.d(TAG, "Found ODEX files for this framework")
-                    out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
-                                (sdk, out_dir, frameworks_dir, framework_odex))
-
-                    if rtn != 0:
-                        log.e(TAG, "Error unpacking framework ODEX (%d)" % rtn)
-
-                        # Mark Failed
-                        if self.reporting:
-                            self.report.add_failed(framework)
-                        continue
-
-                    # Mark complete and add to report.
-                    fwdb.markUnpacked(framework)
-                    if self.reporting:
-                        self.report.add_completed(framework)
-
-                    # Cleanup
-                    rmtree(out_framework_meta, ignore_errors=True)
-
-                # No ODEX, use classes.dex.
-                elif isfile(out_framework_dex):
-
-                    log.d(TAG, "No ODEX, looking for classes.dex")
-                    out, err, rtn = baksmali("-a %s -o %s %s" %
-                                    (sdk, out_dir, out_framework_dex))
-
-                    if rtn != 0:
-                        log.e(TAG, "Error unpacking framework DEX (%d)" % rtn)
-
-                        # Mark Failed
-                        if self.reporting:
-                            self.report.add_failed(framework)
-                        continue
-
-                    # Mark complete and add to report.
-                    fwdb.markUnpacked(framework)
-                    if self.reporting:
-                        self.report.add_completed(framework)
-
-                    # Cleanup
-                    self.rmfile(out_framework_dex)
-                    rmtree(out_framework_meta, ignore_errors=True)
-
-                # No classes.dex or ODEX?
-                else:
-                    log.w(TAG, "No ODEX or classes.dex found?")
-                    continue
-            else:
-                # Without a JAR, we're forced to just use the ODEX.
-                if not isfile(framework_odex):
-                    log.e(TAG, "No JAR or ODEX, how is this even possible?")
-
-                    # Mark Failed
-                    if self.reporting:
-                        self.report.add_failed(framework)
-                    continue
-
-                log.d(TAG, "Found ODEX files for this framework")
-                out, err, rtn = baksmali("-a %s -x -o %s -d %s %s" %
-                                (sdk, out_dir, frameworks_dir, framework_odex))
-
-                if rtn != 0:
-                    log.e(TAG, "Error unpacking framework (%d)" % rtn)
-
-                    # Mark Failed
-                    if self.reporting:
-                        self.report.add_failed(framework)
-                    continue
-
-                # Mark complete and add to report.
-                fwdb.markUnpacked(framework)
-                if self.reporting:
-                    self.report.add_completed(framework)
-
-                # Cleanup$
-                rmtree(out_framework_meta, ignore_errors=True)
+            self.do_unpack_fw(fwdb, framework, sdk, frameworks_dir)
 
         # If reporting is enabled, show it.
         if self.reporting:

@@ -1,484 +1,602 @@
 #!/usr/bin/env python
 # DTF Core Content
 # Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# System Service Manipulation
+"""System Service Manipulation"""
+
+from argparse import ArgumentParser
+
+import os.path
 import re
 import sqlite3
-from argparse import ArgumentParser
-from pydtf.dtfadb import DtfAdb
-from pydtf.dtfglobals import DTF_PACKAGES
-from pydtf import dtfconfig
-from pydtf import dtflog as log
-from pydtf.dtfcore import launch_module
-from os.path import isfile
-from sys import argv, exit
+
+from dtf.adb import DtfAdb
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
+from dtf.packages import launch_module
+
+import dtf.properties as prop
+import dtf.logging as log
 
 import AppDb
 
-__VERSION__ = "1.0"
+TAG = "sysservicedb"
 
-# dtf Python Module declaration
-dtf_module = { "About" : "Create and manage system service database.",
-               "Author" : "Jake Valletta (jakev)",
-               "Health" : "stable",
-               "Version" : __VERSION__ }
+SYSSERVICES_DB_NAME = 'services.db'
 
-__VERSION__ = "1.0"
+class sysservicedb(Module):
 
-PROJECT_DB = ''
-AOSP_DB = ''
+    """Module class manipulating system service database"""
 
-# Debugging
-#log.LOG_LEVEL_STDOUT = 5
-                                   
-TAG="sysservicedb"
+    about = 'Create and manage system service database.'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'sysservicedb'
+    version = '1.0'
 
-# Lookup the property associated with AOSP Databases
-def getAospDirProp():
-    try:
-        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/services.db"
-    except:
-        return None
+    def usage(self):
 
-def usage():
-    print "ServiceDb dtf Module Version %s" % __VERSION__
-    print ""
-    print "Submodules:"
-    print "    create      Create the system service database."
-    print "    diff        Diff System Service(s) against local db."
-    print "    dump        Dumps details about a system service."
-    print ""
-    exit(0)
+        """Usage message"""
 
+        print "ServiceDb dtf Module Version %s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create      Create the system service database."
+        print "    diff        Diff System Service(s) against local db."
+        print "    dump        Dumps details about a system service."
+        print "    list        List registered system services."
+        print ""
+        return 0
 
-def dropTables(con):
+    @classmethod
+    def determine_diff_database(cls, args):
 
-    log.d(TAG, "Dropping tables...")
+        """Determine which diffing sysservicedb to use"""
 
-    with con:
+        args_diff_dir = args.diff_dir
 
-        cur = con.cursor()
-        cur.execute('DROP TABLE IF EXISTS services')
-        cur.execute('DROP TABLE IF EXISTS transactions')
+        # First check if we no arg is set
+        if args_diff_dir == None:
 
-    return 1
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
 
-def createTables(con):
+            if prop_diff_dir != None:
+                diff_services_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  SYSSERVICES_DB_NAME)
 
-    log.d(TAG, "Creating tables...")
+                if not os.path.isfile(diff_services_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_services_db)
+                    return None
+                else:
+                    return diff_services_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
 
-    with con:
-        cur = con.cursor()
+                diff_services_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          SYSSERVICES_DB_NAME))
 
-        sql = ('CREATE TABLE IF NOT EXISTS services('
-               'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-               'name TEXT UNIQUE NOT NULL, '
-               'project TEXT)')
-        cur.execute(sql)
+                return diff_services_db
 
-        sql = ('CREATE TABLE IF NOT EXISTS transactions(' 
-               'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-               'number INTEGER, '
-               'method_name TEXT, '
-               'arguments TEXT, '
-               'returns TEXT, '
-               'service_id INTEGER,'
-               'FOREIGN KEY(service_id) REFERENCES services(id))')
-        cur.execute(sql)
-      
-    con.commit()
-    return 1
+        # It is set, use it.
+        else:
+            diff_services_db = "%s/.dbs/%s" % (args_diff_dir,
+                                               SYSSERVICES_DB_NAME)
 
-def add_transaction(id, binder_number, binder_interface, 
-                            param, return_type):
-    
-    with con:
-
-        cur = con.cursor()
-        sql = ('INSERT INTO transactions('
-              'number, method_name, arguments, returns, service_id) '
-              'VALUES(?, ?, ?, ?, ?, ?)')
-
-        con.executemany(sql, services)
+            if not os.path.isfile(diff_services_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_services_db)
+                return None
+            else:
+                return diff_services_db
 
 
-def parse_transactions(con):
+    # Create related
+    @classmethod
+    def drop_tables(cls, con):
 
-    log.i(TAG, "Parsing Binder transactions")
-    
-    with con:
-        cur = con.cursor()
+        """Drop tables in DB"""
 
-        sql = "select * from services"
-        cur.execute(sql)
-        rows = cur.fetchall()
+        log.d(TAG, "Dropping tables...")
 
-        for row in rows:
-            service_id, service, project = row
-            if project is None: continue
-
-            transactions = list()
-            log.i(TAG, "Parsing transactions for service '%s'" % service)
-            out, err, rtn = launch_module("classsearch", " --framework -ef %s" % project)
-            if out == ['']:
-                log.d(TAG, "Unable to find source files, native maybe?")
-                continue
-  
-            base_path = out[0].replace(".smali","")
-            stub_file_path = base_path + "$Stub.smali"
-            proxy_file_path = base_path + "$Stub$Proxy.smali"
-
-            # First do the Stub.smali
-            if not isfile(stub_file_path):
-                log.w(TAG, "Unable to find stub paths for server '%s'"
-                        % service)
-                continue           
-            smali_f = open(stub_file_path, "r")
-
-            binder_list = list()
-
-            for line in smali_f.read().split("\n"):
-
-                if line.find(".field static final TRANSACTION_") != -1:
-
-                    reduced = line[32:].replace(":I = ","|").split("|")
-                    binder_interface = reduced[0]
-                    binder_number = int(reduced[1], 16)
-
-                    binder_list.append( (binder_number, binder_interface) )
-
-            log.d(TAG, "Found %d transactions" % len(binder_list))
-
-            # Now lets do the Stub.Proxy.smali
-            proxy_f = open(proxy_file_path, "r")
-            data = proxy_f.read()
-
-            for binder in binder_list:
-
-                param_names = list()
-
-                binder_number = binder[0]
-                binder_interface = binder[1]
-                regex = re.compile(".method public "+binder_interface+".*?\.prologue", re.DOTALL)
-
-                try:
-                    prologue_block = re.findall(regex, data)[0].split("\n")
-                except IndexError:
-                    print "[Warning] Binder interface for '%s' not found, skipping" % binder_interface
-                    continue
-
-                sig = prologue_block[0].replace(".method public "+binder_interface, "")
-
-                params = sig.split(')')[0].replace('(', "")
-                return_type = sig.split(')')[1]
-
-                if params != "":
-                    for line in prologue_block:
-                        if line.find("    .parameter ") != -1:
-                            param_names.append(line.split('"')[1])
-
-                transactions.append((binder_number, binder_interface, params, 
-                                    return_type, service_id))
+        with con:
 
             cur = con.cursor()
-            sql = ('INSERT INTO transactions('
-                   'number, method_name, arguments, returns, service_id) '
-                   'VALUES(?, ?, ?, ?, ?)')
-
-            con.executemany(sql, transactions)
-    # End with.
-    con.commit()
-
-# Diffing Stuff
-def diffService(project_con, diff_con, service_name, name_only=False):
-
-    log.d(TAG, "Diffing service '%s'" % service_name)
-
-
-    with project_con:
-        p_cur = project_con.cursor()
-        sql = "SELECT * FROM services WHERE name='%s' LIMIT 1" % service_name
-        p_cur.execute(sql)
-        p_row = p_cur.fetchall()
-        if p_row == []:
-            print "[ERROR] Service '%s' does not exist in project database." % service_name
-            return -3
-
-        service_id = p_row[0][0]
-        project_name = p_row[0][2]
-      
-    with diff_con:
-        d_cur = diff_con.cursor()
-        sql = "SELECT * FROM services WHERE name='%s' LIMIT 1" % service_name
-        d_cur.execute(sql)
-        d_row = d_cur.fetchall()
-        # New service
-        if d_row == []:
-            print "Service %s (%s) [NEW]" % (service_name, project_name)
-            if not name_only:
-                return dumpBinder(project_con, service_id)
-            else:
-                return 0
-        # Old, potentially modified
-        else:
-            print "Service %s (%s)" % (service_name, project_name)
-            if not name_only:
-                return diffTransactions(project_con, diff_con, service_name)
-            else:
-                return 0
-def diffTransactions(project_con, diff_con, service_name):
-
-    sql = ('SELECT t.number,t.method_name,t.arguments,t.returns '
-           'FROM transactions t '
-           'JOIN services s ON t.service_id=s.id '
-           "WHERE s.name='%s' "
-           'ORDER BY t.number' % service_name)
-
-    project_transactions = list()
-    with project_con:
-        p_cur = project_con.cursor()
-        p_cur.execute(sql)
-
-
-        rows = p_cur.fetchall()
-        for row in rows:
-            project_transactions.append(row)
-
-    diff_transactions = list()
-    with diff_con:
-        d_cur = diff_con.cursor()
-        d_cur.execute(sql)
-
-        #print d_cur.fetchall()
-
-        rows = d_cur.fetchall()
-        for row in rows:
-            diff_transactions.append(row)
-
-    diff_names = [i[1] for i in diff_transactions]
-    project_names = [i[1] for i in project_transactions]
-
-    for name in project_names:
-        if name in diff_names: continue
-        else:
-            number, _, arguments, returns = [ i for i in project_transactions if i[1] is name ][0]
-            print "   %s %s(%s)" % (number, name, arguments)
-            print "      Returns: %s" % returns
-
-    return 0
-
-# Dumping Stuff
-def dumpBinder(project_con, service_id):
-
-    with project_con as con:
-        cur = con.cursor()
-        sql = ('SELECT * FROM transactions '
-               'WHERE service_id=%s '
-               'ORDER BY number' % service_id)
-        cur.execute(sql)
-
-        rows = cur.fetchall()
-        for row in rows:
-            transaction_id = row[1]
-            transaction_name = row[2]
-            transaction_args = row[3]
-            transaction_rtn = row[4]
-            print "   %s %s(%s)" % (transaction_id, transaction_name, transaction_args)
-            print "      Returns: %s" % transaction_rtn
+            cur.execute('DROP TABLE IF EXISTS services')
+            cur.execute('DROP TABLE IF EXISTS transactions')
 
         return 0
 
-def cmdCreate():
+    @classmethod
+    def create_tables(cls, con):
 
-    global PROJECT_DB
+        """Create new tables in DB"""
 
-    services = list()
+        log.d(TAG, "Creating tables...")
 
-    con = sqlite3.connect(PROJECT_DB)
-
-    log.i(TAG, "Creating system service database")
-
-    if not dropTables(con):
-        print "[ERROR] Error dropping tables. Exiting."
-        exit(-5)
-
-    if not createTables(con):
-        print "[ERROR] Database creation failed. Exiting."
-        exit(-6)
-
-    adb = DtfAdb()
-
-    log.i(TAG, "Waiting for device to be connected...")
-    adb.wait_for_device()
-    adb.shell_command("service list")
-
-    log.i(TAG, "Adding system services")
-    for line in adb.get_output():
-        if line[0:6] == "Found ": continue
-        if line == "": continue
-        items = line.split("\t")[1].split(' ')
-
-        service_name = items[0].replace(':', '')
-        project_name = items[1].replace('[', '').replace(']','')
-
-        if project_name == '': project_name = None
-
-        services.append((service_name, project_name))
-
-    with con:
-
-        cur = con.cursor()
-        sql = 'INSERT INTO services(name, project) VALUES(?, ?)'
-        con.executemany(sql, services)
-
-    con.commit()
-    log.i(TAG, "Service table added")
-
-    # Do binder transactions
-    parse_transactions(con)
-
-def cmdDiff(args):
-
-    global PROJECT_DB
-    global AOSP_DB
-
-    parser = ArgumentParser(prog='servicedb diff',
-                            description='Get differences of a system service(s).')
-    parser.add_argument('service_name', metavar="service_name", type=str, nargs='?', default=None,
-                        help='The system service to check.')
-    parser.add_argument('--all', dest='all', action='store_const', const=True, default=False,
-                        help='Run against all system services.')
-    parser.add_argument('--diff-db', metavar="diff_db", type=str, nargs='?', default=None,
-                        help='Diff against a custom services.db (override the AOSP db).')
-    parser.add_argument('--name-only', dest='name_only', action='store_const', const=True, default=False,
-                        help='Print just the name of the service (and if it is new).')
-
-    args = parser.parse_args()
-
-    all_mode = args.all
-    service_name = args.service_name
-    if service_name is None and not all_mode:
-        print "[ERROR] A service name is required (or --all)"
-        return -1
-
-    # Check if a argument is provided.
-    if args.diff_db == None:
-        prop_aosp_db = getAospDirProp()
-        if prop_aosp_db != None:
-            diff_db = prop_aosp_db
-            if not isfile(diff_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-        else:
-            diff_db = AOSP_DB
-
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
-    else:
-        diff_db = args.diff_db
-
-    log.d(TAG, "Using diff db of '%s'" % diff_db)
-
-    if not isfile(PROJECT_DB):
-        print "[ERROR] Project services database does not exist. Exiting."
-        return -3
-
-    project_con = sqlite3.connect(PROJECT_DB)
-    diff_con = sqlite3.connect(diff_db)
-
-    # Diff all system services.
-    if all_mode:
-        log.d(TAG, "Diffing all system services")
-        with project_con as con:
+        with con:
             cur = con.cursor()
-            sql = "SELECT name FROM services ORDER BY name"
+
+            sql = ('CREATE TABLE IF NOT EXISTS services('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT UNIQUE NOT NULL, '
+                   'project TEXT)')
+
+            cur.execute(sql)
+
+            sql = ('CREATE TABLE IF NOT EXISTS transactions('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'number INTEGER, '
+                   'method_name TEXT, '
+                   'arguments TEXT, '
+                   'returns TEXT, '
+                   'service_id INTEGER,'
+                   'FOREIGN KEY(service_id) REFERENCES services(id))')
+
+            cur.execute(sql)
+        con.commit()
+        return 0
+
+    @classmethod
+    def parse_transactions(cls, con):
+
+        """Parse the transactions"""
+
+        log.i(TAG, "Parsing Binder transactions")
+
+        with con:
+            cur = con.cursor()
+
+            sql = "SELECT id, name, project FROM services"
             cur.execute(sql)
             rows = cur.fetchall()
 
-            rtn = 0
             for row in rows:
-                service_name = row[0]
-                rtn |= diffService(project_con, diff_con, service_name, name_only=args.name_only)
-            return rtn 
+                service_id, service, project = row
+                if project is None:
+                    continue
 
-    # Do a single service diff
-    else:
-        return diffService(project_con, diff_con, service_name)
+                transactions = list()
+                log.i(TAG, "Parsing transactions for service '%s'" % service)
 
-def cmdDump(args):
+                cmd_args = ['--framework', '-e', '-f', project]
 
-    global PROJECT_DB
+                out, rtn = launch_module("classsearch", cmd_args, redirect=True)
 
-    # Pop 'dump'
-    args.pop(0)
+                if out == '':
+                    log.w(TAG, "Unable to find source files, native maybe?")
+                    continue
 
-    if len(args) == 0:
-        print "[ERROR] You must provide a service to dump"
-        return -1
+                full_path = out.split("\n")[0]
 
-    service_name = args.pop()
+                base_path = full_path.replace(".smali", "")
+                stub_file_path = base_path + "$Stub.smali"
+                proxy_file_path = base_path + "$Stub$Proxy.smali"
 
-    if not isfile(PROJECT_DB):
-        print "[ERROR] Project services database does not exist. Exiting."
-        return -2
+                # First do the Stub.smali
+                if not os.path.isfile(stub_file_path):
+                    log.w(TAG, "Unable to find stub paths for server '%s'"
+                            % service)
+                    continue
+                smali_f = open(stub_file_path, "r")
 
-    con = sqlite3.connect(PROJECT_DB)
-    with con:
-        cur = con.cursor()
-        sql = "SELECT * FROM services WHERE name='%s' LIMIT 1" % service_name
-        cur.execute(sql)
-        row = cur.fetchall()
-        if row == []:
-            print "[ERROR] Service '%s' does not exist in project database." % service_name
+                binder_list = list()
+
+                for line in smali_f.read().split("\n"):
+
+                    if line.find(".field static final TRANSACTION_") != -1:
+
+                        reduced = line[32:].replace(":I = ", "|").split("|")
+                        binder_interface = reduced[0]
+                        binder_number = int(reduced[1], 16)
+
+                        binder_list.append((binder_number, binder_interface))
+
+                log.d(TAG, "Found %d transactions" % len(binder_list))
+
+                # Now lets do the Stub.Proxy.smali
+                proxy_f = open(proxy_file_path, "r")
+                data = proxy_f.read()
+
+                for binder in binder_list:
+
+                    param_names = list()
+
+                    binder_number = binder[0]
+                    binder_interface = binder[1]
+                    regex = re.compile(".method public " + binder_interface +
+                                       ".*?\.prologue", re.DOTALL)
+
+                    try:
+                        prologue_block = re.findall(regex, data)[0].split("\n")
+                    except IndexError:
+                        cmd = ("Binder interface for '%s' not found, skipping"
+                                % binder_interface)
+                        log.w(TAG, cmd)
+                        continue
+
+                    sig = prologue_block[0].replace(".method public "
+                                                    + binder_interface, "")
+
+                    params = sig.split(')')[0].replace('(', "")
+                    return_type = sig.split(')')[1]
+
+                    if params != "":
+                        for line in prologue_block:
+                            if line.find("    .parameter ") != -1:
+                                param_names.append(line.split('"')[1])
+
+                    transactions.append((binder_number, binder_interface,
+                                         params, return_type, service_id))
+
+                cur = con.cursor()
+                sql = ('INSERT INTO transactions('
+                       'number, method_name, arguments, returns, service_id) '
+                       'VALUES(?, ?, ?, ?, ?)')
+
+                con.executemany(sql, transactions)
+        # End with.
+        con.commit()
+        return 0
+    # End create related
+
+    # Dump related
+    @classmethod
+    def dump_binder(cls, project_con, service_id):
+
+        """Dump binder transactions"""
+
+        with project_con as con:
+            cur = con.cursor()
+
+            sql = ('SELECT number, method_name, arguments, returns '
+                   'FROM transactions '
+                   "WHERE service_id=%s "
+                   'ORDER BY number' % service_id)
+
+            cur.execute(sql)
+
+            rows = cur.fetchall()
+            for row in rows:
+                transaction_id = row[0]
+                transaction_name = row[1]
+                transaction_args = row[2]
+                transaction_rtn = row[3]
+
+                print ("   %s %s(%s)" %
+                        (transaction_id, transaction_name, transaction_args))
+                print "      Returns: %s" % transaction_rtn
+
+            return 0
+    # End dump related
+
+    # Diffing Stuff
+    @classmethod
+    def format_trans(cls, transactions, name):
+
+        """Format a transaction"""
+
+        return [i for i in transactions if i[1] is name][0]
+
+    def diff_service(self, project_con, diff_con,
+                                service_name, name_only=False):
+
+        """Diff a service"""
+
+        log.d(TAG, "Diffing service '%s'" % service_name)
+
+        with project_con:
+            p_cur = project_con.cursor()
+
+            sql = ("SELECT id, name "
+                   "FROM services "
+                   "WHERE name='%s' LIMIT 1" % service_name)
+
+            p_cur.execute(sql)
+            p_row = p_cur.fetchall()
+            if p_row == []:
+                log.e(TAG, "Service '%s' does not exist in project database." %
+                                                                service_name)
+                return -1
+
+            service_id = p_row[0][0]
+            project_name = p_row[0][1]
+
+        with diff_con:
+            d_cur = diff_con.cursor()
+
+            sql = ("SELECT id FROM services WHERE name='%s' LIMIT 1"
+                                                                % service_name)
+
+            d_cur.execute(sql)
+            d_row = d_cur.fetchall()
+
+            # New service
+            if d_row == []:
+                print "Service %s (%s) [NEW]" % (service_name, project_name)
+                if not name_only:
+                    return self.dump_binder(project_con, service_id)
+                else:
+                    return 0
+            # Old, potentially modified
+            else:
+                print "Service %s (%s)" % (service_name, project_name)
+                if not name_only:
+                    return self.diff_transactions(project_con, diff_con,
+                                                                service_name)
+                else:
+                    return 0
+
+    def diff_transactions(self, project_con, diff_con, service_name):
+
+        """Diff the transactions"""
+
+        sql = ('SELECT t.number,t.method_name,t.arguments,t.returns '
+               'FROM transactions t '
+               'JOIN services s ON t.service_id=s.id '
+               "WHERE s.name='%s' "
+               'ORDER BY t.number' % service_name)
+
+        project_transactions = list()
+        with project_con:
+            p_cur = project_con.cursor()
+            p_cur.execute(sql)
+
+            rows = p_cur.fetchall()
+            for row in rows:
+                project_transactions.append(row)
+
+        diff_transactions = list()
+        with diff_con:
+            d_cur = diff_con.cursor()
+            d_cur.execute(sql)
+
+            rows = d_cur.fetchall()
+            for row in rows:
+                diff_transactions.append(row)
+
+        diff_names = [i[1] for i in diff_transactions]
+        project_names = [i[1] for i in project_transactions]
+
+        for name in project_names:
+
+            if name in diff_names:
+                continue
+            else:
+                (number, _, arguments, returns) = self.format_trans(
+                                            project_transactions,
+                                            name)
+
+                print "   %s %s(%s)" % (number, name, arguments)
+                print "      Returns: %s" % returns
+
+        return 0
+    # End diff related
+
+    def cmd_create(self):
+
+        """Create command"""
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                  SYSSERVICES_DB_NAME)
+
+        services = list()
+
+        con = sqlite3.connect(local_sysservices_db_name)
+
+        log.i(TAG, "Creating system service database")
+
+        if self.drop_tables(con) != 0:
+            log.e(TAG, "Error dropping tables. Exiting.")
+            return -1
+
+        if self.create_tables(con) != 0:
+            log.e(TAG, "Database creation failed. Exiting.")
+            return -2
+
+        adb = DtfAdb()
+
+        log.i(TAG, "Waiting for device to be connected...")
+        adb.wait_for_device()
+        adb.shell_command("service list")
+
+        log.i(TAG, "Adding system services")
+        for line in adb.get_output():
+            if line[0:6] == "Found ":
+                continue
+            if line == "":
+                continue
+
+            items = line.split("\t")[1].split(' ')
+            service_name = items[0].replace(':', '')
+            project_name = items[1].replace('[', '').replace(']', '')
+
+            if project_name == '':
+                project_name = None
+
+            services.append((service_name, project_name))
+
+        with con:
+            cur = con.cursor()
+            sql = 'INSERT INTO services(name, project) VALUES(?, ?)'
+            cur.executemany(sql, services)
+
+        con.commit()
+        log.i(TAG, "Service table added")
+
+        # Do binder transactions
+        return self.parse_transactions(con)
+
+    def cmd_diff(self, args):
+
+        """Diff command"""
+
+        parser = ArgumentParser(prog='servicedb diff',
+                            description='Compare a system service(s).')
+        parser.add_argument('service_name', metavar="service_name",
+                            type=str, nargs='?', default=None,
+                            help='The system service to check.')
+        parser.add_argument('--all', dest='all', action='store_const',
+                            const=True, default=False,
+                            help='Run against all system services.')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                            default=None,
+                            help='Diff against data in dir.')
+        parser.add_argument('--name-only', dest='name_only',
+                            action='store_const', const=True, default=False,
+                            help='Print only service name (and if it is new).')
+
+        parsed_args = parser.parse_args(args)
+
+        all_mode = parsed_args.all
+        service_name = parsed_args.service_name
+        name_only = parsed_args.name_only
+
+        if service_name is None and not all_mode:
+            log.e(TAG, "A service name is required (or --all)!")
+            return -1
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                  SYSSERVICES_DB_NAME)
+
+        diff_db = self.determine_diff_database(parsed_args)
+
+        if diff_db is None:
+            log.e(TAG, "Unable to determine diff DB!")
+            return -2
+        log.d(TAG, "Using diff db of '%s'" % diff_db)
+
+        if not os.path.isfile(local_sysservices_db_name):
+            log.e(TAG, "Project services database does not exist. Exiting.")
             return -3
 
-        service_id = row[0][0]
-        project_name = row[0][2]
+        project_con = sqlite3.connect(local_sysservices_db_name)
+        diff_con = sqlite3.connect(diff_db)
 
-        print "Service %s (%s)" % (service_name, project_name)
-        return dumpBinder(con, service_id)
+        # Diff all system services.
+        if all_mode:
+            log.d(TAG, "Diffing all system services")
+            with project_con as con:
+                cur = con.cursor()
+                sql = "SELECT name FROM services ORDER BY name"
+                cur.execute(sql)
+                rows = cur.fetchall()
 
-def main(argv):
+                rtn = 0
+                for row in rows:
+                    service_name = row[0]
+                    rtn |= self.diff_service(project_con, diff_con,
+                                             service_name,
+                                             name_only=name_only)
+                return rtn
 
-    global PROJECT_DB
-    global AOSP_DB
+        # Do a single service diff
+        else:
+            return self.diff_service(project_con, diff_con, service_name)
 
-    PROJECT_DB=dtfconfig.get_prop("Local", "db-dir") + "/services.db"
-    AOSP_DB = "%s/aosp-data-%s/dbs/services.db" % (DTF_PACKAGES,
-                                               dtfconfig.get_prop("Info", "sdk"))
-    # We can pop the program name off
-    argv.pop(0)
+    def cmd_dump(self, args):
 
-    # Get the mode
-    mode = argv[0]
+        """Dump command"""
 
-    if mode == "create":
-        return cmdCreate()
-    elif mode == "diff":
-        return cmdDiff(argv)
-    elif mode == "dump":
-        return cmdDump(argv)
-    else:
-        return usage()
+        if len(args) == 0:
+            log.e(TAG, "You must provide a service to dump")
+            return -1
 
-if __name__ == '__main__':
+        service_name = args.pop()
 
-    if len(argv) < 2:
-        exit(usage())
-    else:
-        exit(main(argv))
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                  SYSSERVICES_DB_NAME)
+
+        if not os.path.isfile(local_sysservices_db_name):
+            log.e(TAG, "Project services database does not exist. Exiting.")
+            return -2
+
+        con = sqlite3.connect(local_sysservices_db_name)
+        with con:
+            cur = con.cursor()
+
+            sql = ('SELECT id, project '
+                   'FROM services '
+                   "WHERE name='%s' "
+                   'LIMIT 1' % service_name)
+
+            cur.execute(sql)
+            row = cur.fetchall()
+            if row == []:
+                log.e(TAG, "Service '%s' does not exist in project database."
+                                                                % service_name)
+                return -3
+
+            service_id = row[0][0]
+            project_name = row[0][1]
+
+            print "Service %s (%s)" % (service_name, project_name)
+            return self.dump_binder(con, service_id)
+
+    def cmd_list(self):
+
+        """List command"""
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                  SYSSERVICES_DB_NAME)
+
+        if not os.path.isfile(local_sysservices_db_name):
+            log.e(TAG, "Project services database does not exist. Exiting.")
+            return -2
+
+        con = sqlite3.connect(local_sysservices_db_name)
+        with con:
+            cur = con.cursor()
+            sql = "SELECT name, project FROM services ORDER BY name"
+
+            for svc in cur.execute(sql):
+                service_name = svc[0]
+                project_name = svc[1]
+
+                print "Service %s (%s)" % (service_name, project_name)
+        return 0
+
+    def execute(self, args):
+
+        """The module entry point"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'create':
+            return self.cmd_create()
+        elif mode == 'diff':
+            return self.cmd_diff(args)
+        elif mode == 'dump':
+            return self.cmd_dump(args)
+        elif mode == "list":
+            return self.cmd_list()
+        else:
+            return self.usage()

@@ -207,20 +207,33 @@ class frameworkdexdb(Module):
             jar_name = "%s/%s.jar" % (self.frameworks_dir, base_name)
             out_name = "%s/%s.db" % (self.frameworkdexdbs_dir, base_name)
 
+            # ART-runtime
             if vm_type[:3] == "ART":
                 # Need to handle the ELF BS.
                 if os.path.isfile(odex_name):
                     log.d(TAG, "ART ODEX mode selected.")
-                    rtn |= self.process_framework(odex_name, out_name)
+                    rtn = self.process_framework(odex_name, out_name)
                 else:
                     log.w(TAG, "No ODEX file found for package '%s'"
-                                                            % base_name)
-            elif os.path.isfile(odex_name):
-                log.d(TAG, "ODEX mode selected.")
-                rtn |= self.process_framework(odex_name, out_name)
+                                                          % base_name)
+            # Dalvik run-time
             else:
-                log.d(TAG, "JAR mode selected.")
-                rtn |= self.process_framework(jar_name, out_name)
+                # First try the JAR
+                if os.path.isfile(jar_name):
+
+                    log.d(TAG, "Trying JAR first...")
+                    rtn = self.process_framework(jar_name, out_name)
+                    if rtn != 0:
+                        # Well, might as well try ODEX.
+                        if os.path.isfile(odex_name):
+                            log.d(TAG, "Failing to ODEX mode")
+                            rtn = self.process_framework(odex_name, out_name)
+                # No JAR, go for the ODEX
+                elif os.path.isfile(odex_name):
+                    log.d(TAG, "ODEX mode selected.")
+                    rtn = self.process_framework(odex_name, out_name)
+                else:
+                    log.e(TAG, "JAR nor ODEX exists!")
 
         return rtn
 
