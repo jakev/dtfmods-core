@@ -1,73 +1,68 @@
 #!/usr/bin/env python
+
 # DTF Core Content
 # Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Application Manipulation
-from pydtf.dtfadb import DtfAdb
-from pydtf.dtfcore import (
-        md5_local, apktool, aapt, TOP,
-        baksmali, axmlprinter2, launch_module)
-from pydtf.dtfglobals import DTF_PACKAGES
-from pydtf import dtfconfig
-from pydtf import dtflog as log
+"""Application Manipulation"""
+import dtf.logging as log
+import dtf.properties as prop
+
+from dtf.adb import DtfAdb
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.included import apktool, aapt, baksmali, axmlprinter2
+from dtf.module import Module
+from dtf.packages import launch_module
 
 import AppDb
 
+import os
+import os.path
 import re
+import signal
 import sqlite3
+import sys
 import time
 import threading
+import Queue
 
 from argparse import ArgumentParser
-from os import devnull, listdir, mkdir
-from os.path import isdir, isfile
+from hashlib import md5
 from shutil import move, rmtree
 from subprocess import Popen, PIPE
-from sys import argv, exc_info
-from Queue import Queue
+from lxml import etree
 
-try:
-    from lxml import etree
-except ImportError:
-    raise ImportError('This module requires the python module "lxml" to use. Please install it!')
-    exit(-5)
+SYSAPPS_DB_NAME = 'sysapps.db'
 
-
-__VERSION__ = "1.1"
-
-# dtf Python Module declaration
-dtf_module = { "About" : "System application database manipulation.",
-               "Author" : "Jake Valletta (jakev)",
-               "Health" : "beta",
-               "Version" : __VERSION__ }
-
-PROJECT_DB = ""
-AOSP_DB = ""
-
-# Additional logging settings. Uncomment for more debug.
 TAG = "sysappdb"
 
-# Debug
-#log.LOG_LEVEL_STDOUT = 5
+# This is for pull only
+DONE = ('DONE', object(), object())
+
 
 SYSTEM_APPS_DIR = "system-apps"
 DECODED_AOSP_DIR = "decoded-aosp"
 DECODED_OEM_DIR = "decoded-oem"
 
-DEFAULT_BLACKLIST = [ 'com.mwr.dz', 'com.helloworld',
-                      'com.jakev.dbgintnt', 'com.dtf.client' ]
+DEFAULT_BLACKLIST = ['com.mwr.dz', 'com.helloworld',
+                     'com.jakev.dbgintnt', 'com.dtf.client']
+
+# File Types
+TYPE_DEX = 0
+TYPE_ODEX = 1
+TYPE_ELF = 2
+TYPE_UNKNOWN = 255
 
 # Exposed Stuff
 FILTER_ACTIVITIES = "activities"
@@ -78,33 +73,201 @@ FILTER_PERMISSIONS = "permissions"
 FILTER_USES_PERMISSIONS = "uses-permissions"
 # End Exposed Stuff
 
-unpack_report = None
 missing_perm_list = None
 
-def usage():
-    print "SysAppDb dtf Module Version %s" % __VERSION__
-    print ""
-    print "Submodules:"
-    print "    diff         Diff an application against another database."
-    print "    dump         Dump information about application."
-    print "    exposed      Print all exposed components of application(s)."
-    print "    oatextract   Extract DEX from OAT files."
-    print "    process      Populate the sysapp database."
-    print "    pull         Pull system applications from the device."
-    print "    unpack       Unpack system applications."
-    print "    update       Update the system app databases."
-    print ""
-    exit(0)
+# Global Helpers
+def decompress_xz(file_name):
 
-# Lookup the property associated with AOSP Databases
-def getAospDirProp():
+    """Decompress an XZ file"""
+
+    cmd = ("xz -d %s" % file_name).split(' ')
+
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
+    p.wait()
+
+    return p.returncode
+
+def md5_local(file_path):
+
+    """MD5 a file"""
+
     try:
-        return dtfconfig.get_prop("Local", "aosp-data-dir") + "/sysapps.db"
+        file_f = open(file_path, 'rb')
+
+        my_md5 = md5()
+        while True:
+            data = file_f.read(128)
+            if not data:
+                break
+            my_md5.update(data)
+        return my_md5.hexdigest()
     except:
         return None
 
-# Zip Stuff
-def fileInZip(zip_file, file_name):
+def combine_tags(tag, xpath):
+
+    """Combine multiple tags"""
+
+    data = ""
+    for sub_tag in tag.findall(xpath):
+        data += etree.tostring(sub_tag)
+
+    return data
+
+def get_attrib(element, attrib, default="None"):
+
+    """Return android attribute"""
+
+    try:
+        return element.attrib['{http://schemas.android.com/apk/res/android}'
+                                                                    + attrib]
+    except KeyError:
+        return default
+# End global helpers
+
+class sysappdb(Module):
+
+    """Module class for interacting with system applications"""
+
+    about = 'System application database manipulation.'
+    author = 'Jake Valletta (jakev)'
+    health = 'beta'
+    name = 'sysappdb'
+    version = '1.1'
+
+    def handle_ctrl_c(self, signum, stack):
+
+        """Handle a ctrl + C"""
+
+        log.e(TAG, "Received Ctrl + C, waiting for threads to finish...")
+        return
+
+    def usage(self):
+
+        """Usage message"""
+
+        print "sysappdb v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    diff         Diff an application against another database."
+        print "    dump         Dump information about application."
+        print "    exposed      Print exposed components of application(s)."
+        print "    oatextract   Extract DEX from OAT files."
+        print "    process      Populate the sysapp database."
+        print "    pull         Pull system applications from the device."
+        print "    unpack       Unpack system applications."
+        print "    update       Update the system app databases."
+        print ""
+
+        return 0
+
+    @classmethod
+    def determine_diff_database(cls, args):
+
+        """Determine which diffing sysappdb to use"""
+
+        args_diff_dir = args.diff_dir
+
+        # First check if we no arg is set
+        if args_diff_dir == None:
+
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
+
+            if prop_diff_dir != None:
+                diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  SYSAPPS_DB_NAME)
+
+                if not os.path.isfile(diff_sysapps_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_sysapps_db)
+                    return None
+                else:
+                    return diff_sysapps_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_sysapps_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          SYSAPPS_DB_NAME))
+
+                return diff_sysapps_db
+
+        # It is set, use it.
+        else:
+            diff_sysapps_db = "%s/.dbs/%s" % (args_diff_dir, SYSAPPS_DB_NAME)
+
+            if not os.path.isfile(diff_sysapps_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_sysapps_db)
+                return None
+            else:
+                return diff_sysapps_db
+
+    # File related
+    @classmethod
+    def get_file_type(cls, file_name):
+
+        """Determine file type"""
+
+        magic = ''
+        try:
+            fsock = open(file_name, "rb", 0)
+            try:
+                magic = fsock.read(6)
+            finally:
+                fsock.close()
+        except IOError:
+            return TYPE_UNKNOWN
+
+        # ELF = 7f45 4c46 0101
+        if magic.encode('hex') == '7f454c460101':
+            return TYPE_ELF
+        # DEX = 6465 780a 3033
+        elif magic.encode('hex') == '6465780a3033':
+            return TYPE_DEX
+        # ODEX = 6465 790a 3033
+        elif magic.encode('hex') == '6465790a3033':
+            return TYPE_ODEX
+        else:
+            return TYPE_UNKNOWN
+    # End file related
+
+    # ZIP stuff
+    @classmethod
+    def extract_from_zip_to(cls, zip_file, extract_path, file_name=None):
+
+        """Extract file from ZIP"""
+
+        FNULL = open(os.devnull, 'w')
+
+        if file_name == None:
+            cmd = ("unzip -u %s -d %s"
+                   % (zip_file, extract_path)).split(' ')
+        else:
+            cmd = ("unzip -u %s %s -d %s"
+                   % (zip_file, file_name, extract_path)).split(' ')
+
+        p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=False)
+        p.wait()
+
+        FNULL.close()
+
+        return p.returncode
+
+    @classmethod
+    def file_in_zip(cls, zip_file, file_name):
+
+        """Determine if file in ZIP"""
+
         cmd = ("unzip -t %s %s" % (zip_file, file_name)).split(' ')
 
         p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
@@ -114,190 +277,2356 @@ def fileInZip(zip_file, file_name):
             return True
         else:
             return False
+    # End ZIP stuff
 
-def extractFromZipTo(zip_file, extract_path, file_name=None):
+    # Pull related content
+    @classmethod
+    def get_package_list(cls, blacklist, resume, db_name):
 
-    FNULL = open(devnull, 'w')
+        """Generate a list of installed packages"""
 
-    if file_name == None:
-        cmd = ("unzip -u %s -d %s" % (zip_file, extract_path)).split(' ')
-    else:
-        cmd = ("unzip -u %s %s -d %s" % (zip_file, file_name, extract_path)).split(' ')
+        # Normally, we query the device.
+        if not resume:
 
-    p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=False)
-    p.wait()
+            apps = list()
 
-    FNULL.close()
+            adb = DtfAdb()
+            adb.wait_for_device()
+            adb.shell_command("pm list packages -f")
 
-    return p.returncode
-# End Zip Stuff
+            log.d(TAG, "Building package list...")
+            for line in adb.get_output():
+                if line == "":
+                    continue
+                line = line.replace("package:", '')
 
-# File Stuff
-TYPE_DEX=0
-TYPE_ODEX=1
-TYPE_ELF=2
-TYPE_UNKNOWN=255
+                try:
+                    package_name, project_name = line.split('=')
+                except ValueError:
+                    # Something is wrong with this line.
+                    log.w(TAG, "Malformed line: '%s'. Skipping!" % line)
+                    continue
 
-def getFileType(file):
+                if project_name in blacklist:
+                    log.d(TAG, "Skipping '%s' due to blacklist."
+                                                        % project_name)
+                    continue
+                else:
+                    log.d(TAG, "Appending project '%s' to list."
+                                                        % project_name)
+                    apps.append((package_name, project_name))
 
-    magic = ''
-    try:
-        fsock = open(file, "rb", 0)
+            return apps
+
+        # If we are resuming, just query our DB.
+        else:
+            app_db = AppDb.AppDb(db_name)
+            return app_db.getFailedToPullApps()
+
+    @classmethod
+    def prepare_db(cls, db_name, app_list):
+
+        """Drop old data, create new schema"""
+
+        if os.path.isfile(db_name):
+            os.remove(db_name)
+
+        new_db = AppDb.AppDb(db_name)
+
+        if not new_db.createAppsTable():
+            log.e(TAG, "Database creation failed!")
+            return -2
+
+        # Add base content
+        for app in app_list:
+            new_db.addNewApp(app)
+
+        return 0
+
+    def do_pull(self, app_list, config):
+
+        """Perform the actual pulling"""
+
+        no_md5 = config['no_md5']
+        thread_count = config['threads']
+        local_db = config['local_db']
+
+        signal.signal(signal.SIGINT, self.handle_ctrl_c)
+
+        pull_queue = Queue.Queue()
+        db_queue = Queue.Queue()
+
+        # Populate the pulling queue
+        for app in app_list:
+            pull_queue.put(app)
+
+        start = time.time()
+
+        # Get our pulling threads ready.
+        log.i(TAG, "Creating %d pull threads..." % thread_count)
+        for i in range(thread_count):
+            t = PullThread(pull_queue, db_queue, no_md5)
+            t.setDaemon(True)
+            t.start()
+
+        # Get our database thread ready.
+        log.i(TAG, "Creating db thread...")
+        t = DbThread(thread_count, db_queue, local_db)
+        t.setDaemon(True)
+        t.start()
+
+        # Wait until all of our workers finish their jobs.
+        while threading.active_count() > 1:
+            time.sleep(0.1)
+
+        log.i(TAG, "All worker threads have finished! Elapsed Time: %s"
+                % (time.time() - start))
+
+        # Set the property
+        prop.set_prop("Local", "system-apps-dir", SYSTEM_APPS_DIR)
+
+        return 0
+    # End Pull section
+
+    # Unpack section
+    def unpack_resources(self, app, unpack_path):
+
+        """Unpack resources (non-DEX)"""
+
+        project_name = app.project_name
+        fwres_dir = "%s/%s" % (prop.TOP, prop.get_prop("Local", "fwres-dir"))
+
+        serial = prop.get_prop("Info", "serial")
+        apk_file = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
+
+        # First attempt, using the fwres we have locally.
+        log.d(TAG, "Attempting to decode using device framework resources.")
+
+        cmd = ("decode --no-src --force --frame-path %s "
+               "--frame-tag %s --output %s %s"
+               % (fwres_dir, serial, unpack_path, apk_file))
+
+        out, err, rtn = apktool(cmd)
+
+        # First try success!
+        if rtn == 0:
+            if self.report_mode:
+                self.unpack_report.add_first_try(project_name)
+            return rtn
+
+        rmtree(unpack_path)
+        os.mkdir(unpack_path)
+
+        # Second test, no fwres
+        log.w(TAG, "First attempt failed (%d). Trying with generic fwres."
+                                                                        % rtn)
+        log.w_ml(TAG, err)
+
+        cmd = ("decode --no-src --force --output %s %s"
+               % (unpack_path, apk_file))
+
+        out, err, rtn = apktool(cmd)
+
+        # Second time success!
+        if rtn == 0:
+            if self.report_mode:
+                self.unpack_report.add_second_try(project_name)
+            return rtn
+        rmtree(unpack_path)
+        os.mkdir(unpack_path)
+
+        # Fuck it, do it manually.
+        log.w(TAG, "Second attempt failed (%d), Trying manual unpack." % rtn)
+        log.w_ml(TAG, err)
+
+        # First unzip.
+        rtn = self.extract_from_zip_to(apk_file, unpack_path)
+
+        if rtn != 0:
+            log.e(TAG, "Couldnt even unzip APK (%d). You're on your own."
+                                                                        % rtn)
+            if self.report_mode:
+                self.unpack_report.add_failed(project_name)
+            return rtn
+
+        encoded_manifest = "%s/AndroidManifest.xml.encoded" %(unpack_path)
+        decoded_manifest = "%s/AndroidManifest.xml" % (unpack_path)
+
+        move(decoded_manifest, encoded_manifest)
+
+
+        log.i(TAG, "Decoding AndroidManifest.xml manually")
+        rtn = axmlprinter2(encoded_manifest, decoded_manifest)
+
+        # At least manual worked...
+        if rtn == 0:
+            if self.report_mode:
+                self.unpack_report.add_manual_try(project_name)
+            return rtn
+
+        #What the hell is wrong with this APK?
+        log.e(TAG, "Unable to decode '%s'. What's wrong with this APK?"
+                                                            % project_name)
+
+        if self.report_mode:
+            self.unpack_report.add_failed(project_name)
+        return rtn
+
+    def unpack_classes(self, app, unpack_path):
+
+        """Unpack DEX code"""
+
+        rtn = 0
+        project_name = app.project_name
+        sdk = prop.get_prop("Info", "sdk")
+
+        apk_file = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
+        smali_dir = "%s/%s" % (unpack_path, 'smali')
+
+        # classes.dex in APK?
+        if self.file_in_zip(apk_file, 'classes.dex'):
+
+            log.i(TAG, "There is classes.dex in the APK. Unpack, and decode.")
+
+            rtn = self.extract_from_zip_to(apk_file, unpack_path,
+                                           file_name='classes.dex')
+
+            if rtn != 0:
+                log.e(TAG, "Error extracting classes.dex! %d" % rtn)
+                return rtn
+
+            classes_file = "%s/%s" % (unpack_path, 'classes.dex')
+            log.i(TAG, "Extracted from ZIP.")
+
+            # What type of file is this?
+            file_type = self.get_file_type(classes_file)
+
+            if file_type == TYPE_DEX:
+                log.i(TAG, "DEX file found in APK, unpacking with baksmali.")
+                out, err, rtn = baksmali("-a %s -o %s %s" %
+                                (sdk, smali_dir, classes_file))
+
+                if rtn != 0:
+                    log.e(TAG, "Error unpacking class files! (%d)" % rtn)
+                    return rtn
+
+            elif file_type == TYPE_ELF:
+                # TODO
+                # I don't any evidence to suspect this is a use case.
+                # I'll need evidence to figure it out.
+                raise RuntimeError
+
+            else:
+                log.e(TAG, "File type of 'classes.dex' is unknown, bailing!")
+                return -4
+        # Not in APK.
+        else:
+            log.i(TAG, "No classes file in APK, checking for ODEX")
+
+            # Now we check for classes.[o]dex along side the APK.
+            odex_file = "%s/%s.odex" % (SYSTEM_APPS_DIR, project_name)
+
+            if os.path.isfile(odex_file):
+                file_type = self.get_file_type(odex_file)
+
+                # GB through JB use ODEX
+                if file_type == TYPE_ODEX:
+
+                    framework_dir = prop.get_prop("Local", "framework-dir")
+
+                    log.i(TAG, "ODEX found outside APK, using baksmali.")
+                    out, err, rtn = baksmali("-x -a %s -d %s -o %s %s" %
+                                (sdk, framework_dir, smali_dir, odex_file))
+                    if rtn != 0:
+                        log.e(TAG, "Error unpacking class files! (%d)" % rtn)
+                        return rtn
+
+                elif file_type == TYPE_DEX:
+                    framework_dir = prop.get_prop("Local", "framework-dir")
+
+                    log.i(TAG, "DEX found outside APK, using baksmali.")
+                    out, err, rtn = baksmali("-a %s -o %s %s" %
+                                (sdk, smali_dir, odex_file))
+                    if rtn != 0:
+                        log.e(TAG, "Error unpacking class files! (%d)" % rtn)
+                        return rtn
+                else:
+                    log.e(TAG, "File type of 'classes.dex' is unknown!")
+                    return -4
+        return rtn
+
+    def unpack_app(self, app, appdb, unpack_path):
+
+        """Unpack an application"""
+
+        # This section is a little confusing.  Lollipop made it kind of
+        # difficult to do the unpacking, since it broke baksmali/apktool and
+        # now uses ELF instead of DEX/ODEX. The flow is as follows:
+        #
+        # 1. Unpack res/, AndroidManifest.xml, assests/, etc.  using apktool
+        #   a. First attempt uses the framework resources pulled form the phone
+        #   b. Second attempt uses the included resources with apktool
+        #   c. Third attempt just unzips, and tries to decode the manifest.
+        #
+        # 2. Decode the class files.
+        #   a. First attempt is if there is a class file with the APK.
+        #     - Determine type:
+        #        - If actually is DEX, use dtf_baksmali.
+        #        - If it is an ELF, use oatdextract + dtf_baksmali.
+        #        - NOTE: ODEX should never be in APK
+        #  b. If the class wasn't found in the APK, look for an ODEX.
+        #     - Determine type:
+        #        - If actually is ODEX, use dtf_baksmali.
+        #        - If it is an ELF, use oatdextract + dtf_baksmali.
+        rtn = 0
+
+        log.i(TAG, "Unpacking app '%s' to %s"
+                        % (app.project_name, unpack_path))
+
+        os.mkdir(unpack_path)
+
+        # First lets unpack most of the APK.
+        rtn = self.unpack_resources(app, unpack_path)
+        log.d(TAG, "Resource unpacking rtn : %i" % rtn)
+
+        # Next do the classes
+        rtn = self.unpack_classes(app, unpack_path)
+        log.d(TAG, "Class unpacking rtn : %i" % rtn)
+
+        # Update DB
+        # TODO : unpack status
+        app.decoded_path = unpack_path
+        appdb.updateApplication(app)
+        appdb.commit()
+
+        return rtn
+    # End unpack section
+
+    # Process related
+    def parse_permission_groups(self, appdb, application_id, manifest_path):
+
+        """Parse permissions groups"""
+
+        manifest_f = open(manifest_path)
+
         try:
-            magic = fsock.read(6)
-        finally:
-            fsock.close()
-    except IOError:
-        return TYPE_UNKNOWN
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
 
-    # ELF = 7f45 4c46 0101
-    if magic.encode('hex') == '7f454c460101':
-        return TYPE_ELF
-    # DEX = 6465 780a 3033
-    elif magic.encode('hex') == '6465780a3033':
-        return TYPE_DEX
-    # ODEX = 6465 790a 3033
-    elif magic.encode('hex') == '6465790a3033':
-        return TYPE_ODEX
-    else:
-        return TYPE_UNKNOWN
-# End File Stuff
+        for pg in root.findall(".//permission-group"):
 
-# Signature stuff
-def processSignature(path_to_apk):
+            permission_group = AppDb.PermissionGroup(get_attrib(pg, "name"),
+                                                     application_id)
 
-    cmd = ("keytool -printcert -jarfile %s"
-                % (path_to_apk)).split(' ')
+            log.d(TAG, "Adding <permission-group> : %s"
+                                                % (permission_group.name))
 
-    p = Popen(cmd, stdout=PIPE, shell=False)
-    p.wait()
+            if appdb.addPermissionGroup(permission_group):
+                log.d(TAG, "Permission group added!")
+            else:
+                log.e(TAG, "Error adding permission-group!")
 
-    if p.returncode != 0:
-        log.e(TAG, "Error reading APK signatures!")
-        return None
+        appdb.commit()
+        return 0
 
-    owner = None
-    issuer = None
-    serial = None
-    fingerprint = None
+    def parse_protected_broadcasts(self, appdb, application_id, manifest_path):
 
-    for line in p.stdout.read().split('\n'):
+        """Parse protected broadcasts"""
+
+        manifest_f = open(manifest_path)
 
         try:
-            key, value = line.replace('\t','').split(':',1)
-            if value == '': continue
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
 
-            if key == "Owner":
-                owner = value.lstrip()
-            elif key == "Issuer":
-                issuer = value.lstrip()
-            elif key == "Serial number":
-                serial = value.lstrip()
-            elif key == " MD5":
-                fingerprint = value.lstrip()
-            else: continue
-        except:
-            continue
+        for pb in root.findall(".//protected-broadcast"):
+            name = get_attrib(pb, "name")
 
-    signature = AppDb.Signature()
-    signature.owner = owner
-    signature.issuer = issuer
-    signature.serial = serial
-    signature.fingerprint = fingerprint
+            if appdb.addProtectedBroadcast(name, application_id):
+                log.d(TAG, "Protected broadcast added!")
+            else:
+                log.e(TAG, "Error adding protected broadcast")
 
-    return signature
-# End signature stuff
+        appdb.commit()
+        return 0
 
-# SQL Stuff TODO: move to AppDb
-def dropTables(con):
+    @classmethod
+    def parse_permissions(cls, appdb, application_id, manifest_path):
 
-    log.d(TAG, "Dropping tables...")
+        """Parse permission tags"""
 
-    with con:
-        cur = con.cursor()
-        cur.execute('DROP TABLE IF EXISTS apps')
+        manifest_f = open(manifest_path)
 
-    return 1
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
 
-# XZ Compression
-def decompressXZ(file_name):
+        for p in root.findall(".//permission"):
 
-        cmd = ("xz -d %s" % file_name).split(' ')
+            name = get_attrib(p, "name")
+            perm_group_name = get_attrib(p, "permissionGroup")
+            protection_level = get_attrib(p, "protectionLevel")
 
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
+            log.d(TAG, "Adding <permission> : %s" % (name))
+
+            # First, lets get the group for this permission
+            if perm_group_name != "None":
+                permission_group = appdb.resolveGroupByName(perm_group_name)
+            else:
+                permission_group = None
+
+            if protection_level == "None":
+                log.w(TAG, "Permission '%s' doesn't have a protection level"
+                                                                        % name)
+                protection_level = "normal"
+
+            if protection_level[0:2] == "0x":
+                int_level = int(protection_level, 16)
+                protection_level = AppDb.protectionToString(int_level)
+
+            permission = AppDb.Permission(name, protection_level,
+                                          permission_group, application_id)
+
+            if appdb.addPermission(permission):
+                log.d(TAG, "Permission added!")
+            else:
+                log.e(TAG, "Error adding permission!")
+
+        appdb.commit()
+        return 0
+
+    def parse_activities(self, appdb, application_id, manifest_path):
+
+        """Parse activities"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        for a in root.findall(".//application/activity"):
+
+            name = get_attrib(a, "name")
+            enabled = get_attrib(a, "enabled", default=None)
+            exported = get_attrib(a, "exported", default=None)
+            permission_name = get_attrib(a, "permission")
+
+            log.d(TAG, "Adding <activity>: %s" % name)
+
+            intent_filters = AppDb.parseIntentFiltersFromXML(a)
+            if len(intent_filters) == 0:
+                intent_filters = None
+
+            if enabled == None:
+                pass
+            elif enabled == "true":
+                enabled = True
+            elif enabled == "false":
+                enabled = False
+            else:
+                log.w(TAG, "Found weird enabled in parseActivities: %s"
+                                                                    % enabled)
+                enabled = None
+
+            if exported == None:
+                pass
+            elif exported == "true":
+                exported = True
+            elif exported == "false":
+                exported = False
+            else:
+                log.w(TAG, "Found weird exported in parseActivities: %s"
+                                                                    % exported)
+                exported = None
+
+            permission = None
+
+            if permission_name is not "None":
+                permission = appdb.resolvePermissionByName(permission_name)
+                # This is the error case.
+                if permission is None:
+
+                    msg = ("Unable to find permission %s for activity %s"
+                            % (permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                  "Activity", name,
+                                                  permission_name])
+
+            activity = AppDb.Activity(name, enabled, exported, permission,
+                                      application_id)
+
+            # Add the activity.
+            if appdb.addActivity(activity):
+                log.d(TAG, "Activity added!")
+            else:
+                log.e(TAG, "Error adding activity!")
+
+            # Now we need to get the ID of the activity we just added,
+            # and add the intent_filters.
+            _id = appdb._getLastId("activities")
+
+            # Add the intent filter data.
+            if intent_filters != None:
+                for intent_filter in intent_filters:
+                    appdb.addActivityIntentFilter(intent_filter, _id)
+
+        appdb.commit()
+        return 0
+
+    def parse_services(self, appdb, application_id, manifest_path):
+
+        """Parse services"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        for s in root.findall(".//application/service"):
+
+            name = get_attrib(s, "name")
+            enabled = get_attrib(s, "enabled", default=None)
+            exported = get_attrib(s, "exported", default=None)
+            permission_name = get_attrib(s, "permission")
+
+            log.d(TAG, "Adding <service> : %s" % name)
+
+            intent_filters = AppDb.parseIntentFiltersFromXML(s)
+            if len(intent_filters) == 0:
+                intent_filters = None
+
+            if enabled == None:
+                pass
+            elif enabled == "true":
+                enabled = True
+            elif enabled == "false":
+                enabled = False
+            else:
+                log.w(TAG, "Found weird enabled in parseServices: %s"
+                                                                    % enabled)
+                enabled = None
+
+            if exported == None:
+                pass
+            elif exported == "true":
+                exported = True
+            elif exported == "false":
+                exported = False
+            else:
+                log.w(TAG, "Found weird exported in parseServices: %s"
+                                                                    % exported)
+                exported = None
+
+            permission = None
+
+            if permission_name is not "None":
+                permission = appdb.resolvePermissionByName(permission_name)
+
+                # This is the error case.
+                if permission is None:
+
+                    msg = ("Unable to find permission %s for service %s"
+                            % (permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                "Service", name,
+                                                permission_name])
+
+            service = AppDb.Service(name, enabled, exported, permission,
+                                    application_id)
+
+            # Add the service.
+            if appdb.addService(service):
+                log.d(TAG, "Service added!")
+            else:
+                log.e(TAG, "Error adding service!")
+
+            # Now we need to get the ID of the activity we just added,
+            # and add the intent_filters.
+            _id = appdb._getLastId("services")
+
+            # Add the intent filter data.
+            if intent_filters != None:
+                for intent_filter in intent_filters:
+                    appdb.addServiceIntentFilter(intent_filter, _id)
+
+        appdb.commit()
+        return 0
+
+    def parse_providers(self, appdb, application_id, manifest_path):
+
+        """Parse providers"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        for p in root.findall(".//application/provider"):
+
+            name = get_attrib(p, "name")
+            authorities = get_attrib(p, "authorities").split(';')
+            enabled = get_attrib(p, "enabled", default=None)
+            exported = get_attrib(p, "exported", default=None)
+            permission_name = get_attrib(p, "permission")
+            read_permission_name = get_attrib(p, "readPermission")
+            write_permission_name = get_attrib(p, "writePermission")
+            grant_uri_permissions = get_attrib(p, "grantUriPermissions",
+                                              default=None)
+
+            log.d(TAG, "Adding <provider>: %s" % name)
+
+            if enabled == None:
+                pass
+            elif enabled == "true":
+                enabled = True
+            elif enabled == "false":
+                enabled = False
+            else:
+                log.w(TAG, "Found weird enabled in parseProvider: %s"
+                                                                    % enabled)
+                enabled = None
+
+            if exported == None:
+                pass
+            elif exported == "true":
+                exported = True
+            elif exported == "false":
+                exported = False
+            else:
+                log.w(TAG, "Found weird exported in parseProvider: %s"
+                                                                    % exported)
+                exported = None
+
+            if grant_uri_permissions == None:
+                pass
+            elif grant_uri_permissions == "true":
+                grant_uri_permissions = 1
+            elif grant_uri_permissions == "false":
+                grant_uri_permissions = 0
+            else:
+                log.w(TAG, "Found weird grantUriPermissions: %s"
+                                                    % grant_uri_permissions)
+                grant_uri_permissions = None
+            permission = None
+            read_permission = None
+            write_permission = None
+
+            if permission_name is not "None":
+                permission = appdb.resolvePermissionByName(permission_name)
+
+                # This is the error case.
+                if permission is None:
+                    msg = ("Unable to find permission %s for provider %s"
+                            % (permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                       "Provider",
+                                                       name, permission_name])
+
+            if read_permission_name is not "None":
+                read_permission = appdb.resolvePermissionByName(
+                                                        read_permission_name)
+
+                # This is the error case.
+                if read_permission is None:
+                    msg = ("Unable to find read permission %s for provider %s"
+                            % (read_permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                       "Provider-R",
+                                                       name,
+                                                       read_permission_name])
+
+            if write_permission_name is not "None":
+                write_permission = appdb.resolvePermissionByName(
+                                                        write_permission_name)
+
+                # This is the error case.
+                if write_permission is None:
+                    msg = ("Unable to find write permission %s for provider %s"
+                            % (write_permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                       "Provider-W",
+                                                       name,
+                                                       write_permission_name])
+
+            grant_uri_permission_data = combine_tags(p,
+                                                    ".//grant-uri-permission")
+
+            path_permission_data = combine_tags(p, ".//path-permission")
+
+            provider = AppDb.Provider(name, authorities, enabled, exported,
+                              grant_uri_permissions, grant_uri_permission_data,
+                              path_permission_data, permission, read_permission,
+                              write_permission, application_id)
+
+            if appdb.addProvider(provider):
+                log.d(TAG, "Provider added!")
+            else:
+                log.e(TAG, "Error adding provider!")
+
+        appdb.commit()
+        return 0
+
+    def parse_receivers(self, appdb, application_id, manifest_path):
+
+        """Parse receivers"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        for r in root.findall(".//application/receiver"):
+
+
+            name = get_attrib(r, "name")
+            enabled = get_attrib(r, "enabled", default=None)
+            exported = get_attrib(r, "exported", default=None)
+            permission_name = get_attrib(r, "permission")
+
+            intent_filters = AppDb.parseIntentFiltersFromXML(r)
+            if len(intent_filters) == 0:
+                intent_filters = None
+
+            log.d(TAG, "Adding <receiver>: %s" % name)
+
+            if enabled == None:
+                pass
+            elif enabled == "true":
+                enabled = True
+            elif enabled == "false":
+                enabled = False
+            else:
+                log.w(TAG, "Found weird enabled in parseReceivers: %s"
+                                                                    % enabled)
+                enabled = None
+
+            if exported == None:
+                pass
+            elif exported == "true":
+                exported = True
+            elif exported == "false":
+                exported = False
+            else:
+                log.w(TAG, "Found weird exported in parseReceivers: %s"
+                                                                    % exported)
+                exported = None
+
+            permission = None
+
+            if permission_name is not "None":
+                permission = appdb.resolvePermissionByName(permission_name)
+
+                # This is the error case.
+                if permission is None:
+
+                    msg = ("Unable to find permission %s for receiver %s"
+                            % (permission_name, name))
+                    log.w(TAG, msg)
+                    if self.save_missing:
+                        self.missing_perm_list.append([manifest_path,
+                                                       "Receiver",
+                                                       name, permission_name])
+
+            receiver = AppDb.Receiver(name, enabled, exported, permission,
+                                      application_id)
+            # Add the receiver.
+            if appdb.addReceiver(receiver):
+                log.d(TAG, "Receiver added!")
+            else:
+                log.e(TAG, "Error adding receiver!")
+
+            # Now we need to get the ID of the activity we just added,
+            # and add the intent_filters.
+            _id = appdb._getLastId("receivers")
+
+            # Add the intent filter data.
+            if intent_filters != None:
+                for intent_filter in intent_filters:
+                    appdb.addReceiverIntentFilter(intent_filter, _id)
+
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_app_uses_permissions(cls, appdb, application_id, manifest_path):
+
+        """Parse the permissions the app uses"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        for up in root.findall(".//uses-permission"):
+
+            permission_name = get_attrib(up, "name")
+            permission = appdb.resolvePermissionByName(permission_name)
+
+
+            log.d(TAG, "Adding <uses-permission> : %s" % (permission_name))
+
+            if permission == None:
+                log.w(TAG, "Unable to resolve the use-permission '%s'"
+                                                            % permission_name)
+                continue
+
+            if appdb.addAppUsesPermission(application_id, permission._id):
+                log.d(TAG, "Uses-permission added!")
+            else:
+                log.e(TAG, "Error adding uses-permission!")
+
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_app_permission(cls, appdb, application_id, manifest_path):
+
+        """Parse permissions defined by application"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        name = root.xpath(".//application/@android:permission",
+                            namespaces={'android' :
+                                'http://schemas.android.com/apk/res/android'})
+
+        permission = None
+        if len(name) == 1:
+
+            permission = appdb.resolvePermissionByName(name[0])
+
+            # This is the error case.
+            if permission is None:
+                msg = ("Unable to find the permission: %s, how can this be?"
+                                                                        % name)
+                log.w(TAG, msg)
+                return
+
+            application = appdb.getAppById(application_id)
+            application.permission = permission
+            appdb.updateApplication(application)
+
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_debuggable(cls, appdb, application_id, manifest_path):
+
+        """Check for debuggable application"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        application = appdb.getAppById(application_id)
+
+        debuggable_name = root.xpath(".//application/@android:debuggable",
+                       namespaces={'android' :
+                                'http://schemas.android.com/apk/res/android'})
+
+        if len(debuggable_name) == 1:
+            if debuggable_name == "true":
+                application.setDebuggable(True)
+            elif debuggable_name == "false":
+                application.setDebuggable(False)
+        else:
+            application.setDebuggable(None)
+
+        appdb.updateApplication(application)
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_shared(cls, appdb, application_id, libs_dir):
+
+        """Parsed shared libraries"""
+
+        if os.path.isdir(libs_dir):
+            log.d(TAG, "'libs/' dir exists, finding shared libs!")
+
+            arm_files = []
+            armv7a_files = []
+
+            # For now, we only look for armeabi, or armeabi-v7a
+            try:
+                arm_files = os.listdir(libs_dir+"armeabi")
+            except OSError:
+                pass
+
+            try:
+                armv7a_files = os.listdir(libs_dir+"armeabi-v7a")
+            except OSError:
+                pass
+
+            application = appdb.getAppById(application_id)
+
+            if len(arm_files) > 0 or len(armv7a_files) > 0:
+                application.has_native = 1
+            else:
+                application.has_native = 0
+
+            appdb.updateApplication(application)
+
+            for lib in arm_files:
+                appdb.addShared(application_id, "armeabi/"+lib)
+
+            for lib in armv7a_files:
+                appdb.addShared(application_id, "armeabi-v7a/"+lib)
+
+            appdb.commit()
+
+        else:
+            log.d(TAG, "No libs for this package.")
+
+        return 0
+
+    def parse_signatures(self, appdb, project_id, project_name):
+
+        """Parse APK signatures"""
+
+        path_to_apk = ("%s/%s.apk"
+                    % (SYSTEM_APPS_DIR, project_name))
+
+        signature = self.process_signature(path_to_apk)
+
+        if signature == None:
+            return -1
+
+        # First check if any application has this (yet).
+        # If no apps have, we add the signature, then add the link.
+        # Otherwise, we just add the link.
+        r_signature = appdb.resolveSignature(signature)
+        if r_signature == None:
+            # Add the signature.
+            if appdb.addSignature(signature):
+                log.d(TAG, "Signature added!")
+            else:
+                log.e(TAG, "Error adding signature!")
+
+            # Now we need to get the ID of the signature we just added,
+            signature_id = appdb._getLastId("signatures")
+
+        else:
+            signature_id = r_signature._id
+
+        # Now we link app to signature.
+        if not appdb.addAppUsesSignature(project_id, signature_id):
+            log.e(TAG, "Error linking application to signature!")
+            return -2
+
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_shared_user(cls, appdb, application_id, manifest_path):
+
+        """Parse sharedIds"""
+
+        manifest_f = open(manifest_path)
+
+        app = appdb.getAppById(application_id)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -4
+
+        app.shared_user_id = get_attrib(root,
+                                         "sharedUserId", default=None)
+        app.shared_user_label = get_attrib(root,
+                                        "sharedUserLabel", default=None)
+        appdb.updateApplication(app)
+
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def process_signature(cls, path_to_apk):
+
+        """Process the application signature"""
+
+        cmd = ("keytool -printcert -jarfile %s"
+                    % (path_to_apk)).split(' ')
+
+        p = Popen(cmd, stdout=PIPE, shell=False)
         p.wait()
 
-        return p.returncode
-# End XZ Compression
+        if p.returncode != 0:
+            log.e(TAG, "Error reading APK signatures!")
+            return None
 
-# TODO: move to AppDb
-def createTables(con):
+        owner = None
+        issuer = None
+        serial = None
+        fingerprint = None
 
-    log.d(TAG, "Creating tables...")
+        for line in p.stdout.read().split('\n'):
 
-    with con:
-        cur = con.cursor()
+            try:
+                key, value = line.replace('\t', '').split(':', 1)
+                if value == '':
+                    continue
+                if key == "Owner":
+                    owner = value.lstrip()
+                elif key == "Issuer":
+                    issuer = value.lstrip()
+                elif key == "Serial number":
+                    serial = value.lstrip()
+                elif key == " MD5":
+                    fingerprint = value.lstrip()
+                else: continue
+            except:
+                continue
 
-        sql = ('CREATE TABLE IF NOT EXISTS apps('
-               'id INTEGER PRIMARY KEY AUTOINCREMENT, '
-               'package_name TEXT, '
-               'project_name TEXT UNIQUE NOT NULL, '
-               'decoded_path TEXT, '
-               'has_native INTEGER DEFAULT 0, '
-               'min_sdk_version INTEGER DEFAULT 0, '
-               'target_sdk_version INTEGER DEFAULT 0, '
-               'version_name TEXT, '
-               'version_code TEXT, '
-               'permission INTEGER DEFAULT 0, '
-               'debuggable INTEGER, '
-               'successfully_unpacked INTEGER DEFAULT 0, '
-               'shared_user_id TEXT, '
-               'shared_user_label TEXT)')
+        signature = AppDb.Signature()
+        signature.owner = owner
+        signature.issuer = issuer
+        signature.serial = serial
+        signature.fingerprint = fingerprint
 
-        cur.execute(sql)
+        return signature
 
-    con.commit()
-    return 1
+    def do_first_pass(self, appdb):
 
-class UnpackReport():
+        """Do permission groups and protected broadcasts"""
+
+        log.i(TAG, "Processing <permission-groups>, <protected-broadcasts>...")
+
+        for app in appdb.getApps():
+
+            project_name = app.project_name
+            decoded_path = app.decoded_path
+            project_id = app._id
+
+            if decoded_path == None:
+                log.w(TAG, "Project '%s' was not decoded successfully!"
+                                                            % project_name)
+                continue
+
+            log.d(TAG, "Doing first pass on %s..." % project_name)
+
+            manifest_path = decoded_path + "/AndroidManifest.xml"
+            if not os.path.isfile(manifest_path):
+                log.w(TAG, "Skipping app '%s' because manifest does not exist!"
+                                                            % project_name)
+                continue
+
+            log.d(TAG, "Parsing <permission-group> tags for %s"
+                                                            % project_name)
+            self.parse_permission_groups(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <protected-broadcast> tags for %s"
+                                                            % project_name)
+            self.parse_protected_broadcasts(appdb, project_id, manifest_path)
+
+        return 0
+
+    def do_second_pass(self, appdb):
+
+        """Do permission tags"""
+
+        log.i(TAG, "Processing all <permissions> tags...")
+
+        for app in appdb.getApps():
+
+            project_name = app.project_name
+            decoded_path = app.decoded_path
+            project_id = app._id
+
+            if decoded_path == None:
+                log.w(TAG, "Project '%s' was not decoded successfully!"
+                                                            % project_name)
+                continue
+
+            log.d(TAG, "Doing project %s..." % project_name)
+
+            manifest_path = decoded_path + "/AndroidManifest.xml"
+
+            if not os.path.isfile(manifest_path):
+                log.w(TAG, "Skipping app '%s' because manifest does not exist!"
+                                                            % project_name)
+                continue
+
+
+            log.d(TAG, "Parsing <permission> tags for %s" % project_name)
+            self.parse_permissions(appdb, project_id, manifest_path)
+
+        return 0
+
+    def do_final_pass(self, appdb):
+
+        """Do the rest"""
+
+        log.i(TAG, "Processing components, <uses-permission>, SO files...")
+
+        for app in appdb.getApps():
+
+            project_name = app.project_name
+            decoded_path = app.decoded_path
+            project_id = app._id
+
+            if decoded_path == None:
+                log.w(TAG, "Project '%s' was not decoded successfully!"
+                                                            % project_name)
+                continue
+
+            log.d(TAG, "Doing project %s..." % project_name)
+
+            manifest_path = decoded_path + "/AndroidManifest.xml"
+
+            log.d(TAG, "Looking for debuggable...")
+            self.parse_debuggable(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <uses-permission> tags")
+            self.parse_app_uses_permissions(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <permission> attributes")
+            self.parse_app_permission(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <activity> tags")
+            self.parse_activities(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <service> tags")
+            self.parse_services(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <provider> tags")
+            self.parse_providers(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Parsing <reciever> tags")
+            self.parse_receivers(appdb, project_id, manifest_path)
+
+            # Now look for the native code.
+            log.d(TAG, "Looking for shared libraries.")
+            libs_dir = decoded_path + "/lib/"
+            self.parse_shared(appdb, project_id, libs_dir)
+
+            # Do the signatures.
+            self.parse_signatures(appdb, project_id, project_name)
+
+            # Do UserID related tasks.
+            self.parse_shared_user(appdb, project_id, manifest_path)
+
+        return 0
+    # End processing related
+
+    # Print related
+    @classmethod
+    def validate_filters(cls, filters, default):
+
+        """Process filters"""
+        filters = filters.split(',')
+
+        # Validate filter
+        for filt in filters:
+            if filt not in default:
+                log.e(TAG, "Invalid filter option: %s" % filt)
+                return None
+
+        return filters
+
+    def print_activity(self, appdb, activity, intent_filters):
+
+        """Print an activity"""
+
+        print "   %s" % (activity.name)
+        print "       Permission: %s" % str(activity.permission)
+        print "       Enabled: %s" % str(activity.enabled)
+        print "       Exported: %s" % str(activity.exported)
+
+        self.print_intent_filters(appdb, intent_filters)
+
+    def print_service(self, appdb, service, intent_filters):
+
+        """Print a service"""
+
+        print "   %s" % (service.name)
+        print "       Permission: %s" % str(service.permission)
+        print "       Enabled: %s" % str(service.enabled)
+        print "       Exported: %s" % str(service.exported)
+
+        self.print_intent_filters(appdb, intent_filters)
+
+    @classmethod
+    def print_provider(cls, provider):
+
+        """"Print a provider"""
+
+        print "   %s" % (provider.name)
+        print ("       Authorities: %s"
+                                % ",".join(provider.authorities))
+        print ("       Permission: %s"
+                                % str(provider.permission))
+        print ("       Read Permission: %s"
+                                % str(provider.read_permission))
+        print ("       Write Permission: %s"
+                                % str(provider.write_permission))
+        print "       Enabled: %s" % provider.enabled
+        print "       Exported: %s" % provider.exported
+        print ("       Granted URI Permissions: %s"
+                                % provider.grant_uri_permissions)
+
+        if len(provider.grant_uri_permission_data) > 0:
+            print "       Grant URI Permissions:"
+            print ("       %s"
+                            % provider.grant_uri_permission_data)
+
+        if len(provider.path_permission_data) > 0:
+            print "       Path Permissions:"
+            print ("       %s"
+                            % provider.path_permission_data)
+
+    def print_receiver(self, appdb, receiver, intent_filters):
+
+        """Print a receiver"""
+
+        print "   %s" % (receiver.name)
+        print "       Permission: %s" % str(receiver.permission)
+        print "       Enabled: %s" % str(receiver.enabled)
+        print "       Exported: %s" % str(receiver.exported)
+
+        self.print_intent_filters(appdb, intent_filters)
+
+    def print_intent_filters(self, appdb, intent_filters):
+
+        """Print intent filters"""
+
+        if len(intent_filters) != 0:
+            print "       Intent Filter Data:"
+            i = 0
+
+            for intent_filter in intent_filters:
+                print "         Filter #%i:" % i
+                for a in intent_filter.getActions():
+
+                    protect = ("[PROTECTED]" if (
+                            appdb.isProtectedAction(a)) else "")
+
+                    print "           Action=%s %s" % (a, protect)
+                for c in intent_filter.getCategories():
+                    print "           Category=%s" % c
+                for d in intent_filter.getDatas():
+                    print "           Data=%s" % str(d)
+
+                i += 1
+    # End print related
+
+    # Dump related
+    def do_dump(self, appdb, app, config):
+
+        """Perform app dump"""
+
+        filters = config['filters']
+
+        app_name = app.project_name
+
+        log.i(TAG, "app_name : %s" % app_name)
+
+        application_id = app._id
+
+        # Parse Filters
+        if FILTER_ACTIVITIES in filters:
+            print "Activities:"
+            for activity in appdb.getAppActivities(application_id):
+
+                intent_filters = appdb.getIntentFilters(activity)
+                self.print_activity(appdb, activity, intent_filters)
+
+        if FILTER_SERVICES in filters:
+            print "Services:"
+            for service in appdb.getAppServices(application_id):
+
+                intent_filters = appdb.getIntentFilters(service)
+                self.print_service(appdb, service, intent_filters)
+
+        if FILTER_RECEIVERS in filters:
+            print "Receivers:"
+            for receiver in appdb.getAppReceivers(application_id):
+
+                intent_filters = appdb.getIntentFilters(receiver)
+                self.print_receiver(appdb, receiver, intent_filters)
+
+        if FILTER_PROVIDERS in filters:
+            print "Providers:"
+            for provider in appdb.getAppProviders(application_id):
+
+                self.print_provider(provider)
+
+        if FILTER_PERMISSIONS in filters:
+            print "Permission Definitions:"
+            for permission in appdb.getAppPermissions(application_id):
+                print "   %s" % permission
+
+
+        if FILTER_USES_PERMISSIONS in filters:
+            print "Uses Permissions:"
+            for uses_permission in appdb.getAppUsesPermissions(application_id):
+                print "   %s" % uses_permission
+
+        return 0
+    # End dump related
+
+    # Exposed related
+    def do_exposed_activities(self, app, diff_app, local_db, diff_db):
+
+        """Do activity exposure"""
+
+        debuggable = app.getDebuggable()
+
+       # If it is an AOSP app, get the activities.
+        if self.is_diff:
+            diff_activities = map(lambda act: act.name,
+                            diff_db.getAppActivities(diff_app._id))
+
+        print "[+] Printing exposed activities..."
+        # Let's get exposed activities.
+        for activity in local_db.getAppActivities(app._id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if self.new_only and self.is_diff:
+                if activity.name in diff_activities:
+                    continue
+
+            enabled = activity.enabled
+            exported = activity.exported
+
+            intent_filters = local_db.getIntentFilters(activity)
+
+            # First, if we're debuggable, the world is our oyster.
+            if debuggable:
+                print "   [EXP] Activity exported due to debuggable flag!"
+                self.print_activity(local_db, activity, intent_filters)
+
+            else:
+                # Debuggable isnt set.
+                # Make sure there is a permission that we can work with.
+                if activity.permission is not None:
+
+                    protection_level = activity.permission.protection_level
+                    if protection_level not in ['dangerous', 'normal',
+                                                'development']:
+                        continue
+
+                # Is this even enabled?
+                if enabled is False:
+                    continue
+
+                # Is it explicitly set to false?
+                if exported is False:
+                    continue
+
+                # How about an explicit export?
+                elif exported is True:
+                    print "   [EXP] Explicit export flag!"
+                    self.print_activity(local_db, activity, intent_filters)
+
+                # Ok, this is the weird case.
+                elif exported is None and len(intent_filters) != 0:
+                    print "   [EXP] Implicit export by intent-filter!"
+                    self.print_activity(local_db, activity, intent_filters)
+        return 0
+
+    def do_exposed_services(self, app, diff_app, local_db, diff_db):
+
+        """Do service exposure"""
+
+        debuggable = app.getDebuggable()
+
+        # If it is an AOSP app, get the activities.
+        if self.is_diff:
+            diff_services = map(lambda serv: serv.name,
+                            diff_db.getAppServices(diff_app._id))
+
+        print "[+] Printing exposed services..."
+        # Let's get exposed services.
+        for service in local_db.getAppServices(app._id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if self.new_only and self.is_diff:
+                if service.name in diff_services:
+                    continue
+
+            enabled = service.enabled
+            exported = service.exported
+
+            intent_filters = local_db.getIntentFilters(service)
+
+            # First, if we're debuggable, the world is our oyster.
+            if debuggable:
+                print "   [EXP] Service exported due to debuggable flag!"
+                self.print_service(local_db, service, intent_filters)
+
+            else:
+                # Debuggable isnt set.
+                # Make sure there is a permission that we can work with.
+                if service.permission is not None:
+
+                    protection_level = service.permission.protection_level
+                    if protection_level not in ['dangerous', 'normal',
+                                                'development']:
+                        continue
+
+                # Is this even enabled?
+                if enabled is False:
+                    continue
+
+                # Is it explicitly set to false?
+                if exported is False:
+                    continue
+
+                # How about an explicit export?
+                elif exported is True:
+                    print "   [EXP] Explicit export flag!"
+                    self.print_service(local_db, service, intent_filters)
+
+                # Ok, this is the weird case.
+                elif exported is None and len(intent_filters) != 0:
+                    print "   [EXP] Implicit export by intent-filter!"
+                    self.print_service(local_db, service, intent_filters)
+
+        return 0
+
+    def do_exposed_providers(self, app, diff_app, local_db, diff_db):
+
+        """Do provider exposure"""
+
+        debuggable = app.getDebuggable()
+        target_sdk_version = app.target_sdk_version
+
+        # If it is an AOSP app, get the activities.
+        if self.is_diff:
+            diff_providers = map(lambda pro: pro.name,
+                            diff_db.getAppProviders(diff_app._id))
+
+        print "[+] Printing exposed providers..."
+        for provider in local_db.getAppProviders(app._id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if self.new_only and self.is_diff:
+                if provider.name in diff_providers:
+                    continue
+
+            enabled = provider.enabled
+            exported = provider.exported
+
+            # First, if we're debuggable, the world is our oyster.
+            if debuggable:
+                print "   [EXP] Provider exported due to debuggable flag!"
+                self.print_provider(provider)
+            else:
+                # Debuggable isnt set.
+
+                # Make sure there are permissions that we can work with.
+                read_protection_level = None
+                write_protection_level = None
+                # This is frustratingly annoying for providers.
+                # We're actually going to ignore "permission", is distribute
+                # it's effects.
+                # First lets set the actual read_permission for this component.
+                if (provider.permission is None and
+                        provider.read_permission is None):
+                    read_permission = None
+                elif (provider.permission is None and
+                        provider.read_permission is not None):
+                    read_permission = provider.read_permission
+                elif (provider.permission is not None and
+                        provider.read_permission is None):
+                    read_permission = provider.permission
+                elif (provider.permission is not None and
+                        provider.read_permission is not None):
+                    read_permission = provider.read_permission
+
+                # Same thing for write_permission.
+                if (provider.permission is None and
+                        provider.write_permission is None):
+                    write_permission = None
+                elif (provider.permission is None and
+                        provider.write_permission is not None):
+                    write_permission = provider.write_permission
+                elif (provider.permission is not None and
+                        provider.write_permission is None):
+                    write_permission = provider.permission
+                elif (provider.permission is not None and
+                        provider.write_permission is not None):
+                    write_permission = provider.write_permission
+
+                # Lets get the protection levels
+                if read_permission is not None:
+                    read_protection_level = read_permission.protection_level
+                if write_permission is not None:
+                    write_protection_level = write_permission.protection_level
+
+                # If both are NOT in the group below, continue
+                if (read_protection_level not in [None, 'dangerous',
+                                                  'normal', 'development']
+                    and write_protection_level not in [None, 'dangerous',
+                                                  'normal', 'development']):
+                    continue
+
+                # Is this even enabled?
+                if enabled is False:
+                    continue
+
+                # Is it explicitly set to false?
+                if exported is False:
+                    continue
+
+                # How about an explicit export?
+                elif exported is True:
+                    print "   [EXP] Explicit export flag!"
+                    self.print_provider(provider)
+
+                # Ok, this is the weird case.
+                elif exported is None:
+                    # check the min and targets.
+                    if target_sdk_version <= 16:
+
+                        # But we need to check the permissions.
+                        # TODO
+                        print "   [EXP] Implicit export based on *_sdk_version!"
+                        self.print_provider(provider)
+        return 0
+
+    def do_exposed_receivers(self, app, diff_app, local_db, diff_db):
+
+        """Do receiver exposure"""
+
+        debuggable = app.getDebuggable()
+
+        # If it is an AOSP app, get the activities.
+        if self.is_diff:
+            diff_receivers = map(lambda rec: rec.name,
+                            diff_db.getAppReceivers(diff_app._id))
+
+        print "[+] Printing exposed receivers..."
+        # Let's get exposed receivers.
+        for receiver in local_db.getAppReceivers(app._id):
+
+            # If 'new_only' is used, we have to do some logic.
+            # However, we only need to do logic if 'new_only'
+            # AND it is an AOSP application.
+            if self.new_only and self.is_diff:
+                if receiver.name in diff_receivers:
+                    continue
+
+            enabled = receiver.enabled
+            exported = receiver.exported
+
+            intent_filters = local_db.getIntentFilters(receiver)
+
+            # First, if we're debuggable, the world is our oyster.
+            if debuggable:
+                print "   [EXP] Receiver exported due to debuggable flag!"
+                self.print_receiver(local_db, receiver, intent_filters)
+            else:
+                # Debuggable isnt set.
+                # Make sure there is a permission that we can work with.
+                if receiver.permission is not None:
+
+                    protection_level = receiver.permission.protection_level
+                    if protection_level not in ['dangerous', 'normal',
+                                                'development']:
+                        continue
+
+                # Is this even enabled?
+                if enabled is False:
+                    continue
+
+                # Is it explicitly set to false?
+                if exported is False:
+                    continue
+
+                # How about an explicit export?
+                elif exported is True:
+                    print "   [EXP] Explicit export flag!"
+                    self.print_receiver(local_db, receiver, intent_filters)
+
+                # Ok, this is the weird case.
+                elif exported is None and len(intent_filters) != 0:
+                    print "   [EXP] Implicit export by intent-filter!"
+                    self.print_receiver(local_db, receiver, intent_filters)
+
+        return 0
+
+    def do_exposed(self, local_appdb, diff_appdb, app, config):
+
+        """Do exposing"""
+
+        filters = config['filters']
+        no_google = config['no_google']
+        self.new_only = config['new_only']
+        self.is_diff = False
+
+        app_name = app.project_name
+
+        if no_google and AppDb.isGoogleApp(app_name):
+            log.d(TAG, "Skipping Google app '%s'" % app_name)
+            return 0
+
+        log.i(TAG, "app_name : %s" % app_name)
+
+        debuggable = app.getDebuggable()
+        if debuggable:
+            print "[!!!] This application is debuggable, bad!!"
+
+        # Is this an AOSP/added  application?
+        diff_app = diff_appdb.getAppByName(app_name)
+        if diff_app != None:
+            self.is_diff = True
+
+        if FILTER_ACTIVITIES in filters:
+            self.do_exposed_activities(app, diff_app, local_appdb, diff_appdb)
+
+        if FILTER_SERVICES in filters:
+            self.do_exposed_services(app, diff_app, local_appdb, diff_appdb)
+
+        if FILTER_PROVIDERS in filters:
+            self.do_exposed_providers(app, diff_app, local_appdb, diff_appdb)
+
+        if FILTER_RECEIVERS in filters:
+            self.do_exposed_receivers(app, diff_app, local_appdb, diff_appdb)
+
+        return 0
+    # End exposed related
+
+    # Diff related
+    def do_diff(self, local_db, diff_db, app, config):
+
+        """Do the actual diff"""
+
+        filters = config['filters']
+
+        app_name = app.project_name
+        application_id = app._id
+        diff_app = diff_db.getAppByName(app_name)
+
+        if FILTER_ACTIVITIES in filters:
+
+            diff_activities = map(lambda act: act.name,
+                            diff_db.getAppActivities(diff_app._id))
+
+            print "[+] Printing added activities..."
+            # Let's get new activities.
+            for activity in local_db.getAppActivities(application_id):
+
+                if activity.name in diff_activities:
+                    continue
+
+                intent_filters = local_db.getIntentFilters(activity)
+                self.print_activity(local_db, activity, intent_filters)
+
+        if FILTER_SERVICES in filters:
+
+            diff_services = map(lambda serv: serv.name,
+                            diff_db.getAppServices(diff_app._id))
+
+            print "[+] Printing added services..."
+            # Let's get new services.
+            for service in local_db.getAppServices(application_id):
+
+                if service.name in diff_services:
+                    continue
+
+                intent_filters = local_db.getIntentFilters(service)
+                self.print_service(local_db, service, intent_filters)
+
+        if FILTER_PROVIDERS in filters:
+
+            diff_providers = map(lambda pro: pro.name,
+                            diff_db.getAppProviders(diff_app._id))
+
+            print "[+] Printing added providers..."
+            # Let's get new providers.
+            for provider in local_db.getAppProviders(application_id):
+
+                if provider.name in diff_providers:
+                    continue
+
+                self.print_provider(provider)
+
+        if FILTER_RECEIVERS in filters:
+
+            diff_receivers = map(lambda rec: rec.name,
+                            diff_db.getAppReceivers(diff_app._id))
+
+            print "[+] Printing added receivers..."
+            # Let's get new receivers.
+            for receiver in local_db.getAppReceivers(application_id):
+
+                if receiver.name in diff_receivers:
+                    continue
+
+                intent_filters = local_db.getIntentFilters(receiver)
+                self.print_receiver(local_db, receiver, intent_filters)
+
+        if FILTER_PERMISSIONS in filters:
+
+            diff_permissions = map(lambda perm: perm.name,
+                            diff_db.getAppPermissions(diff_app._id))
+
+            print "[+] New Permission Definitions:"
+            for permission in local_db.getAppPermissions(application_id):
+
+                if permission.name in diff_permissions:
+                    continue
+
+                print "   %s" % permission
+
+
+        if FILTER_USES_PERMISSIONS in filters:
+
+            diff_uses_permissions = map(lambda perm: perm.name,
+                            diff_db.getAppUsesPermissions(diff_app._id))
+
+            print "[+] New Uses Permissions:"
+            for uses_permission in local_db.getAppUsesPermissions(
+                                                        application_id):
+
+                if uses_permission.name in diff_uses_permissions:
+                    continue
+
+                print "   %s" % uses_permission
+
+        return 0
+
+    def cmd_diff(self, args):
+
+        """Diff command"""
+
+        DEFAULT_FILTERS = ['activities', 'services', 'providers', 'receivers',
+                           'permissions', 'uses-permissions']
+
+        config = dict()
+
+        parser = ArgumentParser(prog='sysappdb exposed',
+                        description='Get differences between an application.')
+        parser.add_argument('app_name', metavar="app_name", type=str,
+                        default=None, help='The application to check.')
+        parser.add_argument('--filter', dest='filters', default=None,
+                        help='Filter by component type(comma seperated).')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                        default=None,
+                        help='Diff against data in the specified dir.')
+
+        parsed_args = parser.parse_args(args)
+
+        app_name = parsed_args.app_name
+        filters = parsed_args.filters
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        diff_db = self.determine_diff_database(parsed_args)
+        if diff_db is None:
+            log.e(TAG, "Unable to determine diff DB!")
+            return -2
+
+        log.d(TAG, "Using diff DB '%s'" % diff_db)
+
+        if filters is None:
+            filters = DEFAULT_FILTERS
+        else:
+            filters = self.validate_filters(filters, DEFAULT_FILTERS)
+            if filters is None:
+                log.e(TAG, "Unable to validate filters!")
+                return -3
+
+        config['filters'] = filters
+
+        # Get a handle to our DBs
+        local_appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
+        diff_appdb = AppDb.AppDb(diff_db, safe=True)
+
+        # First, check if this is even a AOSP app. Error otherwise.
+        diff_app = diff_appdb.getAppByName(app_name)
+
+        if diff_app is None:
+            log.e(TAG, "This app is not part of the diff project!")
+            return -3
+
+        app = local_appdb.getAppByName(app_name)
+        if app is None:
+            log.e(TAG, "Unable to find application in local project!")
+            return -4
+
+        return self.do_diff(local_appdb, diff_appdb, app, config)
+
+    def cmd_dump(self, args):
+
+        """Dump command"""
+        parser = ArgumentParser(prog='sysappdb dump',
+                        description='Dump information about an application.')
+        parser.add_argument('app_name', metavar="app_name", type=str,
+                            default=None,
+                            help='The application to check.')
+        parser.add_argument('--filter', dest='filters', default=None,
+                            help='Filter by component type (comma seperated).')
+
+        parsed_args = parser.parse_args(args)
+
+        app_name = parsed_args.app_name
+        filters = parsed_args.filters
+
+        DEFAULT_FILTERS = ['activities', 'services', 'providers', 'receivers',
+                           'permissions', 'uses-permissions']
+        config = dict()
+
+        # Handle the filters
+        if filters is None:
+            filters = DEFAULT_FILTERS
+        else:
+            filters = self.validate_filters(filters, DEFAULT_FILTERS)
+            if filters == None:
+                log.e(TAG, "Unable to process filters!")
+                return -1
+
+        parsed_args = parser.parse_args(args)
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        # Get a handle to our db
+        appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
+        app = appdb.getAppByName(app_name)
+        if app is None:
+            log.e(TAG, "Unable to find application '%s'!" % app_name)
+            return -2
+
+        config['filters'] = filters
+
+        return self.do_dump(appdb, app, config)
+
+    def cmd_oatextract(self, args):
+
+        """OAT extract command"""
+
+        parser = ArgumentParser(prog='sysappdb oatextract',
+                        description='Extract and rename OAT files from DEX.')
+
+        parsed_args = parser.parse_args(args)
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        vm_type = prop.get_prop("Info", "vmtype")
+        if not vm_type[:3] == "ART":
+            log.e(TAG, "This is not an ART device, this is not required.")
+            return -1
+
+        system_apps_dir = prop.get_prop("Local", "system-apps-dir")
+
+        if not os.path.isdir(system_apps_dir):
+            log.e(TAG, "Local app directory does not exist. Run `pull` first!")
+            return -2
+
+        appdb = AppDb.AppDb(local_sysapps_db_name)
+
+        for app in appdb.getApps(dont_resolve=True):
+
+            project_name = app.project_name
+
+            log.i(TAG, "Doing project '%s'..." % project_name)
+
+            odex_name = "%s/%s.odex" % (system_apps_dir, project_name)
+
+            if (os.path.isfile(odex_name)
+                    and self.get_file_type(odex_name) == TYPE_ELF):
+
+                art_name = "%s/%s.art" % (system_apps_dir, project_name)
+                log.d(TAG, "Moving ODEX to ART...")
+                move(odex_name, art_name)
+
+                log.d(TAG, "Extracting DEX from ART file...")
+
+                cmd_args = list()
+
+                if vm_type == "ART-Samsung":
+                    log.i(TAG, "Samsung mode enabled")
+                    cmd_args.append("--samsung-mode")
+
+
+                cmd_args += ['--base-name', project_name,
+                             '--out-dir', system_apps_dir,
+                             art_name]
+
+                rtn = launch_module("oatdextract", cmd_args)
+
+                if rtn != 0:
+                    log.e(TAG, "Error extracting DEX from OAT file: %d" % rtn)
+                    return rtn
+
+        return 0
+
+    def cmd_pull(self, args):
+
+        """Pull command"""
+
+        parser = ArgumentParser(prog='sysappdb pull',
+                            description='Pull applications from device.')
+        parser.add_argument('--no-md5', dest='no_md5', action='store_const',
+                            const=True, default=False,
+                            help="Don't run MD5 to save time.")
+        parser.add_argument('--blacklist-file', metavar="blacklist_file",
+                            type=str, default=None,
+                            help='Supply a custom blacklist file.')
+        parser.add_argument('--threads', metavar="threads", type=int,
+                            default=5,
+                            help='The number of pull threads (default:5).')
+        parser.add_argument('--resume', dest='resume', action='store_const',
+                            default=False, const=True,
+                            help="Resume a failed pull.")
+
+        parsed_args = parser.parse_args(args)
+
+        resume = parsed_args.resume
+        threads = parsed_args.threads
+        no_md5 = parsed_args.no_md5
+        blacklist_file = parsed_args.blacklist_file
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        blacklist = list()
+
+        # If we are not resuming, we need to destoy the old DB.
+        if not resume:
+            if os.path.isfile(local_sysapps_db_name):
+                inpt = raw_input("[WARNING] An application DB already exists. "
+                                 "Recreate the DB? [y/N] ").lower()
+                if inpt != 'y':
+                    log.i(TAG, "Exiting due to user cancellation")
+                    return 0
+        # If we ARE resuming, the DB must exist.
+        else:
+            if not os.path.isfile(local_sysapps_db_name):
+                log.e(TAG, "Attempt to resume without prior DB!")
+                return -1
+
+        # Parse the blacklist file
+        if blacklist_file != None:
+            try:
+                f = open(blacklist_file, 'r')
+                try:
+                    for line in f.read().split("\n"):
+                        blacklist.append(line)
+                finally:
+                    f.close()
+            except IOError:
+                log.e(TAG, "Blacklist file supplied does not exist!")
+                return -3
+        else:
+            blacklist = DEFAULT_BLACKLIST
+
+        # Get list of applications we want to process
+        app_list = self.get_package_list(blacklist, resume,
+                                         local_sysapps_db_name)
+
+        # Create new AppDb (no resume)
+        if not resume:
+            if self.prepare_db(local_sysapps_db_name, app_list) != 0:
+                log.e(TAG, "Error preparing local DB!")
+                return -4
+
+        config = dict()
+        config['no_md5'] = no_md5
+        config['threads'] = threads
+        config['local_db'] = local_sysapps_db_name
+
+        return self.do_pull(app_list, config)
+
+
+    def cmd_update(self, args):
+
+        """Update command"""
+
+    def cmd_unpack(self, args):
+
+        """Upack command"""
+
+        parser = ArgumentParser(prog='sysappdb unpackall',
+                            description='Unpack system applications.')
+        parser.add_argument('--aosp-mode', dest='aosp_mode',
+                            action='store_const', const=True, default=False,
+                            help='Treats all applications as part of AOSP.')
+        parser.add_argument('--resume', dest='resumee',
+                            action='store_const', const=True, default=False,
+                            help='Try to unpack only failed/not unpacked.')
+        parser.add_argument('--report', dest='report', action='store_const',
+                            const=True, default=False,
+                            help='Prints unpack statistics after unpacking.')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                            default=None,
+                            help='Diff against specified project DB.')
+
+        parsed_args = parser.parse_args(args)
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        # Has the user setup framework res?
+        try:
+            prop.get_prop('Local', 'fwres-dir')
+        except prop.PropertyError:
+            log.e(TAG, "Please run `frameworkres` before running this!")
+            return -1
+
+        rtn = 0
+        aosp_mode = parsed_args.aosp_mode
+        self.report_mode = parsed_args.report
+        self.resume = parsed_args.resume
+
+        # If we are not resuming, we need to destoy the old DB.
+        if not self.resume:
+            if (os.path.isdir(DECODED_AOSP_DIR) or
+                        os.path.isdir(DECODED_OEM_DIR)):
+            log.e(TAG, "Decoded app directories exist. Unable to continue.")
+            return -1
+        # If we ARE resuming, the DB must exist.
+        else:
+            if not os.path.isfile(local_sysapps_db_name):
+                log.e(TAG, "Attempt to resume without prior DB!")
+                return -1
+
+        if self.report_mode:
+            self.unpack_report = UnpackReport()
+
+        appdb = AppDb.AppDb(local_sysapps_db_name)
+
+        # TODO: add resuming!!!!
+
+        # In AOSP mode, we don't need worry about AOSP data
+        if aosp_mode:
+
+            if not os.path.isdir(DECODED_AOSP_DIR):
+                os.mkdir(DECODED_AOSP_DIR)
+
+            # Are we resuming?
+            for app in appdb.getApps(dont_resolve=True):
+
+                log.i(TAG, "Unpacking '%s'..." % app.project_name)
+                unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, app.project_name)
+                rtn |= self.unpack_app(app, appdb, unpack_dir)
+
+        #Normal mode
+        else:
+            diff_db = self.determine_diff_database(parsed_args)
+
+            if diff_db is None:
+                log.e(TAG, "Unable to determine diff DB!")
+                return -2
+
+            log.d(TAG, "Using diff DB: '%s'" % diff_db)
+
+            if not os.path.isdir(DECODED_AOSP_DIR):
+                os.mkdir(DECODED_AOSP_DIR)
+            if not os.path.isdir(DECODED_OEM_DIR):
+                os.mkdir(DECODED_OEM_DIR)
+
+            diff_appdb = AppDb.AppDb(diff_db)
+            diff_apps = [i.project_name for i in diff_appdb.getApps()]
+
+            for app in appdb.getApps(dont_resolve=True):
+                project_name = app.project_name
+
+                log.i(TAG, "Unpacking '%s'..." % project_name)
+                # Original App
+                if project_name in diff_apps:
+                    unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, project_name)
+                    rtn |= self.unpack_app(app, appdb, unpack_dir)
+                # OEM App
+                else:
+                    unpack_dir = "%s/%s" % (DECODED_OEM_DIR, project_name)
+                    rtn |= self.unpack_app(app, appdb, unpack_dir)
+
+        if self.report_mode:
+            log.i(TAG, "Printing Unpack Statistics")
+            log.i_ml(TAG, self.unpack_report.get_report())
+
+        return rtn
+
+    def cmd_process(self, args):
+
+        """Prorcess command"""
+
+        parser = ArgumentParser(prog='sysappdb process',
+                            description='Process all application components.')
+        parser.add_argument('--save-missing', dest='save_missing',
+                            action='store_const', const=True, default=False,
+                            help='Saves a missing permission report.')
+
+        parsed_args = parser.parse_args(args)
+        self.save_missing = parsed_args.save_missing
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        rtn = 0
+
+        # For saving missing permissions, we use the format:
+        # application, component_type, component_name, permission_used
+        if self.save_missing:
+            self.missing_perm_list = list()
+
+        # First, we are going to iterate over the apps we have in the system.db
+        appdb = AppDb.AppDb(local_sysapps_db_name)
+
+        # Drop all the old (non-apps) data
+        appdb.dropTables()
+
+        # Create new ones!
+        if appdb.createTables() != 0:
+            log.e(TAG, "Database creation failed, exiting!")
+            return -1
+
+        self.do_first_pass(appdb)
+        self.do_second_pass(appdb)
+        self.do_final_pass(appdb)
+
+        # If we are generating the missing perm report, do it here.
+        if self.save_missing:
+            log.i(TAG, "Saving missing permission report...")
+
+            report_file_path = ("%s/%s" %
+                        (prop.get_prop("Local", "reports-dir"),
+                         'missing_permissions.csv'))
+
+            report_f = open(report_file_path, 'w')
+
+            for line in self.missing_perm_list:
+                report_f.write(','.join(line)+"\n")
+
+            report_f.close()
+
+        return 0
+
+    def cmd_exposed(self, args):
+
+        """Exposed command"""
+
+        rtn = 0
+
+        parser = ArgumentParser(prog='sysappdb exposed',
+                        description='Get exposed application components.')
+        parser.add_argument('app_name', metavar="app_name", type=str,
+                        nargs='?', default=None,
+                        help='The application to check.')
+        parser.add_argument('--filter', dest='filters', default=None,
+                        help='Filter by component type (comma seperated).')
+        parser.add_argument('--all', dest='all', action='store_const',
+                        const=True, default=False,
+                        help='Run against all applications.')
+        parser.add_argument('--no-google', dest='no_google',
+                        action='store_const', const=True, default=False,
+                        help='Omit Google packages based on package name.')
+        parser.add_argument('--new-only', dest='new_only',
+                        action='store_const', const=True, default=False,
+                        help='Omit Google packages based on package name.')
+        parser.add_argument('--diff_dir', metavar="diff_dir", type=str,
+                        default=None, help='Diff against data in dir.')
+
+        parsed_args = parser.parse_args(args)
+
+        app_name = parsed_args.app_name
+        all_mode = parsed_args.all
+        config = dict()
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        DEFAULT_FILTERS = ['activities', 'services', 'providers', 'receivers']
+
+        filters = parsed_args.filters
+
+        if not all_mode and app_name is None:
+            log.e(TAG, "You need to specify an application name (or --all)!")
+            return -1
+
+        diff_db = self.determine_diff_database(parsed_args)
+
+        if diff_db is None:
+            log.e(TAG, "Unable to determine diff DB!")
+            return -2
+
+        log.d(TAG, "Using diff DB: '%s'" % diff_db)
+
+        if filters is None:
+            filters = DEFAULT_FILTERS
+        else:
+            filters = self.validate_filters(filters, DEFAULT_FILTERS)
+            if filters == None:
+                log.e(TAG, "Unable to validate filter!")
+                return -3
+
+        config['filters'] = filters
+        config['no_google'] = parsed_args.no_google
+        config['new_only'] = parsed_args.new_only
+
+        # Get a handle to our DBs
+        local_appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
+        diff_appdb = AppDb.AppDb(diff_db)
+
+        if all_mode:
+            for app in local_appdb.getApps():
+                rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)
+
+            return rtn
+        else:
+            app = local_appdb.getAppByName(app_name)
+            if app is None:
+                log.e(TAG, "Unable to find application '%s' in DB." % app_name)
+                return -4
+
+            return self.do_exposed(local_appdb, diff_appdb, app, config)
+
+    def execute(self, args):
+
+        """Main class executor"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'diff':
+            return self.cmd_diff(args)
+        elif mode == 'dump':
+            return self.cmd_dump(args)
+        elif mode == 'oatextract':
+            return self.cmd_oatextract(args)
+        elif mode == "pull":
+            return self.cmd_pull(args)
+        elif mode == "update":
+            return self.cmd_update(args)
+        elif mode == "unpack":
+            return self.cmd_unpack(args)
+        elif mode == "process":
+            return self.cmd_process(args)
+        elif mode == "exposed":
+            return self.cmd_exposed(args)
+        else:
+            return self.usage()
+
+class UnpackReport(object):
+
+    """Class for reporting on unpack status"""
 
     report_dict = None
 
     def __init__(self):
+
+        """Class initialization"""
+
         self.report_dict = dict()
 
-    def addFirstTry(self, app_name):
+    def add_first_try(self, app_name):
+
+        """Unpacked on first try"""
+
         self.report_dict[app_name] = 0
 
-    def addSecondTry(self, app_name):
+    def add_second_try(self, app_name):
+
+        """Unpacked on second try"""
+
         self.report_dict[app_name] = 1
 
-    def addManualTry(self, app_name):
+    def add_manual_try(self, app_name):
+
+        """Unpacked on third (manual) try"""
+
         self.report_dict[app_name] = 2
 
-    def addFailed(self, app_name):
+    def add_failed(self, app_name):
+
+        """Failed attempt to unpack"""
+
         self.report_dict[app_name] = 3
 
-    def getFirstTryList(self):
-        return [ i for i in self.report_dict if self.report_dict[i] == 0]
+    def get_first_try_list(self):
 
-    def getSecondTryList(self):
-        return [ i for i in self.report_dict if self.report_dict[i] == 1]
+        """Get all first try apps"""
 
-    def getManualTryList(self):
-        return [ i for i in self.report_dict if self.report_dict[i] == 2]
+        return [i for i in self.report_dict if self.report_dict[i] == 0]
 
-    def getFailedList(self):
-        return [ i for i in self.report_dict if self.report_dict[i] == 3]
+    def get_second_try_list(self):
 
-    def getReport(self):
+        """Get all second try apps"""
+
+        return [i for i in self.report_dict if self.report_dict[i] == 1]
+
+    def get_manual_try_list(self):
+
+        """Get all manually apps"""
+
+        return [i for i in self.report_dict if self.report_dict[i] == 2]
+
+    def get_failed_list(self):
+
+        """Get all failed apps"""
+
+        return [i for i in self.report_dict if self.report_dict[i] == 3]
+
+    def get_report(self):
+
+        """Create unpack report"""
 
         rpt = list()
 
-        first_try_list = self.getFirstTryList()
-        second_try_list = self.getSecondTryList()
-        manual_try_list = self.getManualTryList()
-        failed_list = self.getFailedList()
+        first_try_list = self.get_first_try_list()
+        second_try_list = self.get_second_try_list()
+        manual_try_list = self.get_manual_try_list()
+        failed_list = self.get_failed_list()
 
         rpt.append("First Tries (%d):" % len(first_try_list))
         for app in first_try_list:
@@ -314,152 +2643,181 @@ class UnpackReport():
 
         return rpt
 
-def getVersionInfo(apk_path):
-
-    try:
-        version_info = { 'version_code' : None,
-                         'version_name' : None,
-                         'min_sdk_version' : None,
-                         'target_sdk_version' : None }
-
-        stdout, stderr, rtn = aapt("d badging %s" % apk_path)
-
-        for line in stdout:
-
-            if line == "": continue
-            if line.find(':') == -1: continue
-
-            key, value = line.split(':', 1)
-            if key == 'package':
-                for sub_pair in re.findall("[a-zA-Z]*\=\'[^\']+\'", value):
-                    sub_key, sub_value = sub_pair.replace('\'','').split('=', 1)
-                    if sub_key == 'versionCode':
-                        version_info['version_code'] = sub_value
-                    elif sub_key == 'versionName':
-                        version_info['version_name'] = sub_value
-            elif key == 'sdkVersion':
-                version_info['min_sdk_version'] = value.replace('\'','')
-            elif key == 'targetSdkVersion':
-                version_info['target_sdk_version'] = value.replace('\'','')
-
-        return version_info
-    except:
-        e = exc_info()[0]
-        log.e(TAG, "[DbThread] Error getting app version info for \'%s\': %s" % 
-                (apk_path, e))
-        return version_info
-
 class PullThread(threading.Thread):
 
+    """Thread class for pulling app from device"""
+
     def __init__(self, pull_queue, db_queue, no_md5):
+
+        """Class initialization"""
+
         threading.Thread.__init__(self)
         self.adb = DtfAdb()
         self.pull_queue = pull_queue
         self.db_queue = db_queue
         self.no_md5 = no_md5
-        log.i(TAG, "PullThread thread created!")
+        self.LTAG = ''
+
+    def shutdown(self):
+
+        """Begin kill process"""
+        with self.pull_queue.mutex:
+            self.pull_queue.queue.clear()
+
+        return 0
+
+    def pull_apk(self, project_name, package_name, local_apk_name):
+
+        """Pull the APK"""
+
+        log.i(self.LTAG, "Getting APK file for '%s'" % project_name)
+
+        if not self.no_md5:
+            self.adb.busybox("md5sum %s" % package_name)
+            md5_before = self.adb.get_output()[0].split(' ')[0]
+
+        self.adb.pull(package_name, local=local_apk_name)
+
+        if not self.no_md5:
+            if md5_before != md5_local(local_apk_name):
+                #self.pull_queue.task_done()
+                log.e(self.LTAG, "APK MD5 doesn't match!")
+                self.shutdown()
+                return -1
+
+        return 0
+
+    def pull_odex(self, project_name, package_name):
+
+        """Pull the ODEX"""
+
+        rtn = 0
+        vm_type = prop.get_prop("Info", "vmtype")
+
+        # Lollipop moved stuff around.
+        if vm_type[:3] == "ART":
+            # New phones are using 64-bits. Files *may* be in the
+            # arm/ OR arm64/ directory if 64-bit is used.  If the
+            # phone is using 32-bit, it's going to be arm/.
+            cpu_bits = prop.get_prop("Info", "cpu-bits")
+
+            if cpu_bits == "32":
+                # Sometimes the ODEXs are XZ compressed. Annoying.
+                xz_odex_name = re.sub("\/([^\/]*)\.apk$",
+                                "/arm/\\1.odex.xz", package_name)
+                odex_name = re.sub("\/([^\/]*)\.apk$",
+                                "/arm/\\1.odex", package_name)
+
+                if self.adb.is_file(xz_odex_name):
+                    log.d(self.LTAG, "XZ ODEX exists.")
+                    rtn = self.do_pull_xz_odex(xz_odex_name, project_name)
+                elif self.adb.is_file(odex_name):
+                    log.d(self.LTAG, "Regular ART ODEX exists.")
+                    rtn = self.do_pull_odex(odex_name, project_name)
+                else:
+                    log.w(self.LTAG, "No ODEX for ART found.")
+
+            # 64-bit
+            else:
+                # We'll check the arm64/ directory first, then arm/.
+                # For each of these checks, we'll have to also account
+                # for the possibility of there being a XZ or not.
+                xz_odex_name = re.sub("\/([^\/]*)\.apk$",
+                                    "/arm/\\1.odex.xz", package_name)
+                odex_name = re.sub("\/([^\/]*)\.apk$",
+                                    "/arm/\\1.odex", package_name)
+                xz_odex_name_64 = re.sub("\/([^\/]*)\.apk$",
+                                    "/arm64/\\1.odex.xz", package_name)
+                odex_name_64 = re.sub("\/([^\/]*)\.apk$",
+                                    "/arm64/\\1.odex", package_name)
+
+                if self.adb.is_file(xz_odex_name):
+                    log.d(self.LTAG, "XZ ART ODEX exists.")
+                    rtn = self.do_pull_xz_odex(xz_odex_name, project_name)
+
+                elif self.adb.is_file(odex_name):
+                    log.d(self.LTAG, "Regular ART ODEX exists.")
+                    rtn = self.do_pull_odex(odex_name, project_name)
+
+                elif self.adb.is_file(xz_odex_name_64):
+                    log.d(self.LTAG, "XZ ART 64-bit ODEX exists.")
+                    rtn = self.do_pull_odex(xz_odex_name_64, project_name)
+
+                elif self.adb.is_file(odex_name_64):
+                    log.d(self.LTAG, "Regular ART 64-bit ODEX exists.")
+                    rtn = self.do_pull_odex(odex_name_64, project_name)
+
+                else:
+                    log.w(self.LTAG, "No ODEX for ART found.")
+        # Not Lollipop
+        else:
+            odex_name = re.sub("\.apk$", '.odex', package_name)
+
+            if self.adb.is_file(odex_name):
+                log.d(self.LTAG, "Regular Dalvik ODEX exists.")
+                rtn = self.do_pull_odex(odex_name, project_name)
+
+            else:
+                log.w(self.LTAG, "No ODEX found.")
+
+        return rtn
 
     def run(self):
-        self.tid = threading.currentThread().name
-        while True:
+
+        """Main run method"""
+
+        self.LTAG = TAG + "-Pull%s" % threading.currentThread().getName()
+        log.d(self.LTAG, "Thread started")
+
+        while self.pull_queue.empty() is False:
 
             # Pull thread needs to wait for the device to be available.
             self.adb.wait_for_device()
 
-            package_name, project_name = self.pull_queue.get()
-            log.i(TAG, "%s Starting \'%s\'" % (self.logString(), project_name))
+            # We actually don't need (or want to) block.
+            try:
+                package_name, project_name = self.pull_queue.get(False)
+            except Queue.Empty:
+                log.d(self.LTAG, "Thread has completed!")
+                self.db_queue.put(DONE)
+                return 0
 
-            # APK Section
-            log.i(TAG, "%s Getting APK file for \'%s\'" % (self.logString(), project_name))
+            log.i(self.LTAG, "Processing: '%s'" % project_name)
 
-            if not self.no_md5:
-                self.adb.busybox("md5sum %s" % package_name)
-                md5_before = self.adb.get_output()[0].split(' ')[0]
-
+            # Pull the APK
             local_apk_name = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
-            self.adb.pull(package_name, local=local_apk_name)
 
-            if not self.no_md5:
-                md5_after = md5_local(local_apk_name)
-                if md5_before != md5_after:
-                    log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
+            if self.pull_apk(project_name, package_name, local_apk_name) != 0:
+                log.e(self.LTAG, "Error pulling APK!")
+                self.pull_queue.task_done()
+                break
 
-            # ODEX Section ######################################################
-            sdk_version = dtfconfig.get_prop("Info", "sdk")
-            vm_type = dtfconfig.get_prop("Info", "vmtype")
+            # Pull ODEX
+            sdk_version = prop.get_prop("Info", "sdk")
 
             # Don't even worry about ODEX under 2.2
             if int(sdk_version) > 7:
+                if self.pull_odex(project_name, package_name) != 0:
+                    log.e(self.LTAG, "Error pulling ODEX!")
+                    self.pull_queue.task_done()
+                    break
+            else:
+                log.d(self.LTAG, "ODEX skipped due to API level")
 
-                # Lollipop moved stuff around.
-                if vm_type[:3] == "ART":
-                    # New phones are using 64-bits. That means that files *may* be
-                    # in the arm/ OR arm64/ directory if 64-bit is used.  If the
-                    # phone is using 32-bit, its going to be arm/.
-                    cpu_bits = dtfconfig.get_prop("Info", "cpu-bits")
-
-                    if cpu_bits == "32":
-                        # Sometimes the ODEXs are XZ compressed. Annoying.
-                        xz_odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex.xz", package_name)
-                        odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
-
-                        if self.adb.is_file(xz_odex_name):
-                            log.d(TAG, "XZ ODEX exists.")
-                            self.pullXzOdex(xz_odex_name, project_name)
-                        elif self.adb.is_file(odex_name):
-                            log.d(TAG, "Regular ART ODEX exists.")
-                            self.pullOdex(odex_name, project_name)
-                        else:
-                            log.w(TAG, "No ODEX for ART found.")
-
-                    # 64-bit
-                    else:
-                        # We'll check the arm64/ directory first, then arm/.  For
-                        # For each of these checks, we'll have to also account
-                        # for the possibility of there being a XZ or not.
-                        xz_odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex.xz", package_name)
-                        odex_name = re.sub("\/([^\/]*)\.apk$", "/arm/\\1.odex", package_name)
-                        xz_odex_name_64 = re.sub("\/([^\/]*)\.apk$", "/arm64/\\1.odex.xz", package_name)
-                        odex_name_64 = re.sub("\/([^\/]*)\.apk$", "/arm64/\\1.odex", package_name)
-
-                        if self.adb.is_file(xz_odex_name):
-                            log.d(TAG, "XZ ART ODEX exists.")
-                            self.pullXzOdex(xz_odex_name, project_name)
-
-                        elif self.adb.is_file(odex_name):
-                            log.d(TAG, "Regular ART ODEX exists.")
-                            self.pullOdex(odex_name, project_name)
-
-                        elif self.adb.is_file(xz_odex_name_64):
-                            log.d(TAG, "XZ ART 64-bit ODEX exists.")
-                            self.pullOdex(xz_odex_name_64, project_name)
-
-                        elif self.adb.is_file(odex_name_64):
-                            log.d(TAG, "Regular ART 64-bit ODEX exists.")
-                            self.pullOdex(odex_name_64, project_name)
-
-                        else:
-                            log.w(TAG, "No ODEX for ART found.")
-
-                # Not Lollipop
-                else:
-                    odex_name = re.sub("\.apk$", '.odex', package_name)
-
-                    if self.adb.is_file(odex_name):
-                        log.d(TAG, "Regular Dalvik ODEX exists.")
-
-                        self.pullOdex(odex_name, project_name)
-                    else:
-                        log.w(TAG, "No ODEX found.")
-            # End ODEX
-
-            apk_data = (package_name, project_name, local_apk_name)
-            
-            # Tell our DbThread that there is another app ready
-            self.db_queue.put(apk_data)
+            # We only get here if everything worked
             self.pull_queue.task_done()
 
-    def pullOdex(self, odex_name, project_name):
+            # Tell our database thread that there is another app is ready
+            apk_data = (package_name, project_name, local_apk_name)
+            self.db_queue.put(apk_data)
+
+        log.d(self.LTAG, "Thread has completed!")
+        self.db_queue.put(DONE)
+        return 0
+
+    def do_pull_odex(self, odex_name, project_name):
+
+        """Pull an ODEX file"""
 
         if not self.no_md5:
             self.adb.busybox("md5sum %s" % odex_name)
@@ -471,9 +2829,15 @@ class PullThread(threading.Thread):
         if not self.no_md5:
             md5_after = md5_local(local_odex_name)
             if md5_before != md5_after:
-                log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
+                log.e(self.LTAG, "ODEX MD5 doesn't match!")
+                self.shutdown()
+                return None
 
-    def pullXzOdex(self, odex_name, project_name):
+        return 0
+
+    def do_pull_xz_odex(self, odex_name, project_name):
+
+        """Pull an XZ compressed ODEX"""
 
         if not self.no_md5:
             self.adb.busybox("md5sum %s" % odex_name)
@@ -485,2073 +2849,117 @@ class PullThread(threading.Thread):
         if not self.no_md5:
             md5_after = md5_local(local_odex_name)
             if md5_before != md5_after:
-                log.e(TAG, "%s MD5s don't match, stopping!" % self.logString())
+                log.e(self.LTAG, "XZ ODEX MD5 doesn't match!")
+                self.shutdown()
+                return None
 
         # Now decompress with XZ
-        rtn = decompressXZ(local_odex_name)
+        rtn = decompress_xz(local_odex_name)
         if rtn != 0:
             log.e(TAG, "Error decompressing XZ archive '%s'" %
-                                    (local_odex_name))
+                                               (local_odex_name))
+            self.shutdown()
+            return None
 
-    def logString(self):
-        return "[PullThread tid=%s]" % self.tid
+        return 0
 
 class DbThread(threading.Thread):
 
-    def __init__(self, queue):
+    """Thread for updating our DB"""
+
+    def __init__(self, worker_count, queue, local_db):
+
+        """Class initialization"""
+
         threading.Thread.__init__(self)
+        self.worker_count = worker_count
         self.queue = queue
-        log.i(TAG, "DbThread thread created!")
+        self.local_db = local_db
+        self.LTAG = ''
+
+    def get_version_info(self, apk_path):
+
+        """Get the version from the APK"""
+
+        try:
+            version_info = {'version_code' : None,
+                            'version_name' : None,
+                            'min_sdk_version' : None,
+                            'target_sdk_version' : None}
+
+            stdout, stderr, rtn = aapt("d badging %s" % apk_path)
+
+            for line in stdout:
+
+                if line == "":
+                    continue
+                if line.find(':') == -1:
+                    continue
+
+                key, value = line.split(':', 1)
+                if key == 'package':
+                    for sub_pair in re.findall("[a-zA-Z]*\=\'[^\']+\'", value):
+                        sub_key, sub_value = sub_pair.replace('\'',
+                                                        '').split('=', 1)
+                        if sub_key == 'versionCode':
+                            version_info['version_code'] = sub_value
+                        elif sub_key == 'versionName':
+                            version_info['version_name'] = sub_value
+                elif key == 'sdkVersion':
+                    version_info['min_sdk_version'] = value.replace('\'', '')
+                elif key == 'targetSdkVersion':
+                    version_info['target_sdk_version'] = value.replace('\'', '')
+
+            return version_info
+        except:
+            e = sys.exc_info()[0]
+            log.e(self.LTAG, "Error getting app version info for '%s': %s"
+                                % (apk_path, e))
+            return version_info
 
     def run(self):
 
-        global PROJECT_DB
+        """Main DB execution thread"""
 
-        self.tid = threading.currentThread().name
-        con = sqlite3.connect(PROJECT_DB)
-        while True:
+        self.LTAG = TAG + '-DbThread'
+        con = sqlite3.connect(self.local_db)
+
+        # Keep running until we detect we are the last thread.
+        while self.worker_count > 0:
+
             package_name, project_name, local_name = self.queue.get()
 
-            log.i(TAG, "%s Processing %s" % (self.logString(), project_name))
+            # Did we get a done signal?
+            if package_name == 'DONE':
+                self.worker_count -= 1
+                log.d(self.LTAG, "Skipping item due to DONE signal")
+                continue
+
+            log.i(self.LTAG, "Processing: %s" % project_name)
 
             # First get the version info
-            version_info = getVersionInfo(local_name)
+            version_info = self.get_version_info(local_name)
             with con:
                 cur = con.cursor()
-                sql = ('INSERT INTO apps('
-                       'package_name, project_name, min_sdk_version, target_sdk_version, '
-                       'version_name, version_code) '
-                       'VALUES(?, ?, ?, ?, ?, ?)')
+                sql = ('UPDATE apps '
+                       'SET min_sdk_version=?, '
+                       'target_sdk_version=?, version_name=?, '
+                       'version_code=?, successfully_pulled=1 '
+                       'WHERE project_name=?')
 
-                ins = [(package_name, project_name, version_info['min_sdk_version'], 
-                       version_info['target_sdk_version'], version_info['version_name'],
-                       version_info['version_code'])]
+                ins = [(version_info['min_sdk_version'],
+                        version_info['target_sdk_version'],
+                        version_info['version_name'],
+                        version_info['version_code'],
+                        project_name)]
 
                 cur.executemany(sql, ins)
 
             con.commit()
-            log.i(TAG, "%s Processed %s" % (self.logString(), project_name))
+            log.i(self.LTAG, "Processed: %s" % project_name)
 
             self.queue.task_done()
 
-    def logString(self):
-        return "[DbThread tid=%s]" % self.tid
-
-def unpackResources(app, unpack_path, report_mode):
-
-    # TODO : This needs to reflect both processes
-    if report_mode:
-        global unpack_report
-
-    project_name = app.project_name
-    fwres_dir = "%s/%s" % (TOP, dtfconfig.get_prop("Local", "fwres-dir"))
-    serial = dtfconfig.get_prop("Info", "serial")
-    apk_file = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
-
-    # First attempt, using the fwres we have locally.
-    log.d(TAG, "Attempting to decode APK using device framework resources.")
-
-    out, err, rtn = apktool("decode --no-src --force --frame-path %s --frame-tag %s --output %s %s" %
-                        (fwres_dir, serial, unpack_path, apk_file))
-
-    # First try success!
-    if rtn == 0:
-        if report_mode: unpack_report.addFirstTry(project_name)
-        return rtn
-
-    rmtree(unpack_path)
-    mkdir(unpack_path)
-
-    # Second test, no fwres
-    log.w(TAG, "First attempt failed (%d), Trying with generic framework resources." % rtn)
-    log.w_ml(TAG, err)                                                      
-                                                                             
-    out, err, rtn = apktool("decode --no-src --force --output %s %s" %      
-                        (unpack_path, apk_file))                            
-
-    # Second time success!                                                  
-    if rtn == 0:                                                            
-        if report_mode: unpack_report.addSecondTry(project_name)            
-        return rtn                                                               
-
-    rmtree(unpack_path)
-    mkdir(unpack_path)
-
-    # Fuck it, do it manually.                                              
-    log.w(TAG, "Second attempt failed (%d), Trying manual unpack." % rtn)   
-    log.w_ml(TAG, err)                                                      
-
-    # First unzip.
-    rtn = extractFromZipTo(apk_file, unpack_path)
-     
-    if rtn != 0:                                                            
-        log.e(TAG, "Couldnt even unzip the bastard (%d). You're on your own." % rtn)
-        if report_mode: unpack_report.addFailed(project_name)               
-        return rtn                                                          
-
-    encoded_manifest = "%s/AndroidManifest.xml.encoded" %(unpack_path)      
-    decoded_manifest = "%s/AndroidManifest.xml" % (unpack_path)             
-
-    move(decoded_manifest, encoded_manifest)                                
-
-
-    log.i(TAG, "Decoding AndroidManifest.xml manually")
-    rtn = axmlprinter2(encoded_manifest, decoded_manifest)
-
-    # At least manual worked...                                             
-    if rtn == 0:
-        if report_mode: unpack_report.addManualTry(project_name)            
-        return rtn                                                              
-
-    #What the hell is wrong with this APK?
-    log.e(TAG, "Unable to decode \'%s\'. What's wrong with this APK?" % project_name)
-
-    if report_mode: unpack_report.addFailed(project_name)
-    return rtn
-
-def unpackClasses(app, unpack_path, report_mode):
-
-    # TODO : This needs to reflect both processes
-    if report_mode:
-        global unpack_report
-
-    rtn = 0
-    project_name = app.project_name
-    sdk = dtfconfig.get_prop("Info", "sdk")
-
-    apk_file = "%s/%s.apk" % (SYSTEM_APPS_DIR, project_name)
-    smali_dir = "%s/%s" % (unpack_path, 'smali')
-
-    # classes.dex in APK?
-    if fileInZip(apk_file, 'classes.dex'):
-
-        log.i(TAG, "There is classes.dex in the APK. Unpack, and decode.")
-
-        rtn = extractFromZipTo(apk_file, unpack_path, file_name='classes.dex')
-        
-        if rtn != 0:
-            log.e(TAG, "Error extracting classes.dex! %d" % rtn)
-            return rtn
-        
-        classes_file = "%s/%s" % (unpack_path, 'classes.dex')
-        log.i(TAG, "Extracted from ZIP.")
-
-        # What type of file is this?
-        type = getFileType(classes_file)
-
-        if type == TYPE_DEX:
-
-            log.i(TAG, "DEX file found in APK, unpacking with baksmali.")
-            out, err, rtn = baksmali("-a %s -o %s %s" %
-                            (sdk, smali_dir, classes_file))
-
-            if rtn != 0:
-                log.e(TAG, "Error unpacking class files! (%d)" % rtn)
-                return rtn
-                
-        elif type == TYPE_ELF:
-            # TODO
-            # I don't any evidence to suspect this is a use case.
-            # I'll need evidence to figure it out.
-            raise RuntimeError
-
-        else:
-            log.e(TAG, "File type of 'classes.dex' is unknown, bailing!")
-            return -4
-    # Not in APK.
-    else:
-        log.i(TAG, "No classes file in APK, checking for ODEX")
-
-        # Now we check for classes.[o]dex along side the APK.
-        odex_file = "%s/%s.odex" % (SYSTEM_APPS_DIR, project_name)
-
-        if isfile(odex_file):
-            type =getFileType(odex_file)
-
-            # GB through JB use ODEX
-            if type == TYPE_ODEX:
-
-                framework_dir =  dtfconfig.get_prop("Local", "framework-dir")
-
-                log.i(TAG, "ODEX file found outside APK, unpacking with baksmali.")
-                out, err, rtn = baksmali("-x -a %s -d %s -o %s %s" %
-                            (sdk, framework_dir, smali_dir, odex_file))
-                if rtn != 0:
-                    log.e(TAG, "Error unpacking class files! (%d)" % rtn)
-                    return rtn
-
-            elif type == TYPE_DEX:
-                framework_dir =  dtfconfig.get_prop("Local", "framework-dir")
-
-                log.i(TAG, "DEX file found outside APK, unpacking with baksmali.")
-                out, err, rtn = baksmali("-a %s -o %s %s" %
-                            (sdk, smali_dir, odex_file))
-                if rtn != 0:
-                    log.e(TAG, "Error unpacking class files! (%d)" % rtn)
-                    return rtn
-            else:
-                log.e(TAG, "File type of 'classes.dex' is unknown, bailing!")
-                return -4
-    return rtn
-
-def unpackApp(app, appdb, unpack_path, report_mode=False):
-    # This section is a little confusing.  Lollipop made it kind of difficult
-    # to do the unpacking, since it broke baksmali/apktool and now uses ELF 
-    # instead of DEX/ODEX. The flow is as follows:
-    #
-    # 1. Unpack res/, AndroidManifest.xml, assests/, etc.  using apktool
-    #   a. First attempt uses the framework resources pulled form the phone
-    #   b. Second attempt uses the included resources with apktool
-    #   c. Third attempt just unzips, and tries to decode the manifest.
-    #
-    # 2. Decode the class files.
-    #   a. First attempt is if there is a class file with the APK.
-    #     - Determine type:
-    #        - If actually is DEX, use dtf_baksmali.
-    #        - If it is an ELF, use oatdextract + dtf_baksmali.
-    #        - NOTE: ODEX should never be in APK
-    #  b. If the class wasn't found in the APK, look for an ODEX.
-    #     - Determine type:
-    #        - If actually is ODEX, use dtf_baksmali.
-    #        - If it is an ELF, use oatdextract + dtf_baksmali.
-
-    rtn = 0
-
-    log.i(TAG, "Unpacking app '%s' to %s" % (app.project_name, unpack_path))
-
-    mkdir(unpack_path)
-
-    # First lets unpack most of the APK.
-    rtn = unpackResources(app, unpack_path, report_mode)
-    log.d(TAG, "Resource unpacking rtn : %i" % rtn)
-
-    # Next do the classes
-    rtn = unpackClasses(app, unpack_path, report_mode)
-    log.d(TAG, "Class unpacking rtn : %i" % rtn)
-
-    # Update DB
-    app.decoded_path = unpack_path
-    appdb.updateApplication(app)
-    appdb.commit()
-    
-    return rtn
-
-# Processing Functionality #
-def getAttrib(element, attrib, default="None"):
-
-    try:
-        return element.attrib['{http://schemas.android.com/apk/res/android}'+attrib]
-    except KeyError:
-        return default
-
-def combineTags(tag, xpath):
-
-    data = ""
-    for sub_tag in tag.findall(xpath):
-        data += etree.tostring(sub_tag)
-
-    return data
-
-def parsePermissionGroups(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for pg in root.findall(".//permission-group"):
-
-        permission_group = AppDb.PermissionGroup( getAttrib(pg, "name"), application_id)
-
-        log.d(TAG, "Adding <permission-group> : %s" % (permission_group.name))
-
-        if (appdb.addPermissionGroup(permission_group)):
-            log.d(TAG, "Permission group added!")
-        else:
-            log.e(TAG, "Error adding permission-group!")
-
-    appdb.commit()
-
-def parsePermissions(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for p in root.findall(".//permission"):
-
-        name = getAttrib(p, "name")
-        permission_group_name = getAttrib(p, "permissionGroup")
-        protection_level = getAttrib(p, "protectionLevel")
-
-        log.d(TAG, "Adding <permission> : %s" % (name))
-
-        # First, lets get the group for this permission
-        if permission_group_name != "None":
-            permission_group = appdb.resolveGroupByName(permission_group_name)
-        else:
-            permission_group = None
-
-
-        if protection_level == "None":
-            log.w(TAG, "Permission '%s' doesn't have a protection level" % name)
-            protection_level = "normal"
-
-        if protection_level[0:2] == "0x":
-            protection_level = AppDb.protectionToString( int(protection_level, 16))
-
-
-        permission = AppDb.Permission(name, protection_level, permission_group, application_id)
-
-        if (appdb.addPermission(permission)):
-            log.d(TAG, "Permission added!")
-        else:
-            log.e(TAG, "Error adding permission!")
-
-    appdb.commit()
-
-def parseProtectedBroadcasts(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for pb in root.findall(".//protected-broadcast"):
-        name = getAttrib(pb, "name")
-
-        if (appdb.addProtectedBroadcast(name, application_id)):
-            log.d(TAG, "Protected broadcast added!")
-        else:
-            log.e(TAG, "Error adding protected broadcast")
-
-    appdb.commit()
-
-def parseActivities(appdb, application_id, manifest_path, save_missing):
-
-    global missing_perm_list
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for a in root.findall(".//application/activity"):
-
-        name = getAttrib(a, "name")
-        enabled = getAttrib(a, "enabled", default=None)
-        exported = getAttrib(a, "exported", default=None)
-        permission_name = getAttrib(a, "permission")
-
-        log.d(TAG, "Adding <activity> : %s" % (name))
-
-        intent_filters = AppDb.parseIntentFiltersFromXML(a)
-        if len(intent_filters) == 0:
-            intent_filters = None
-
-        if enabled == None:
-            pass
-        elif enabled == "true":
-            enabled = True
-        elif enabled == "false":
-            enabled = False
-        else:
-            log.w(TAG, "Found weird enabled in parseActivities : %s" % enabled)
-            enabled = None
-
-        if exported == None:
-            pass
-        elif exported == "true":
-            exported = True
-        elif exported == "false":
-            exported = False
-        else:
-            log.w(TAG, "Found weird exported in parseActivities : %s" % exported)
-            exported = None
-
-        permission = None
-
-        if permission_name is not "None":
-            permission = appdb.resolvePermissionByName(permission_name)
-
-            # This is the error case.
-            if permission is None:
-                log.w(TAG, "[addActivity] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Activity",
-                                              name, permission_name])
-
-        activity = AppDb.Activity(name, enabled, exported, permission,
-                                  application_id)
-
-        # Add the activity.
-        if (appdb.addActivity(activity)):
-            log.d(TAG, "Activity added!")
-        else:
-            log.e(TAG, "Error adding activity!")
-
-        # Now we need to get the ID of the activity we just added,
-        # and add the intent_filters.
-        _id = appdb._getLastId("activities")
-
-        # Add the intent filter data.
-        if intent_filters != None:
-            for intent_filter in intent_filters:
-                appdb.addActivityIntentFilter(intent_filter, _id)
-
-    appdb.commit()
-
-def parseServices(appdb, application_id, manifest_path, save_missing):
-
-    global missing_perm_list
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for s in root.findall(".//application/service"):
-
-        name = getAttrib(s, "name")
-        enabled = getAttrib(s, "enabled", default=None)
-        exported = getAttrib(s, "exported", default=None)
-        permission_name = getAttrib(s, "permission")
-
-        log.d(TAG, "Adding <service> : %s" % (name))
-
-        intent_filters = AppDb.parseIntentFiltersFromXML(s)
-        if len(intent_filters) == 0:
-            intent_filters = None
-
-        if enabled == None:
-            pass
-        elif enabled == "true":
-            enabled = True
-        elif enabled == "false":
-            enabled = False
-        else:
-            log.w(TAG, "Found weird enabled in parseServices : %s" % enabled)
-            enabled = None
-
-        if exported == None:
-            pass
-        elif exported == "true":
-            exported = True
-        elif exported == "false":
-            exported = False
-        else:
-            log.w(TAG, "Found weird exported in parseServices : %s" % exported)
-            exported = None
-
-        permission = None
-
-        if permission_name is not "None":
-            permission = appdb.resolvePermissionByName(permission_name)
-
-            # This is the error case.
-            if permission is None:
-                log.w(TAG, "[addService] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Service",
-                                              name, permission_name])
-
-        service = AppDb.Service(name, enabled, exported, permission,
-                                application_id)
-
-        # Add the service.
-        if (appdb.addService(service)):
-            log.d(TAG, "Service added!")
-        else:
-            log.e(TAG, "Error adding service!")
-
-        # Now we need to get the ID of the activity we just added,
-        # and add the intent_filters.
-        _id = appdb._getLastId("services")
-
-        # Add the intent filter data.
-        if intent_filters != None:
-            for intent_filter in intent_filters:
-                appdb.addServiceIntentFilter(intent_filter, _id)
-
-    appdb.commit()
-
-def parseProviders(appdb, application_id, manifest_path, save_missing):
-
-    global missing_perm_list
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for p in root.findall(".//application/provider"):
-
-        name = getAttrib(p, "name")
-        authorities = getAttrib(p, "authorities").split(';')
-        enabled = getAttrib(p, "enabled", default=None)
-        exported = getAttrib(p, "exported", default=None)
-        permission_name = getAttrib(p, "permission")
-        read_permission_name = getAttrib(p, "readPermission")
-        write_permission_name = getAttrib(p, "writePermission")
-        grant_uri_permissions = getAttrib(p, "grantUriPermissions", default=None)
-
-        log.d(TAG, "Adding <provider> : %s" % (name))
-
-        if enabled == None:
-            pass
-        elif enabled == "true":
-            enabled = True
-        elif enabled == "false":
-            enabled = False
-        else:
-            log.w(TAG, "Found weird enabled in parseProvider : %s" % enabled)
-            enabled = None
-
-        if exported == None:
-            pass
-        elif exported == "true":
-            exported = True
-        elif exported == "false":
-            exported = False
-        else:
-            log.w(TAG, "Found weird exported in parseProvider : %s" % exported)
-            exported = None
-
-        if grant_uri_permissions == None:
-            pass
-        elif grant_uri_permissions == "true":
-            grant_uri_permissions = 1
-        elif grant_uri_permissions == "false":
-            grant_uri_permissions = 0
-        else:
-            log.w(TAG, "Found weird grantUriPermissions in parseProvider : %s" % grant_uri_permissions)
-            grant_uri_permissions = None
-
-        permission = None
-        read_permission = None
-        write_permission = None
-
-        if permission_name is not "None":
-            permission = appdb.resolvePermissionByName(permission_name)
-
-            # This is the error case.
-            if permission is None:
-                log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Provider",
-                                              name, permission_name])
-
-        if read_permission_name is not "None":
-            read_permission = appdb.resolvePermissionByName(read_permission_name)
-
-            # This is the error case.
-            if read_permission is None:
-                log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, read_permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Provider-R",
-                                              name, read_permission_name])
-
-        if write_permission_name is not "None":
-            write_permission = appdb.resolvePermissionByName(write_permission_name)
-
-            # This is the error case.
-            if write_permission is None:
-                log.w(TAG, "[addProvider] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, write_permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Provider-W",
-                                              name, write_permission_name])
-
-        grant_uri_permission_data = combineTags(p, ".//grant-uri-permission")
-
-        path_permission_data = combineTags(p, ".//path-permission")
-
-        provider = AppDb.Provider(name, authorities, enabled, exported, grant_uri_permissions,
-                                  grant_uri_permission_data, path_permission_data,
-                                  permission, read_permission, write_permission, application_id)
-
-        if (appdb.addProvider(provider)):
-            log.d(TAG, "Provider added!")
-        else:
-            log.e(TAG, "Error adding provider!")
-
-    appdb.commit()
-
-
-def parseReceivers(appdb, application_id, manifest_path, save_missing):
-
-    global missing_perm_list
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for r in root.findall(".//application/receiver"):
-
-
-        name = getAttrib(r, "name")
-        enabled = getAttrib(r, "enabled", default=None)
-        exported = getAttrib(r, "exported", default=None)
-        permission_name = getAttrib(r, "permission")
-
-        intent_filters = AppDb.parseIntentFiltersFromXML(r)
-        if len(intent_filters) == 0:
-            intent_filters = None
-
-        log.d(TAG, "Adding <receiver> : %s" % (name))
-
-        if enabled == None:
-            pass
-        elif enabled == "true":
-            enabled = True
-        elif enabled == "false":
-            enabled = False
-        else:
-            log.w(TAG, "Found weird enabled in parseReceivers : %s" % enabled)
-            enabled = None
-
-        if exported == None:
-            pass
-        elif exported == "true":
-            exported = True
-        elif exported == "false":
-            exported = False
-        else:
-            log.w(TAG, "Found weird exported in parseReceivers : %s" % exported)
-            exported = None
-
-        permission = None
-
-        if permission_name is not "None":
-            permission = appdb.resolvePermissionByName(permission_name)
-
-            # This is the error case.
-            if permission is None:
-                log.w(TAG, "[addReceiver] {%s} I was unable to find the permission \"%s\", how can this be?" % (name, permission_name))
-                if save_missing:
-                    missing_perm_list.append([manifest_path, "Receiver",
-                                              name, permission_name])
-
-        receiver = AppDb.Receiver(name, enabled, exported, permission,
-                                  application_id)
-
-        # Add the receiver.
-        if (appdb.addReceiver(receiver)):
-            log.d(TAG, "Receiver added!")
-        else:
-            log.e(TAG, "Error adding receiver!")
-
-        # Now we need to get the ID of the activity we just added,
-        # and add the intent_filters.
-        _id = appdb._getLastId("receivers")
-
-        # Add the intent filter data.
-        if intent_filters != None:
-            for intent_filter in intent_filters:
-                appdb.addReceiverIntentFilter(intent_filter, _id)
-
-    appdb.commit()
-
-def parseAppUsesPermissions(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    for up in root.findall(".//uses-permission"):
-
-        permission_name = getAttrib(up, "name")
-        #permission_id  = appdb.resolvePermissionIdByString(permission_name)
-        permission  = appdb.resolvePermissionByName(permission_name)
-
-
-        log.d(TAG, "Adding <uses-permission> : %s" % (permission_name))
-
-        if permission == None:
-            log.w(TAG, "I was unable to resolve the use-permission to an application defining it: \"%s\", continuing!" % permission_name)
-            continue
-
-        if (appdb.addAppUsesPermission(application_id, permission._id)):
-            log.d(TAG, "Uses-permission added!")
-        else:
-            log.e(TAG, "Error adding uses-permission!")
-
-    appdb.commit()
-
-def parseAppPermission(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    name = root.xpath(".//application/@android:permission",
-                   namespaces = {'android' : 'http://schemas.android.com/apk/res/android'})
-
-    permission = None
-    if len(name) == 1:
-
-        permission = appdb.resolvePermissionByName(name[0])
-
-        # This is the error case.
-        if permission is None:
-            log.w(TAG, "[AppPermission] {%s} I was unable to find the permission \"%s\", how can this be?" % (manifest_path, name))
-            return
-
-        application = appdb.getAppById(application_id)
-        application.permission = permission
-        appdb.updateApplication(application)
-
-    appdb.commit()
-
-def parseDebuggable(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    application = appdb.getAppById(application_id)
-
-    debuggable_name = root.xpath(".//application/@android:debuggable",
-                   namespaces = {'android' : 'http://schemas.android.com/apk/res/android'})
-
-    if len(debuggable_name) == 1:
-
-        if debuggable_name == "true":
-            application.setDebuggable(True)
-        elif debuggable_name == "false":
-            application.setDebuggable(False)
-    else:
-        application.setDebuggable(None)
-
-    appdb.updateApplication(application)
-    appdb.commit()
-
-def parseShared(appdb, application_id, libs_dir):
-
-    if isdir(libs_dir):
-        log.d(TAG, "'libs/' dir exists, finding shared libs!")
-
-        arm_files = []
-        armv7a_files = []
-
-        # For now, we only look for armeabi, or armeabi-v7a
-        try:
-            arm_files = listdir(libs_dir+"armeabi")
-        except OSError:
-            pass
-
-        try:
-            armv7a_files = listdir(libs_dir+"armeabi-v7a")
-        except OSError:
-            pass
-
-        application = appdb.getAppById(application_id)
-
-        if len(arm_files) > 0 or len(armv7a_files) > 0:
-            application.has_native = 1
-        else:
-            application.has_native = 0
-
-        appdb.updateApplication(application)
-
-        for lib in arm_files:
-            appdb.addShared(application_id, "armeabi/"+lib)
-
-        for lib in armv7a_files:
-            appdb.addShared(application_id, "armeabi-v7a/"+lib)
-
-        appdb.commit()
-
-    else:
-        log.d(TAG, "No libs for this package.")
-        return
-
-def parseSignatures(appdb, project_id, project_name):
-
-    path_to_apk = ("%s/%s.apk" 
-                % (SYSTEM_APPS_DIR, project_name))
-
-    signature = processSignature(path_to_apk)
-
-    if signature == None:
-        return -1
-
-    # First check if any application has this (yet).
-    # If no apps have, we add the signature, then add the link.
-    # Otherwise, we just add the link.
-    r_signature = appdb.resolveSignature(signature)
-    if r_signature == None:
-        # Add the signature.
-        if (appdb.addSignature(signature)):
-            log.d(TAG, "Signature added!")
-        else:
-            log.e(TAG, "Error adding signature!")
-
-        # Now we need to get the ID of the signature we just added,
-        signature_id = appdb._getLastId("signatures")
-
-    else:
-        signature_id = r_signature._id
-
-    # Now we link app to signature.
-    if not appdb.addAppUsesSignature(project_id, signature_id):
-        log.e(TAG, "Error linking application to signature!")
-        return -2
-
-    return 0
-
-def parseSharedUser(appdb, application_id, manifest_path):
-
-    manifest_f = open(manifest_path)
-
-    app = appdb.getAppById(application_id)
-
-    try:
-        root = etree.XML(manifest_f.read())
-    except etree.XMLSyntaxError:
-        log.e(TAG, "The manifest for this application is corrupt! Skipping.")
-        return -4
-
-    app.shared_user_id = getAttrib(root,
-                                     "sharedUserId", default=None)
-    app.shared_user_label = getAttrib(root,
-                                    "sharedUserLabel", default=None)
-    appdb.updateApplication(app)
-
-# End Process Functionality
-
-# Exposed Functionality
-def printActivity(appdb, activity, intent_filters):
-
-    print "   %s" % (activity.name)
-    print "       Permission: %s" % str(activity.permission)
-    print "       Enabled: %s" % str(activity.enabled)
-    print "       Exported: %s" % str(activity.exported)
-
-    printIntentFilters(appdb, intent_filters)
-
-def printService(appdb, service, intent_filters):
-
-    print "   %s" % (service.name)
-    print "       Permission: %s" % str(service.permission)
-    print "       Enabled: %s" % str(service.enabled)
-    print "       Exported: %s" % str(service.exported)
-
-    printIntentFilters(appdb, intent_filters)
-
-def printProvider(provider):
-
-    print "   %s" % (provider.name)
-    print "       Authorities: %s" % ",".join(provider.authorities)
-    print "       Permission: %s" % str(provider.permission)
-    print "       Read Permission: %s" % str(provider.read_permission)
-    print "       Write Permission: %s" % str(provider.write_permission)
-    print "       Enabled: %s" % provider.enabled
-    print "       Exported: %s" % provider.exported
-    print "       Granted URI Permissions: %s" % provider.grant_uri_permissions
-
-    if len(provider.grant_uri_permission_data) > 0:
-        print "       Grant URI Permissions:"
-        print "       %s" % provider.grant_uri_permission_data
-
-    if len(provider.path_permission_data) > 0:
-        print "       Path Permissions:"
-        print "       %s" % provider.path_permission_data
-
-def printReceiver(appdb, receiver, intent_filters):
-
-    print "   %s" % (receiver.name)
-    print "       Permission: %s" % str(receiver.permission)
-    print "       Enabled: %s" % str(receiver.enabled)
-    print "       Exported: %s" % str(receiver.exported)
-
-    printIntentFilters(appdb, intent_filters)
-
-def printIntentFilters(appdb, intent_filters):
-
-    if len(intent_filters) != 0:
-        print "       Intent Filter Data:"
-        i = 0
-
-        for intent_filter in intent_filters:
-            print "         Filter #%i:" % i
-            for a in intent_filter.getActions():
-                print "           Action=%s %s" % (a, ("[PROTECTED]" if appdb.isProtectedAction(a) else ""))
-            for c in intent_filter.getCategories():
-                print "           Category=%s" % c
-            for d in intent_filter.getDatas():
-                print "           Data=%s" % str(d)
-
-            i+=1
-
-
-def doDump(appdb, app, config):
-
-    filter = config['filter']
-
-    app_name = app.project_name
-
-    log.i(TAG, "app_name : %s" % app_name)
-
-    application_id = app._id
-
-    # Parse Filters
-    if FILTER_ACTIVITIES in filter:
-        for activity in appdb.getAppActivities(application_id):
-
-            intent_filters = appdb.getIntentFilters(activity)
-            printActivity(appdb, activity, intent_filters)
-
-    if FILTER_SERVICES in filter:
-        for service in appdb.getAppServices(application_id):
-
-            intent_filters = appdb.getIntentFilters(service)
-            printService(appdb, service, intent_filters)
-
-    if FILTER_RECEIVERS in filter:
-        for receiver in appdb.getAppReceivers(application_id):
-
-            intent_filters = appdb.getIntentFilters(receiver)
-            printReceiver(appdb, receiver, intent_filters)
-
-    if FILTER_PROVIDERS in filter:
-        for provider in appdb.getAppProviders(application_id):
-
-            printProvider(provider)
-
-    if FILTER_PERMISSIONS in filter:
-        print "Permission Definitions:"
-        for permission in appdb.getAppPermissions(application_id):
-            print "   %s" % permission
-
-
-    if FILTER_USES_PERMISSIONS in filter:
-        print "Uses Permissions:"
-        for uses_permission in appdb.getAppUsesPermissions(application_id):
-            print "   %s" % uses_permission
-
-def doExposed(appdb, aosp_appdb, app, config):
-
-    is_aosp = False
-
-    filter = config['filter']
-    csv_mode = config['csv_mode']
-    no_google = config['no_google']
-    new_only = config['new_only']
-
-    app_name = app.project_name
-
-    if no_google and AppDb.isGoogleApp(app_name):
-        log.d(TAG, "Skipping Google app '%s'" % app_name)
+        # We are now the only thread.
+        log.d(self.LTAG, "Detected all workers have completed!")
         return 0
-
-    log.i(TAG, "app_name : %s" % app_name)
-
-    application_id = app._id
-    min_sdk_version = app.min_sdk_version
-    target_sdk_version = app.target_sdk_version
-
-    debuggable = app.getDebuggable()
-
-    if debuggable: print "[!!!] This application is debuggable, bad!!"
-
-    # Is this an AOSP application?
-    aosp_app = aosp_appdb.getAppByName(app_name)
-    if aosp_app != None:
-        is_aosp = True
-
-    ############# Parsing ##############
-    if FILTER_ACTIVITIES in filter:
-
-        # If it is an AOSP app, get the activities.
-        if is_aosp:
-            aosp_activities = map(lambda act: act.name,
-                            aosp_appdb.getAppActivities(aosp_app._id))
-
-        print "[+] Printing exposed activities..."
-        # Let's get exposed activities.
-        for activity in appdb.getAppActivities(application_id):
-
-            # If 'new_only' is used, we have to do some logic.
-            # However, we only need to do logic if 'new_only'
-            # AND it is an AOSP application.
-            if new_only and is_aosp:
-                if activity.name in aosp_activities: continue
-
-            enabled = activity.enabled
-            exported = activity.exported
-
-            intent_filters = appdb.getIntentFilters(activity)
-
-            # First, if we're debuggable, the world is our oyster.
-            if debuggable:
-                if csv_mode: csvActivity(config['activity_csv_f'], app_name, activity, "Debuggable Flag")
-                else: 
-                    print "   [EXP] Activity exported due to debuggable flag!"
-                    printActivity(appdb, activity, intent_filters)
-
-            else:
-                # Debuggable isnt set.
-                # First, lets make sure there is a permission that we can work with. No sig|sys.
-                if activity.permission is not None:
-
-                    protection_level = activity.permission.protection_level
-                    if protection_level not in['dangerous', 'normal', 'development']:
-                        continue
-
-                # Is this even enabled?
-                if enabled is False: continue
-
-                # Is it explicitly set to false?
-                if exported is False: continue
-
-                # How about an explicit export?
-                elif exported is True:
-                    if csv_mode: csvActivity(config['activity_csv_f'], app_name, 
-                                             activity, "Explicit Export")
-                    else:
-                        print "   [EXP] Explicit export flag!"
-                        printActivity(appdb, activity, intent_filters)
-
-                # Ok, this is the weird case.
-                elif exported is None and len(intent_filters) != 0:
-                    if csv_mode: csvActivity(config['activity_csv_f'], app_name, 
-                                             activity, "Implicit Export")
-                    else:
-                        print "   [EXP] Implicit export by intent-filter!"
-                        printActivity(appdb, activity, intent_filters)
-
-    if FILTER_SERVICES in filter:
-
-        # If it is an AOSP app, get the activities.
-        if is_aosp:
-            aosp_services = map(lambda serv: serv.name,
-                            aosp_appdb.getAppServices(aosp_app._id))
-
-        print "[+] Printing exposed services..."
-        # Let's get exposed services.
-        for service in appdb.getAppServices(application_id):
-
-            # If 'new_only' is used, we have to do some logic.
-            # However, we only need to do logic if 'new_only'
-            # AND it is an AOSP application.
-            if new_only and is_aosp:
-                if service.name in aosp_services: continue
-
-            enabled = service.enabled
-            exported = service.exported
-
-            intent_filters = appdb.getIntentFilters(service)
-
-            # First, if we're debuggable, the world is our oyster.
-            if debuggable:
-                print "   [EXP] Service exported due to debuggable flag!"
-                printService(appdb, service, intent_filters)
-
-            else:
-                # Debuggable isnt set.
-                # First, lets make sure there is a permission that we can work with. No sig|sys.
-                if service.permission is not None:
-
-                    protection_level = service.permission.protection_level
-                    if protection_level not in['dangerous', 'normal', 'development']:
-                        continue
-
-                # Is this even enabled?
-                if enabled is False: continue
-
-                # Is it explicitly set to false?
-                if exported is False: continue
-
-                # How about an explicit export?
-                elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    printService(appdb, service, intent_filters)
-
-                # Ok, this is the weird case.
-                elif exported is None and len(intent_filters) != 0:
-                    print "   [EXP] Implicit export by intent-filter!"
-                    printService(appdb, service, intent_filters)
-
-    if FILTER_PROVIDERS in filter:
-
-        # If it is an AOSP app, get the activities.
-        if is_aosp:
-            aosp_providers = map(lambda pro: pro.name,
-                            aosp_appdb.getAppProviders(aosp_app._id))
-
-        print "[+] Printing exposed providers..."
-        for provider in appdb.getAppProviders(application_id):
-
-            # If 'new_only' is used, we have to do some logic.
-            # However, we only need to do logic if 'new_only'
-            # AND it is an AOSP application.
-            if new_only and is_aosp:
-                if provider.name in aosp_providers: continue
-
-            enabled = provider.enabled
-            exported = provider.exported
-
-            # First, if we're debuggable, the world is our oyster.
-            if debuggable:
-                if csv_mode: csvProvider(config['provider_csv_f'], app_name, provider, "Debuggable Flag")
-                else:
-                    print "   [EXP] Provider exported due to debuggable flag!"
-                    printProvider(provider)
-            else:
-                # Debuggable isnt set.
-
-                # First, lets make sure there are permissions that we can work with.
-                read_protection_level = None
-                write_protection_level = None
-                # This is frustratingly annoying for providers.
-                # We're actually going to ignore "permission", is distribute it's effects.
-
-                # First lets set the actual read_permission for this component.
-                if provider.permission is None and provider.read_permission is None:
-                    read_permission = None
-                elif provider.permission is None and provider.read_permission is not None:
-                    read_permission = provider.read_permission
-                elif provider.permission is not None and provider.read_permission is None:
-                    read_permission = provider.permission
-                elif provider.permission is not None and provider.read_permission is not None:
-                    read_permission = provider.read_permission
-
-                # Same thing for write_permission.
-                if provider.permission is None and provider.write_permission is None:
-                    write_permission = None
-                elif provider.permission is None and provider.write_permission is not None:
-                    write_permission = provider.write_permission
-                elif provider.permission is not None and provider.write_permission is None:
-                    write_permission = provider.permission
-                elif provider.permission is not None and provider.write_permission is not None:
-                    write_permission = provider.write_permission
-
-                # Lets get the protection levels
-                if read_permission is not None:
-                    read_protection_level = read_permission.protection_level
-                if write_permission is not None:
-                    write_protection_level = write_permission.protection_level
-
-                # If both are NOT in the group below, continue. We cant do anything.
-                if (read_protection_level not in [None, 'dangerous', 'normal', 'development']
-                    and write_protection_level not in [None, 'dangerous', 'normal', 'development']):
-                   continue
-
-                # Is this even enabled?
-                if enabled is False: continue
-
-                # Is it explicitly set to false?
-                if exported is False: continue
-
-                # How about an explicit export?
-                elif exported is True:
-                    if csv_mode: csvProvider(config['provider_csv_f'], app_name,
-                                             provider, "Explicit Export")
-                    else:
-                        print "   [EXP] Explicit export flag!"
-                        printProvider(provider)
-
-                # Ok, this is the weird case.
-                elif exported is None:
-                    # check the min and targets.
-                    if target_sdk_version <= 16:
-
-                        # But we need to check the permissions.
-                        # TODO
-
-                        if csv_mode: csvProvider(config['provider_csv_f'], app_name,
-                                                 provider, "Bad SDK Version")
-                        else:
-                            print "   [EXP] Implicit export based on *_sdk_version!"
-                            printProvider(provider)
-
-
-    if FILTER_RECEIVERS in filter:
-
-        # If it is an AOSP app, get the activities.
-        if is_aosp:
-            aosp_receivers = map(lambda rec: rec.name,
-                            aosp_appdb.getAppReceivers(aosp_app._id))
-
-        print "[+] Printing exposed receivers..."
-        # Let's get exposed receivers.
-        for receiver in appdb.getAppReceivers(application_id):
-
-            # If 'new_only' is used, we have to do some logic.
-            # However, we only need to do logic if 'new_only'
-            # AND it is an AOSP application.
-            if new_only and is_aosp:
-                if receiver.name in aosp_receivers: continue
-
-            enabled = receiver.enabled
-            exported = receiver.exported
-
-            intent_filters = appdb.getIntentFilters(receiver)
-
-            # First, if we're debuggable, the world is our oyster.
-            if debuggable:
-                print "   [EXP] Receiver exported due to debuggable flag!"
-                printReceiver(appdb, receiver, intent_filters)
-            else:
-                # Debuggable isnt set.
-                # First, lets make sure there is a permission that we can work with. No sig|sys.
-                if receiver.permission is not None:
-
-                    protection_level = receiver.permission.protection_level
-                    if protection_level not in['dangerous', 'normal', 'development']:
-                        continue
-
-                # Is this even enabled?
-                if enabled is False: continue
-
-                # Is it explicitly set to false?
-                if exported is False: continue
-
-                # How about an explicit export?
-                elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    printReceiver(appdb, receiver, intent_filters)
-
-                # Ok, this is the weird case.
-                elif exported is None and len(intent_filters) != 0:
-                    print "   [EXP] Implicit export by intent-filter!"
-                    printReceiver(appdb, receiver, intent_filters)
-
-    return 0
-
-# End Exposed Functionality
-
-def doDiff(appdb, aosp_appdb, app, config):
-
-    filter = config['filter']
-
-    app_name = app.project_name
-
-    log.i(TAG, "app_name : %s" % app_name)
-
-    application_id = app._id
-
-    aosp_app = aosp_appdb.getAppByName(app_name)
-
-    ############# Parsing ##############
-    if FILTER_ACTIVITIES in filter:
-
-        aosp_activities = map(lambda act: act.name,
-                        aosp_appdb.getAppActivities(aosp_app._id))
-
-        print "[+] Printing added activities..."
-        # Let's get new activities.
-        for activity in appdb.getAppActivities(application_id):
-
-            if activity.name in aosp_activities: continue
-
-            intent_filters = appdb.getIntentFilters(activity)
-            printActivity(appdb, activity, intent_filters)
-
-    if FILTER_SERVICES in filter:
-
-        aosp_services = map(lambda serv: serv.name,
-                        aosp_appdb.getAppServices(aosp_app._id))
-
-        print "[+] Printing added services..."
-        # Let's get new services.
-        for service in appdb.getAppServices(application_id):
-
-            if service.name in aosp_services: continue
-
-            intent_filters = appdb.getIntentFilters(service)
-            printService(appdb, service, intent_filters)
-
-    if FILTER_PROVIDERS in filter:
-
-        aosp_providers = map(lambda pro: pro.name,
-                        aosp_appdb.getAppProviders(aosp_app._id))
-
-        print "[+] Printing added providers..."
-        # Let's get new providers.
-        for provider in appdb.getAppProviders(application_id):
-
-            if provider.name in aosp_providers: continue
-
-            printProvider(provider)
-
-    if FILTER_RECEIVERS in filter:
-
-        aosp_receivers = map(lambda rec: rec.name,
-                        aosp_appdb.getAppReceivers(aosp_app._id))
-
-        print "[+] Printing added receivers..."
-        # Let's get new receivers.
-        for receiver in appdb.getAppReceivers(application_id):
-
-            if receiver.name in aosp_receivers: continue
-
-            intent_filters = appdb.getIntentFilters(receiver)
-            printReceiver(appdb, receiver, intent_filters)
-
-    if FILTER_PERMISSIONS in filter:
-
-        aosp_permissions = map(lambda perm: perm.name,
-                        aosp_appdb.getAppPermissions(aosp_app._id))
-
-        print "[+] New Permission Definitions:"
-        for permission in appdb.getAppPermissions(application_id):
-
-            if permission.name in aosp_permissions: continue
-
-            print "   %s" % permission
-
-
-    if FILTER_USES_PERMISSIONS in filter:
-
-        aosp_uses_permissions = map(lambda perm: perm.name,
-                        aosp_appdb.getAppUsesPermissions(aosp_app._id))
-
-        print "[+] New Uses Permissions:"
-        for uses_permission in appdb.getAppUsesPermissions(application_id):
-
-            if uses_permission.name in aosp_uses_permissions: continue
-
-            print "   %s" % uses_permission
-
-    return 0
-# Commands #
-def cmdOatExtract(args):
-
-    global PROJECT_DB
-
-    parser = ArgumentParser(prog='sysappdb oatextract',
-                            description='Extract any OAT files from DEX and do renaming.')
-
-    args = parser.parse_args()
-
-    vm_type = dtfconfig.get_prop("Info", "vmtype")
-    if not vm_type[:3] == "ART":
-        print "[ERROR] This is not a ART device, this step is not required."
-        return -1
-
-    system_apps_dir = dtfconfig.get_prop("Local", "system-apps-dir")
-
-    if not isdir(system_apps_dir):
-        print "[ERROR] The system application dir does not exist. Make sure you pull all the apps down first!"
-        return -2
-
-    appdb = AppDb.AppDb(PROJECT_DB)
-
-    for app in appdb.getApps(dont_resolve=True):
-
-        project_name = app.project_name
-
-        log.i(TAG, "Doing project '%s'..." % project_name)
-
-        odex_name = "%s/%s.odex" % (system_apps_dir, project_name)
-
-        if isfile(odex_name) and getFileType(odex_name) == TYPE_ELF:
-            art_name = "%s/%s.art" % (system_apps_dir, project_name)
-            log.d(TAG, "Moving ODEX to ART...")
-            move(odex_name, art_name)
-
-            log.d(TAG, "Extracting DEX from ART file...")
-
-            oat_cmd = ""
-            if vm_type == "ART-Samsung":
-                log.d(TAG, "Samsung mode enabled")
-                oat_cmd += "--samsung-mode "
-
-            oat_cmd += ("--base-name %s --out-dir %s %s" %
-                                  (project_name, system_apps_dir, art_name))
-
-            out, err, rtn = launch_module("oatdextract", oat_cmd)
-
-            if rtn != 0:
-                print out
-                log.e(TAG, "Error extracting DEX from OAT file: %d" % rtn)
-            
-def cmdPull(args):
-
-    global PROJECT_DB
-
-    parser = ArgumentParser(prog='sysappdb pull',
-                            description='Pull system applications from the device.')
-    parser.add_argument('--no-md5', dest='no_md5', action='store_const', const=True, default=False,
-                        help='Don\'t run MD5 to save time.')
-    parser.add_argument('--blacklist-file', metavar="blacklist_file", type=str, default=None,
-                        help='Supply a custom blacklist file.')
-    parser.add_argument('--threads', metavar="threads", type=int, default=5,
-                        help='The number of pull threads to use (5 is default).')
-
-    args = parser.parse_args()
-
-    threads = args.threads
-    no_md5 = args.no_md5
-    blacklist_file = args.blacklist_file
-
-    pull_queue = Queue()
-    db_queue = Queue()
-    apps = list()
-    blacklist = list()
-
-    if isfile(PROJECT_DB):
-        inpt = raw_input("[WARNING] A system application database already exists.  "
-                         "Do you want to recreate the DB? [y/N] ").lower()
-        if inpt != 'y':
-            print "Exiting."
-            exit(0)
-
-    # Parse the blacklist file
-    if blacklist_file != None:
-        try:
-            f = open(blacklist_file, 'r')
-            try:
-                for line in f.read().split("\n"):
-                    blacklist.append(line)
-            finally:
-                f.close()
-        except IOError:
-            print "[ERROR] Blacklist file supplied does not exist! Exiting."
-            exit(-4)
-    else:
-        blacklist = DEFAULT_BLACKLIST
-
-    adb = DtfAdb()
-    adb.wait_for_device()
-    adb.shell_command("pm list packages -f")
-
-    log.d(TAG, "Building package list...")
-    for line in adb.get_output():
-        if line == "": continue
-        line = line.replace("package:",'')
-
-        try:
-            package_name, project_name = line.split('=')
-        except ValueError:
-            # Something is wrong with this line.
-            log.w(TAG, "Malformed line: '%s'. Skipping!" % line)
-            continue
-
-        if project_name in blacklist:
-            log.d(TAG, "skipping \'%s\' due to blacklist." % project_name)
-            continue
-        else:
-            log.d(TAG, "Appending project \'%s\' to list." % project_name)
-            apps.append((package_name, project_name))
-
-    # Create the database
-    con = sqlite3.connect(PROJECT_DB)
-    if not dropTables(con):
-        print "[ERROR] Error dropping tables. Exiting."
-        exit(-1)
-
-    if not createTables(con):
-        print "[ERROR] Database creation failed. Exiting"
-        exit(-2)
-
-    # Get our PullThreads ready.
-    log.i(TAG, "Creating pull threads (%d)..." % threads)
-    for i in range(threads):
-        t = PullThread(pull_queue, db_queue, no_md5)
-        t.setDaemon(True)
-        t.start()
-
-    # Get our DbThread ready.
-    log.i(TAG, "Creating db thread...")
-    t = DbThread(db_queue)
-    t.setDaemon(True)
-    t.start()
-
-    # Get the PullThreads going!
-    start = time.time()
-    for app in apps:
-        pull_queue.put(app)
-
-    # Wait for everyone to finish.
-    log.i(TAG, "Waiting on PullThreads")
-    pull_queue.join()
-    log.i(TAG, "Waiting on DbThreads")
-    db_queue.join()
-
-    log.i(TAG, "All worker threads have finished! Elapsed Time: %s"% (time.time() - start))
-
-    # Set the property
-    dtfconfig.set_prop("Local", "system-apps-dir", SYSTEM_APPS_DIR)
-
-    return 0
-
-def cmdUpdate(args):
-    pass
-
-def cmdUnpack(args):
-
-    global PROJECT_DB
-    global AOSP_DB
-
-    parser = ArgumentParser(prog='sysappdb unpackall',
-                            description='Unpack all system applications pulled from the device.')
-    parser.add_argument('--aosp-mode', dest='aosp_mode', action='store_const', const=True, default=False,
-                        help='Treats all applications as part of AOSP.')
-    parser.add_argument('--report', dest='report', action='store_const', const=True, default=False,
-                        help='Prints unpack statistics after unpacking.')
-    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?', default=None,
-                        help='Use the specified AOSP database.')
-
-    args = parser.parse_args()
-
-    rtn = 0
-    aosp_mode = args.aosp_mode
-    report_mode = args.report
-
-    # TODO check for the decoded dirs, force user to accept. the destroy data.
-    if isdir(DECODED_AOSP_DIR) or isdir(DECODED_OEM_DIR):
-        print "[ERROR] Decoded directories already exist. Unable to continue."
-        return -1
-
-    if report_mode:
-        global unpack_report
-        unpack_report = UnpackReport()
-
-    appdb = AppDb.AppDb(PROJECT_DB)
-
-    # In AOSP mode, we don't need worry about AOSP data
-    if aosp_mode:
-        mkdir(DECODED_AOSP_DIR)
-
-        for app in appdb.getApps(dont_resolve=True):
-            
-            log.d(TAG, "Unpacking \'%s\'..." % app.project_name)
-            unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, app.project_name)
-            rtn |= unpackApp(app, appdb, unpack_dir, report_mode=report_mode)
-
-    #Normal mode
-    else:
-        # First check if we no arg is set
-        if args.aosp_db == None:
-
-            prop_aosp_db = getAospDirProp()
-            if prop_aosp_db != None:
-                aosp_db = prop_aosp_db
-                if not isfile(aosp_db):
-                    print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                    return -3
-            else:
-                aosp_db = AOSP_DB
-
-                # Make sure that the AOSP_DB actually exists.
-                if not AppDb.isAOSPDataInstalled():
-                    print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                    return -2
-        else:
-            aosp_db = args.aosp_db
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-
-        log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
-
-        mkdir(DECODED_AOSP_DIR)
-        mkdir(DECODED_OEM_DIR)
-
-        aosp_appdb = AppDb.AppDb(aosp_db)
-        aosp_apps = [ i.project_name for i in aosp_appdb.getApps() ]
-
-        for app in appdb.getApps(dont_resolve=True):
-            project_name = app.project_name
-
-            log.d(TAG, "Unpacking \'%s\'..." % project_name)
-            # AOSP App
-            if project_name in aosp_apps:
-                unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, project_name)
-                rtn |= unpackApp(app, appdb, unpack_dir, report_mode=report_mode)
-            # OEM App
-            else:
-                unpack_dir = "%s/%s" % (DECODED_OEM_DIR, project_name)
-                rtn |= unpackApp(app, appdb, unpack_dir, report_mode=report_mode)
-
-    if report_mode:
-        log.i(TAG, "Printing Unpack Statistics")
-        log.i_ml(TAG, unpack_report.getReport())
-
-        return rtn
-
-def cmdProcess(args):
-
-    global PROJECT_DB
-
-    parser = ArgumentParser(prog='sysappdb process',
-                        description='Process all application components.')
-    parser.add_argument('--save-missing', dest='save_missing',
-                        action='store_const', const=True, default=False,
-                        help='Saves a missing permission report.')
-
-    args = parser.parse_args()
-    save_missing = args.save_missing
-
-    rtn = 0
-
-    # For saving missing permissions, we use the format:
-    # application, component_type, component_name, permission_used
-    if save_missing:
-        global missing_perm_list
-        missing_perm_list = list()
-
-    # First, we are going to iterate over the apps we have in the system.db
-    appdb = AppDb.AppDb(PROJECT_DB)
-
-    # Drop all the old data
-    appdb.dropTables()
-
-    # Create new ones!
-    if appdb.createTables() != 0:
-        log.e(TAG, "Database creation failed, exiting!")
-        return -1
-
-    # First pass adds <permission-groups>, <protected-broadcasts>
-    log.i(TAG, "Processing '<permission-groups>' and '<protected-broadcasts>...")
-
-    for app in appdb.getApps():
-
-        project_name = app.project_name
-        decoded_path = app.decoded_path
-        project_id = app._id
-
-        log.d(TAG, "Doing project %s..." % (project_name))
-
-        if decoded_path == None:
-            log.e(TAG, "No decoded path for '%s', this package was not decoded successfully. SKIPPING." % project_name)
-            continue
-
-        manifest_path = decoded_path+"/AndroidManifest.xml"
-
-        if not isfile(manifest_path):
-            log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
-            continue
-
-        log.d(TAG, "Parsing <permission-group> tags for %s" % project_name)
-        parsePermissionGroups(appdb, project_id, manifest_path)
-
-        log.d(TAG, "Parsing <protected-broadcast> tags for %s" % project_name)
-        parseProtectedBroadcasts(appdb, project_id, manifest_path)
-    ############################################################################
-
-
-    # Second pass does <permissions>
-    log.i(TAG, "Processing all '<permissions>' tags...")
-
-    for app in appdb.getApps():
-
-        project_name = app.project_name
-        decoded_path = app.decoded_path
-        project_id = app._id
-
-        log.d(TAG, "Doing project %s..." % (project_name))
-
-        if decoded_path == None:
-            log.e(TAG, "No project path for \"%s\", this package was not decoded successfully. SKIPPING." % project_name)
-            continue
-
-        manifest_path = decoded_path+"/AndroidManifest.xml"
-
-        if not isfile(manifest_path):
-            log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
-            continue
-
-        log.d(TAG, "Parsing <permission> tags for %s" % project_name)
-        parsePermissions(appdb, project_id, manifest_path)
-
-    ############################################################################
-
-    # Final pass does the components, <uses-permission>, shared libs, sigs
-    log.i(TAG, "Processing components, '<uses-permission>', and shared libraries...")
-
-    for app in appdb.getApps():
-
-        project_name = app.project_name
-        decoded_path = app.decoded_path
-        project_id = app._id
-
-        log.d(TAG, "Doing project %s..." % (project_name))
-
-        if decoded_path == None:
-            log.e(TAG, "No project path for \"%s\", this package was not decoded successfully. SKIPPING." % project_name)
-            continue
-
-        manifest_path = decoded_path+"/AndroidManifest.xml"
-
-        if not isfile(manifest_path):
-            log.w(TAG, "Skipping processing of app '%s' because manifest does not exist!" % project_name)
-            continue
-
-        log.d(TAG, "Parsing <uses-permission> tags for %s" % project_name)
-        parseAppUsesPermissions(appdb, project_id, manifest_path)
-
-        log.d(TAG, "Looking for permission attribute for application %s..." % project_name)
-        parseAppPermission(appdb, project_id, manifest_path)
-
-        log.d(TAG, "Parsing <activity> tags for %s" % project_name)
-        parseActivities(appdb, project_id, manifest_path, save_missing)
-
-        log.d(TAG, "Parsing <service> tags for %s" % project_name)
-        parseServices(appdb, project_id, manifest_path, save_missing)
-
-        log.d(TAG, "Parsing <provider> tags for %s" % project_name)
-        parseProviders(appdb, project_id, manifest_path, save_missing)
-
-        log.d(TAG, "Parsing <reciever> tags for %s" % project_name)
-        parseReceivers(appdb, project_id, manifest_path, save_missing)
-
-        # Now look for the native code.
-        log.d(TAG, "Looking for shared libraries.")
-        libs_dir = decoded_path+"/lib/"
-        parseShared(appdb, project_id, libs_dir)
-
-        # Do the signatures.
-        parseSignatures(appdb, project_id, project_name)
-
-        # Do UserID related tasks.
-        parseSharedUser(appdb, project_id, manifest_path)
-
-    # Write it all out
-    appdb.commit()
-
-    # If we are generating the missing perm report, do it here.
-    if save_missing:
-        log.i(TAG, "Saving missing permission report...")
-
-        report_file_path = ("%s/%s" %
-                    (dtfconfig.get_prop("Local", "reports-dir"),
-                     'missing_permissions.csv'))
-
-        report_f = open(report_file_path, 'w')
-
-        for line in missing_perm_list:
-            report_f.write(','.join(line)+"\n")
-
-        report_f.close()
-
-    return 0
-
-def cmdDiff(args):
-
-    global AOSP_DB
-    global PROJECT_DB
-
-    DEFAULT_FILTERS = ['activities','services','providers','receivers',
-                       'permissions', 'uses-permissions']
-
-    config = dict()
-
-    parser = ArgumentParser(prog='sysappdb exposed',
-                    description='Get differences between an application.')
-    parser.add_argument('app_name', metavar="app_name", type=str,
-                    nargs='?', default=None, help='The application to check.')
-    parser.add_argument('--filter', dest='filter', default=None,
-                    help='Filter by component type(comma seperated).')
-    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?', 
-                    default=None, help='Use the specified AOSP database.')
-
-    args = parser.parse_args()
-
-    app_name = args.app_name
-    filter = args.filter
-
-    if app_name is None:
-        print "You need to specify an application name! Exiting."
-        return -1
-
-    # No argument provided.  First check if prop is set.
-    if args.aosp_db == None:
-
-        prop_aosp_db = getAospDirProp()
-        if prop_aosp_db != None:
-            aosp_db = prop_aosp_db
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-        else:
-            aosp_db = AOSP_DB
-
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
-    else:
-        aosp_db = args.aosp_db
-        if not isfile(aosp_db):
-            print "[ERROR] File '%s' not found. Exiting." % aosp_db
-            return -3
-
-    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
-
-    if filter is None:
-        filter = DEFAULT_FILTERS
-    else:
-        filter = filter.split(',')
-
-        # Validate filter
-        for f in filter:
-            if f not in DEFAULT_FILTERS:
-                print "[ERROR] Invalid filter option: %s" % f
-                return -5
-
-    config['filter'] = filter
-
-    # Get a handle to our DBs
-    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
-    aosp_appdb = AppDb.AppDb(aosp_db)
-
-    # First, check if this is even a AOSP app. Error otherwise.
-    aosp_app = aosp_appdb.getAppByName(app_name)
-
-    if aosp_app == None:
-        print "[ERROR] This doesn't appear to be an AOSP app! Exiting."
-        return -3
-
-    app = appdb.getAppByName(app_name)
-    if app is None:
-        print ("[ERROR] Unable to find application '%s' in DB. Exiting."
-                                                % app_name)
-        return -1
-
-    return doDiff(appdb, aosp_appdb, app, config)
-
-def cmdDump(args):
-
-    global AOSP_DB
-    global PROJECT_DB
-
-    DEFAULT_FILTERS = ['activities','services','providers','receivers',
-                       'permissions', 'uses-permissions']
-    config = dict()
-
-    parser = ArgumentParser(prog='sysappdb dump',
-                            description='Dump information about an application.')
-    parser.add_argument('app_name', metavar="app_name", type=str, nargs='?', default=None,
-                        help='The application to check.')
-    parser.add_argument('--filter', dest='filter', default=None,
-                        help='Filter by component type(comma seperated).')
-
-    args = parser.parse_args()
-
-    app_name = args.app_name
-    filter = args.filter
-
-    if app_name is None:
-        print "You need to specify an application name. Exiting."
-        exit(-1)
-
-    if filter is None:
-        filter = DEFAULT_FILTERS
-    else:
-        filter = filter.split(',')
-
-        # Validate filter
-        for f in filter:
-            if f not in DEFAULT_FILTERS:
-                print "[ERROR] Invalid filter option: %s" % f
-                exit(-7)
-
-    config['filter'] = filter
-
-    # Get a handle to our db
-    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
-
-    app = appdb.getAppByName(app_name)
-
-    if app is None:
-        print "[ERROR] Unable to find application '%s' in DB. Exiting." % app_name
-        return -1
-
-    doDump(appdb, app, config)
-
-def cmdExposed(args):
-
-    global AOSP_DB
-    global PROJECT_DB
-
-    DEFAULT_FILTERS = ['activities','services','providers','receivers']
-
-    config = dict()
-
-    parser = ArgumentParser(prog='sysappdb exposed',
-                    description='Get exposed components of an application.')
-    parser.add_argument('app_name', metavar="app_name", type=str,
-                    nargs='?', default=None, help='The application to check.')
-    parser.add_argument('--filter', dest='filter', default=None,
-                    help='Filter by component type(comma seperated).')
-    parser.add_argument('--all', dest='all', action='store_const',
-                    const=True, default=False,
-                    help='Run against all non-AOSP applications.')
-    parser.add_argument('--csv', dest='csv_name', default=None,
-                    help='Output data to CSV.')
-    parser.add_argument('--no-google', dest='no_google', action='store_const',
-                    const=True, default=False,
-                    help='Omit Google packages based on package name.')
-    parser.add_argument('--new-only', dest='new_only', action='store_const',
-                    const=True, default=False,
-                    help='Omit Google packages based on package name.')
-    parser.add_argument('--aosp-db', metavar="aosp_db", type=str, nargs='?',
-                    default=None, help='Use the specified AOSP database.')
-
-    args = parser.parse_args()
-
-    app_name = args.app_name
-    all_mode = args.all
-
-    filter = args.filter
-
-    csv_name_base = args.csv_name
-
-    if not all_mode and app_name is None:
-        print "You need to specify an application name (or --all)! Try -h for more information. Exiting."
-        exit(-1)
-
-    # No argument provided.  First check if prop is set.
-    if args.aosp_db == None:
-
-        prop_aosp_db = getAospDirProp()
-        if prop_aosp_db != None:
-            aosp_db = prop_aosp_db
-            if not isfile(aosp_db):
-                print "[ERROR] File '%s' not found. Exiting." % aosp_db
-                return -3
-        else:
-            aosp_db = AOSP_DB
-
-            # Make sure that the AOSP_DB actually exists.
-            if not AppDb.isAOSPDataInstalled():
-                print "[ERROR] AOSP data for this API level is not installed. Please confirm it is!"
-                return -2
-    else:
-        aosp_db = args.aosp_db
-        if not isfile(aosp_db):
-            print "[ERROR] File '%s' not found. Exiting." % aosp_db
-            return -3
-
-    log.d(TAG, "Using AOSP DB '%s'" % aosp_db)
-
-    if filter is None:
-        filter = DEFAULT_FILTERS
-    else:
-        filter = filter.split(',')
-
-        # Validate filter
-        for f in filter:
-            if f not in DEFAULT_FILTERS:
-                print "[ERROR] Invalid filter option: %s" % f
-                exit(-7)
-
-    config['filter'] = filter
-
-    if csv_name_base != None:
-        config['csv_mode'] = True
-
-        if FILTER_ACTIVITIES in filter:
-            config['activity_csv_f'] = initializeActivityCsv(csv_name_base)
-        if FILTER_SERVICES in filter:
-            config['service_csv_f'] = initializeServiceCsv(csv_name_base)
-        if FILTER_PROVIDERS in filter:
-            config['provider_csv_f'] = initializeProviderCsv(csv_name_base)
-        if FILTER_RECEIVERS in filter:
-            config['receiver_csv_f'] = initializeReceiverCsv(csv_name_base)
-    else:
-        config['csv_mode'] = False
-
-    config['no_google'] = args.no_google
-    config['new_only'] = args.new_only
-
-    # Get a handle to our DBs
-    appdb = AppDb.AppDb(PROJECT_DB, safe=True)
-    aosp_appdb = AppDb.AppDb(aosp_db)
-
-    if all_mode:
-
-        rtn = 0
-
-        for app in appdb.getApps():
-            rtn |= doExposed(appdb, aosp_appdb, app, config)
-
-        return rtn
-    else:
-        app = appdb.getAppByName(app_name)
-
-        if app is None:
-            print ("[ERROR] Unable to find application '%s' in DB. Exiting."
-                                                    % app_name)
-            return -1
-
-        return doExposed(appdb, aosp_appdb, app, config)
-
-def main(argv):
-
-    global PROJECT_DB
-    global AOSP_DB
-
-    PROJECT_DB = dtfconfig.get_prop("Local", "db-dir") + "/sysapps.db"
-    AOSP_DB = "%s/aosp-data-%s/dbs/sysapps.db" % (DTF_PACKAGES,
-                                               dtfconfig.get_prop("Info", "sdk"))
-
-    # We can pop the program name off
-    argv.pop(0)
-
-    # Get the mode
-    mode = argv[0]
-
-    if mode == 'diff':
-        return cmdDiff(argv)
-    elif mode == 'dump':
-        return cmdDump(argv)
-    elif mode == 'oatextract':
-        return cmdOatExtract(argv)
-    elif mode == "pull":
-        return cmdPull(argv)
-    elif mode == "update":
-        return cmdUpdate(argv)
-    elif mode == "unpack":
-        return cmdUnpack(argv)
-    elif mode == "process":
-        return cmdProcess(argv)
-    elif mode == "exposed":
-        return cmdExposed(argv)
-    else:
-        return usage()
-
-if __name__ == '__main__':
-
-    if len(argv) < 2:
-        exit(usage())
-    else:
-        exit(main(argv))

@@ -26,7 +26,6 @@ from os import listdir
 
 TAG = 'classsearch'
 
-
 class classsearch(Module):
 
     """Module class for searching DEX databses"""
@@ -49,6 +48,7 @@ class classsearch(Module):
         field_contains = config['field_contains']
         file_mode = config['file_mode']
         exact = config['exact']
+        mode = config['mode']
 
         method_search = False
 
@@ -100,16 +100,27 @@ class classsearch(Module):
                 print "[+] In database: %s" % (db_name)
             for n_class in class_list:
                 if file_mode:
+                    if mode == 'frameworks':
+                        dex_db_dir = '.dbs/frameworkdexdbs/'
+                        tmp_fw_file = db_name.replace(dex_db_dir, "")
+                        framework_file = tmp_fw_file.replace(".db", "")
 
-                    dex_db_dir = '.dbs/frameworkdexdbs/'
-                    tmp_fw_file = db_name.replace(dex_db_dir, "")
-                    framework_file = tmp_fw_file.replace(".db", "")
-
-                    unframework_dir = prop.get_prop("Local", "unframework-dir")
-                    dotted_path = n_class.replace(".", "/")
-
-                    print ("%s/%s/%s.smali"
+                        unframework_dir = prop.get_prop("Local",
+                                                        "unframework-dir")
+                        dotted_path = n_class.replace(".", "/")
+                        file_name = ("%s/%s/%s.smali"
                             % (unframework_dir, framework_file, dotted_path))
+
+                    else:
+                        dex_db_dir = '.dbs/appdexdbs/'
+                        tmp_app_file = db_name.replace(dex_db_dir, "")
+                        app_name = tmp_app_file.replace(".db", "")
+                        dotted_path = n_class.replace(".", "/")
+                        file_name = ("decoded-*/%s/%s.smali"
+                            % (app_name, dotted_path))
+
+                    print file_name
+
                 else:
                     print "\t%s" % (n_class)
                 if show_fields:
@@ -193,7 +204,7 @@ class classsearch(Module):
         db_dir = prop.get_prop("Local", "db-dir")
 
         if search_frameworks:
-            # For file in frameworkdexdbs
+            config['mode'] = 'frameworks'
             try:
                 for db_file in listdir(db_dir + "/frameworkdexdbs/"):
                     self.search_db(db_dir + "/frameworkdexdbs/" + db_file,
@@ -203,7 +214,7 @@ class classsearch(Module):
                 return -4
 
         if search_apps:
-            # For file in appdexdbs
+            config['mode'] = 'apps'
             try:
                 for db_file in listdir(db_dir + "/appdexdbs/"):
                     self.search_db(db_dir + "/appdexdbs/" + db_file, config)

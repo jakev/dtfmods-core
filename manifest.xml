@@ -217,6 +217,15 @@
           localName="modules/platformdiff" />
 
     <Item type="module"
+          name="resetserial"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Reset the serial to the currently conencted device."
+          localName="modules/resetserial" />
+
+    <Item type="module"
           name="process-all"
           majorVersion="1"
           minorVersion="0"
