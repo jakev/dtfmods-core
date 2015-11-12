@@ -298,6 +298,15 @@
           localName="modules/userapps" />
 
     <Item type="module"
+          name="userdb"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Manipulate Linux user's DB."
+          localName="modules/userdb" />
+
+    <Item type="module"
           name="usesperm"
           majorVersion="1"
           minorVersion="0"
@@ -333,6 +342,15 @@
           health="stable"
           author="www.github.com/eliben"
           localName="libraries/PyElfTools" />
+
+    <Item type="library"
+          name="UserDb"
+          about="User Database API"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="libraries/UserDb" />
 
    <!-- Binary Content -->
     <Item type="binary"
@@ -399,4 +417,13 @@
           health="stable"
           author="Jake Valletta (jakev)"
           localName="packages/IntentSender" />
+
+    <Item type="package"
+          name="MakeUserDb"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="packages/MakeUserDb" />
+</Items>
 </Items>

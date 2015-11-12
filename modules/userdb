@@ -1,0 +1,253 @@
+#!/usr/bin/env python
+
+# DTF Core Content
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""Linux Users Manipulation"""
+
+from argparse import ArgumentParser
+
+import dtf.logging as log
+import dtf.properties as prop
+
+from dtf.adb import DtfAdb
+from dtf.constants import DTF_CLIENT
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
+
+import UserDb
+
+import os
+import os.path
+
+TAG = "userdb"
+
+USERS_DB_NAME = 'users.db'
+DEFAULT_UPLOAD_PATH = '/mnt/sdcard'
+
+class userdb(Module):
+
+    """Module class for manipulating user DB"""
+
+    about = "Manipulate Linux user's DB."
+    author = 'Jake Valletta (jakev)'
+    health = 'beta'
+    name = 'userdb'
+    version = '1.0'
+
+    def usage(self):
+
+        """Usage message"""
+
+        print "userdb v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create     Create the user database."
+        print "    diff       Diff user DB against another project."
+        print "    list       Display all Linux user information."
+        print ""
+
+        return 0
+
+    @classmethod
+    def determine_diff_database(cls, args):
+
+        """Determine which diffing userdb to use"""
+
+        args_diff_dir = args.diff_dir
+
+        # First check if we no arg is set
+        if args_diff_dir is None:
+
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
+
+            if prop_diff_dir is not None:
+                diff_users_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  USERS_DB_NAME)
+
+                if not os.path.isfile(diff_users_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_users_db)
+                    return None
+                else:
+                    return diff_users_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not UserDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_users_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          USERS_DB_NAME))
+
+                return diff_users_db
+
+        # It is set, use it.
+        else:
+            diff_users_db = "%s/.dbs/%s" % (args_diff_dir,
+                                               USERS_DB_NAME)
+
+            if not os.path.isfile(diff_users_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_users_db)
+                return None
+            else:
+                return diff_users_db
+
+    @classmethod
+    def do_diff(cls, local_db, diff_db):
+
+        """Do actual diffing"""
+
+        diff_users = [user['name'] for user in diff_db.getUsers()]
+
+        print " User Id | Hex Id |      User Name"
+
+        for user in local_db.getUsers():
+
+            user_id = int(user['id'])
+            user_name = user['name']
+
+            if user_name in diff_users:
+                line = "    "
+            else:
+                line = "[+] "
+            print "%s%4d | %6s |%15s" % (line, user_id, hex(user_id), user_name)
+
+        return 0
+
+    @classmethod
+    def cmd_create(cls):
+
+        """Command to create DB"""
+
+        log.i(TAG, "Creating users.db...")
+
+        sdk = prop.get_prop('Info', 'sdk')
+        db_dir = prop.get_prop('Local', 'db-dir')
+
+        local_path = ''
+        if int(sdk) > 15:
+            local_path = "%s/MakeUserDb/makeuserdb-arm-jb" % DTF_PACKAGES_DIR
+        else:
+            local_path = "%s/MakeUserDb/makeuserdb-arm-ics" % DTF_PACKAGES_DIR
+
+        dtf_data_dir = "/data/data/%s" % DTF_CLIENT
+        file_path = "%s/files/makeuserdb" % dtf_data_dir
+        out_file_path = "%s/%s" % (dtf_data_dir, USERS_DB_NAME)
+        local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir, USERS_DB_NAME)
+
+        adb = DtfAdb()
+        adb.wait_for_device()
+
+        # Upload file
+        adb.push(local_path, file_path)
+
+        adb.run_as(DTF_CLIENT, 'chmod 775 %s' % file_path)
+        adb.run_as(DTF_CLIENT, file_path)
+
+        if not adb.is_file(out_file_path):
+            log.e(TAG, "Error creating users.db!")
+            return -1
+
+        adb.pull(out_file_path, local=local_users_db_name)
+
+        # cleanup
+        adb.run_as(DTF_CLIENT, "rm %s" % file_path)
+        adb.run_as(DTF_CLIENT, "rm %s" % out_file_path)
+
+        if not os.path.isfile(local_users_db_name):
+            log.e(TAG, "User DB creation was not successful!")
+            return -1
+
+        log.i(TAG, "User DB creation completed!")
+        return 0
+
+    def cmd_diff(self, args):
+
+        """Command to diff"""
+
+        parser = ArgumentParser(prog='userdb diff',
+                            description='Compare Linux user(s).')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                            default=None,
+                            help='Diff against data in dir.')
+        parser.add_argument('--new-only', dest='new_only',
+                            action='store_const', const=True, default=False,
+                            help='Print only new users.')
+
+        parsed_args = parser.parse_args(args)
+
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir, USERS_DB_NAME)
+
+        if not os.path.isfile(local_users_db_name):
+            log.e(TAG, "Local users DB doesn't exist, did you create it?")
+            return -1
+
+        diff_db = self.determine_diff_database(parsed_args)
+        if diff_db is None:
+            log.e(TAG, "Unable to determine diff DB!")
+            return -2
+
+        local_users_db = UserDb.UserDb(local_users_db_name, safe=True)
+        diff_users_db = UserDb.UserDb(diff_db)
+
+        return self.do_diff(local_users_db, diff_users_db)
+
+
+    def cmd_list(self):
+
+        """Command to list DB"""
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir, USERS_DB_NAME)
+
+        users_db = UserDb.UserDb(local_users_db_name, safe=True)
+
+        print "User Id | Hex Id |      User Name"
+
+        for user in users_db.getUsers():
+
+            user_id = int(user['id'])
+            user_name = user['name']
+            print "%7d | %6s |%15s" % (user_id, hex(user_id), user_name)
+
+
+    def execute(self, args):
+
+        """Main module execution"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'diff':
+            return self.cmd_diff(args)
+        elif mode == 'list':
+            return self.cmd_list()
+        elif mode == 'create':
+            return self.cmd_create()
+        else:
+            return self.usage()
+
