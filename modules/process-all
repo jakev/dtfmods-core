@@ -19,8 +19,8 @@
 #@Health: beta
 #@Version: 1.0
 
-. dtf_core.sh
-. dtf_log.sh
+. $DTF_CORE
+. $DTF_LOG
 
 echo "[WARNING] This script is VERY beta. Things will likely not work perfectly!!!"
 echo "You will need to provide user input at various points."
@@ -67,6 +67,10 @@ dtf frameworkdb unpack --report
 # Devices
 log_i "Generating device database..."
 dtf devdb create
+
+# Users
+log_i "Generating user database..."
+dtf userdb create
 
 # DEX DBs
 log_i "Generating DEX databases.  This will take some time..."

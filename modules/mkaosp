@@ -19,13 +19,13 @@
 #@Health: stable
 #@Version: 1.1
 
-. dtf_core.sh
-. dtf_log.sh
+. $DTF_CORE
+. $DTF_LOG
 
 log_i "Creating AOSP data..."
 
 # Get Data
-dtf sysappdb pull --threads 10
+dtf sysappdb pull --threads 15
 dtf frameworkdb pull
 dtf getpermissions
 dtf getsyslibs
@@ -55,6 +55,9 @@ dtf sysservicedb create
 # Devices
 dtf devdb create
 
+# Users
+dtf userdb create
+
 sdk=$(dtf prop get Info sdk)
 permissions_dir=$(dtf prop get Local permissions-dir)
 system_libs_dir=$(dtf prop get Local system-libs-dir)
@@ -63,10 +66,10 @@ db_dir=$(dtf prop get Local db-dir)
 bundle_dir=aosp-data-${sdk}
 
 mkdir ${bundle_dir}/
-mkdir ${bundle_dir}/dbs/
+mkdir ${bundle_dir}/.dbs/
 
 # Platform Data
-cp ${permissions_dir}/platform.xml ${bundle_dir}/
+cp -r ${permissions_dir} ${bundle_dir}/
 
 # BIN listing
 adb shell ls /system/bin|sed 's/\r//g' > ${bundle_dir}/bindirlist
@@ -75,4 +78,4 @@ adb shell ls /system/bin|sed 's/\r//g' > ${bundle_dir}/bindirlist
 find ${system_libs_dir} -type f |sed 's/^\.\///g'|sed "s/^${system_libs_dir}\///g" > ${bundle_dir}/systemlibraries
 
 # DB Data
-cp -r ${db_dir}/* ${bundle_dir}/dbs
+cp -r ${db_dir}/* ${bundle_dir}/.dbs
