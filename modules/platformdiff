@@ -134,7 +134,7 @@ class platformdiff(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -142,7 +142,7 @@ class platformdiff(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_platform_xml = "%s/permissions/%s" % (prop_diff_dir,
                                                            PLATFORM_XML_NAME)
 
@@ -237,7 +237,11 @@ class platformdiff(Module):
                                 help='Use the specified diff directory.')
 
         db_dir = prop.get_prop('Local', 'db-dir')
-        permissions_dir = prop.get_prop('Local', 'permissions-dir')
+        try:
+            permissions_dir = prop.get_prop('Local', 'permissions-dir')
+        except prop.PropertyError:
+            log.e(TAG, "Unable to determine permissions directory!")
+            return -1
 
         local_sysappdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
                                             SYSAPP_DB_NAME)

@@ -51,6 +51,7 @@ class permissions(Module):
         print "Submodules:"
         print "    appuses      List applications that use a permission."
         print "    diff         Compare permissions to another DB."
+        print "    info         Gives information about a permission."
         print "    list         List permission information."
         print "    lookup       Lookup where a permission is used."
         print ""
@@ -64,7 +65,7 @@ class permissions(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -72,7 +73,7 @@ class permissions(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                   SYSAPPS_DB_NAME)
 
@@ -145,21 +146,21 @@ class permissions(Module):
 
             for activity in appdb.getAppActivities(app._id):
 
-                if activity.permission == None: continue
+                if activity.permission is None: continue
 
                 if activity.permission.name == permission.name:
                     activity_list.append((app.project_name, activity))
 
             for service in appdb.getAppServices(app._id):
 
-                if service.permission == None: continue
+                if service.permission is None: continue
 
                 if service.permission.name == permission.name:
                     service_list.append((app.project_name, service))
 
             for receiver in appdb.getAppReceivers(app._id):
 
-                if receiver.permission == None: continue
+                if receiver.permission is None: continue
 
                 if receiver.permission.name == permission.name:
                     receiver_list.append((app.project_name, receiver))
@@ -193,11 +194,11 @@ class permissions(Module):
                         prov.write_permission is not None):
                     write_permission = prov.write_permission
 
-                if (read_permission != None and
+                if (read_permission is not None and
                         read_permission.name == permission.name):
                     read_provider_list.append((app.project_name, prov))
 
-                if (write_permission != None and
+                if (write_permission is not None and
                         write_permission.name == permission.name):
                     write_provider_list.append((app.project_name, prov))
 
@@ -245,7 +246,7 @@ class permissions(Module):
 
         permission = appdb.resolvePermissionByName(permission_name)
 
-        if permission == None:
+        if permission is None:
             log.e(TAG, "Permission '%s' not found!" % permission_name)
             return -1
 
@@ -297,6 +298,43 @@ class permissions(Module):
                                      project_name, package_name)
         return 0
 
+    def cmd_info(self, args):
+
+        """Get information for a given permission"""
+
+        parser = ArgumentParser(prog='permissions info',
+                            description='List info for an application.')
+        parser.add_argument('permission_name', metavar="permission_name",
+                            type=str, default=None,
+                            help='The permission to check.')
+
+        parsed_args = parser.parse_args(args)
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        permission_name = parsed_args.permission_name
+
+        appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
+
+        permission = appdb.resolvePermissionByName(permission_name)
+
+        if permission is None:
+            log.e(TAG, "Permission '%s' not found!" % permission_name)
+            return -1
+
+        app = appdb.getAppById(permission.application_id)
+
+        project_name = app.project_name
+        package_name = app.package_name
+
+        print "Permission: %s" % str(permission)
+        print "Defined by: %s (%s)" % (project_name, package_name)
+        print ""
+
+        return 0
+
     @classmethod
     def cmd_list(cls):
 
@@ -343,7 +381,7 @@ class permissions(Module):
         appdb = AppDb.AppDb(local_sysapps_db_name)
 
         permission = appdb.resolvePermissionByName(permission_name)
-        if permission == None:
+        if permission is None:
             log.e(TAG, "Permission '%s' not found!" % permission_name)
             return -1
 
@@ -361,6 +399,8 @@ class permissions(Module):
             return self.cmd_appuses(args)
         elif mode == 'diff':
             return self.cmd_diff(args)
+        elif mode == "info":
+            return self.cmd_info(args)
         elif mode == 'list':
             return self.cmd_list()
         elif mode == "lookup":

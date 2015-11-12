@@ -67,7 +67,7 @@ class appdexdb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -75,7 +75,7 @@ class appdexdb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                   SYSAPPS_DB_NAME)
 
@@ -118,7 +118,7 @@ class appdexdb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -126,7 +126,7 @@ class appdexdb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_appdex_db = ("%s/.dbs/%s/%s.db"
                                     % (prop_diff_dir, APPDEX_DBS_DIR,
                                        app_name))
@@ -327,11 +327,11 @@ class appdexdb(Module):
             rtn = self.process_applications(self.get_all_aosp_applications())
 
         # Single
-        elif parsed_args.application_name != None:
+        elif parsed_args.application_name is not None:
 
             app = self.local_appdb.getAppByName(parsed_args.application_name)
 
-            if app == None:
+            if app is None:
                 log.e(TAG, "Application '%s' not found for local project."
                                                 % parsed_args.application_name)
                 return -2
@@ -380,7 +380,7 @@ class appdexdb(Module):
 
         # Get our local appdex.db
         app = self.local_appdb.getAppByName(application_name)
-        if app == None:
+        if app is None:
             log.e(TAG, "No application with name '%s' found in project!"
                                                     % (application_name))
             return -3

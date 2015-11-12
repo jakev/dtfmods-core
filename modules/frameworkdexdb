@@ -66,7 +66,7 @@ class frameworkdexdb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -74,7 +74,7 @@ class frameworkdexdb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_frameworks_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                      FRAMEWORKS_DB_NAME)
 
@@ -118,7 +118,7 @@ class frameworkdexdb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -126,7 +126,7 @@ class frameworkdexdb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_frameworkdex_db = ("%s/.dbs/%s/%s.db"
                                     % (prop_diff_dir, FRAMEWORKDEX_DBS_DIR,
                                        fw_name))
@@ -331,7 +331,7 @@ class frameworkdexdb(Module):
             rtn = self.process_frameworks(self.get_all_aosp_frameworks())
 
         # Single
-        elif parsed_args.framework_name != None:
+        elif parsed_args.framework_name is not None:
 
             framework = parsed_args.framework_name
             return self.process_frameworks(framework)

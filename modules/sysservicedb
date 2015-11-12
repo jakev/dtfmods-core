@@ -68,7 +68,7 @@ class sysservicedb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -76,7 +76,7 @@ class sysservicedb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_services_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                   SYSSERVICES_DB_NAME)
 

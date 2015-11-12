@@ -333,7 +333,7 @@ class OatElf(object):
             out_file_name = ("%s%s.odex"
                     % (out_file_name.split(":")[0][:-4], offset))
 
-        if self.base_name != None:
+        if self.base_name is not None:
             num = self.i if self.i != 0 else ''
 
             out_file_path = "%s/%s%s.odex" % (self.out_dir, self.base_name, num)

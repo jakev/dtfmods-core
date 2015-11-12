@@ -1198,6 +1198,48 @@ class AppDb(object):
             app_list.append((package_name, project_name))
         return app_list
 
+    def getFailedToUnpackApps(self):
+
+        """Return only the failed to unpack applications"""
+
+        app_list = list()
+
+        sql = ('SELECT id, package_name, project_name, '
+               'decoded_path, has_native, min_sdk_version, '
+               'target_sdk_version, version_name, version_code, '
+               'permission, debuggable, successfully_unpacked, '
+               'shared_user_id, shared_user_label '
+               'FROM apps '
+               'WHERE successfully_unpacked=0 '
+               'ORDER BY id')
+
+        for line in self.app_db.execute(sql):
+
+            id = line[0]
+            package_name = line[1]
+            project_name = line[2]
+            decoded_path = line[3]
+            has_native = line[4]
+            min_sdk_version = line[5]
+            target_sdk_version = line[6]
+            version_name = line[7]
+            version_code = line[8]
+            permission_id = line[9]
+            debuggable = line[10]
+            successfully_unpacked = line[11]
+            shared_user_id = line[12]
+            shared_user_label = line[13]
+
+            permission = None
+
+            app_list.append(
+                    Application(package_name, project_name, decoded_path,
+                                has_native, min_sdk_version, target_sdk_version,
+                                version_name, version_code, permission,
+                                debuggable, shared_user_id, shared_user_label,
+                                id=id))
+        return app_list
+
 
     def getAppById(self, application_id):
         

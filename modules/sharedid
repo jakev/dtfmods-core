@@ -46,7 +46,7 @@ class sharedid(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -54,7 +54,7 @@ class sharedid(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                   SYSAPPS_DB_NAME)
 
@@ -105,7 +105,7 @@ class sharedid(Module):
             for app in local_sysapps_db.getApps():
 
                 shared_id = app.shared_user_id
-                if shared_id == None:
+                if shared_id is None:
                     continue
 
                 if shared_id not in shared_apps:
@@ -127,7 +127,7 @@ class sharedid(Module):
                 project_name = app.project_name
 
                 # Is it AOSP?
-                if diff_sysapps_db.getAppByName(project_name) == None:
+                if diff_sysapps_db.getAppByName(project_name) is None:
                     oem_apps.append(project_name)
                 else:
                     aosp_apps.append(project_name)
@@ -161,7 +161,7 @@ class sharedid(Module):
 
         shared_id = parsed_args.shared_id
 
-        if shared_id == None:
+        if shared_id is None:
             list_mode = True
 
         db_dir = prop.get_prop('Local', 'db-dir')

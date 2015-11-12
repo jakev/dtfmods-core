@@ -169,7 +169,7 @@ class sysappdb(Module):
         args_diff_dir = args.diff_dir
 
         # First check if we no arg is set
-        if args_diff_dir == None:
+        if args_diff_dir is None:
 
             # First check for our argument.
             try:
@@ -177,7 +177,7 @@ class sysappdb(Module):
             except prop.PropertyError:
                 prop_diff_dir = None
 
-            if prop_diff_dir != None:
+            if prop_diff_dir is not None:
                 diff_sysapps_db = "%s/.dbs/%s" % (prop_diff_dir,
                                                   SYSAPPS_DB_NAME)
 
@@ -249,7 +249,7 @@ class sysappdb(Module):
 
         FNULL = open(os.devnull, 'w')
 
-        if file_name == None:
+        if file_name is None:
             cmd = ("unzip -u %s -d %s"
                    % (zip_file, extract_path)).split(' ')
         else:
@@ -412,7 +412,7 @@ class sysappdb(Module):
         if rtn == 0:
             if self.report_mode:
                 self.unpack_report.add_first_try(project_name)
-            return rtn
+            return 0
 
         rmtree(unpack_path)
         os.mkdir(unpack_path)
@@ -431,7 +431,8 @@ class sysappdb(Module):
         if rtn == 0:
             if self.report_mode:
                 self.unpack_report.add_second_try(project_name)
-            return rtn
+            return 0
+
         rmtree(unpack_path)
         os.mkdir(unpack_path)
 
@@ -462,7 +463,7 @@ class sysappdb(Module):
         if rtn == 0:
             if self.report_mode:
                 self.unpack_report.add_manual_try(project_name)
-            return rtn
+            return 0
 
         #What the hell is wrong with this APK?
         log.e(TAG, "Unable to decode '%s'. What's wrong with this APK?"
@@ -580,22 +581,31 @@ class sysappdb(Module):
         #        - If it is an ELF, use oatdextract + dtf_baksmali.
         rtn = 0
 
+        # Since it failed before, let's blow away any old data.
+        if self.resume and os.path.isdir(unpack_path):
+            rmtree(unpack_path)
+
         log.i(TAG, "Unpacking app '%s' to %s"
                         % (app.project_name, unpack_path))
 
         os.mkdir(unpack_path)
 
         # First lets unpack most of the APK.
-        rtn = self.unpack_resources(app, unpack_path)
-        log.d(TAG, "Resource unpacking rtn : %i" % rtn)
+        res_rtn = self.unpack_resources(app, unpack_path)
+        log.d(TAG, "Resource unpacking rtn : %i" % res_rtn)
 
         # Next do the classes
-        rtn = self.unpack_classes(app, unpack_path)
-        log.d(TAG, "Class unpacking rtn : %i" % rtn)
+        cls_rtn = self.unpack_classes(app, unpack_path)
+        log.d(TAG, "Class unpacking rtn : %i" % cls_rtn)
 
         # Update DB
-        # TODO : unpack status
         app.decoded_path = unpack_path
+
+        # If both were successful, mark it.
+        if res_rtn == 0 and cls_rtn == 0:
+            log.d(TAG, "Marking successful unpack!")
+            app.successfully_unpacked = 1
+
         appdb.updateApplication(app)
         appdb.commit()
 
@@ -726,7 +736,7 @@ class sysappdb(Module):
             if len(intent_filters) == 0:
                 intent_filters = None
 
-            if enabled == None:
+            if enabled is None:
                 pass
             elif enabled == "true":
                 enabled = True
@@ -737,7 +747,7 @@ class sysappdb(Module):
                                                                     % enabled)
                 enabled = None
 
-            if exported == None:
+            if exported is None:
                 pass
             elif exported == "true":
                 exported = True
@@ -777,7 +787,7 @@ class sysappdb(Module):
             _id = appdb._getLastId("activities")
 
             # Add the intent filter data.
-            if intent_filters != None:
+            if intent_filters is not None:
                 for intent_filter in intent_filters:
                     appdb.addActivityIntentFilter(intent_filter, _id)
 
@@ -809,7 +819,7 @@ class sysappdb(Module):
             if len(intent_filters) == 0:
                 intent_filters = None
 
-            if enabled == None:
+            if enabled is None:
                 pass
             elif enabled == "true":
                 enabled = True
@@ -820,7 +830,7 @@ class sysappdb(Module):
                                                                     % enabled)
                 enabled = None
 
-            if exported == None:
+            if exported is None:
                 pass
             elif exported == "true":
                 exported = True
@@ -861,7 +871,7 @@ class sysappdb(Module):
             _id = appdb._getLastId("services")
 
             # Add the intent filter data.
-            if intent_filters != None:
+            if intent_filters is not None:
                 for intent_filter in intent_filters:
                     appdb.addServiceIntentFilter(intent_filter, _id)
 
@@ -894,7 +904,7 @@ class sysappdb(Module):
 
             log.d(TAG, "Adding <provider>: %s" % name)
 
-            if enabled == None:
+            if enabled is None:
                 pass
             elif enabled == "true":
                 enabled = True
@@ -905,7 +915,7 @@ class sysappdb(Module):
                                                                     % enabled)
                 enabled = None
 
-            if exported == None:
+            if exported is None:
                 pass
             elif exported == "true":
                 exported = True
@@ -916,7 +926,7 @@ class sysappdb(Module):
                                                                     % exported)
                 exported = None
 
-            if grant_uri_permissions == None:
+            if grant_uri_permissions is None:
                 pass
             elif grant_uri_permissions == "true":
                 grant_uri_permissions = 1
@@ -1017,7 +1027,7 @@ class sysappdb(Module):
 
             log.d(TAG, "Adding <receiver>: %s" % name)
 
-            if enabled == None:
+            if enabled is None:
                 pass
             elif enabled == "true":
                 enabled = True
@@ -1028,7 +1038,7 @@ class sysappdb(Module):
                                                                     % enabled)
                 enabled = None
 
-            if exported == None:
+            if exported is None:
                 pass
             elif exported == "true":
                 exported = True
@@ -1068,7 +1078,7 @@ class sysappdb(Module):
             _id = appdb._getLastId("receivers")
 
             # Add the intent filter data.
-            if intent_filters != None:
+            if intent_filters is not None:
                 for intent_filter in intent_filters:
                     appdb.addReceiverIntentFilter(intent_filter, _id)
 
@@ -1096,7 +1106,7 @@ class sysappdb(Module):
 
             log.d(TAG, "Adding <uses-permission> : %s" % (permission_name))
 
-            if permission == None:
+            if permission is None:
                 log.w(TAG, "Unable to resolve the use-permission '%s'"
                                                             % permission_name)
                 continue
@@ -1229,14 +1239,14 @@ class sysappdb(Module):
 
         signature = self.process_signature(path_to_apk)
 
-        if signature == None:
+        if signature is None:
             return -1
 
         # First check if any application has this (yet).
         # If no apps have, we add the signature, then add the link.
         # Otherwise, we just add the link.
         r_signature = appdb.resolveSignature(signature)
-        if r_signature == None:
+        if r_signature is None:
             # Add the signature.
             if appdb.addSignature(signature):
                 log.d(TAG, "Signature added!")
@@ -1339,7 +1349,7 @@ class sysappdb(Module):
             decoded_path = app.decoded_path
             project_id = app._id
 
-            if decoded_path == None:
+            if decoded_path is None:
                 log.w(TAG, "Project '%s' was not decoded successfully!"
                                                             % project_name)
                 continue
@@ -1374,7 +1384,7 @@ class sysappdb(Module):
             decoded_path = app.decoded_path
             project_id = app._id
 
-            if decoded_path == None:
+            if decoded_path is None:
                 log.w(TAG, "Project '%s' was not decoded successfully!"
                                                             % project_name)
                 continue
@@ -1406,7 +1416,7 @@ class sysappdb(Module):
             decoded_path = app.decoded_path
             project_id = app._id
 
-            if decoded_path == None:
+            if decoded_path is None:
                 log.w(TAG, "Project '%s' was not decoded successfully!"
                                                             % project_name)
                 continue
@@ -1596,7 +1606,6 @@ class sysappdb(Module):
             print "Permission Definitions:"
             for permission in appdb.getAppPermissions(application_id):
                 print "   %s" % permission
-
 
         if FILTER_USES_PERMISSIONS in filters:
             print "Uses Permissions:"
@@ -1917,7 +1926,7 @@ class sysappdb(Module):
 
         # Is this an AOSP/added  application?
         diff_app = diff_appdb.getAppByName(app_name)
-        if diff_app != None:
+        if diff_app is not None:
             self.is_diff = True
 
         if FILTER_ACTIVITIES in filters:
@@ -2123,7 +2132,7 @@ class sysappdb(Module):
             filters = DEFAULT_FILTERS
         else:
             filters = self.validate_filters(filters, DEFAULT_FILTERS)
-            if filters == None:
+            if filters is None:
                 log.e(TAG, "Unable to process filters!")
                 return -1
 
@@ -2253,7 +2262,7 @@ class sysappdb(Module):
                 return -1
 
         # Parse the blacklist file
-        if blacklist_file != None:
+        if blacklist_file is not None:
             try:
                 f = open(blacklist_file, 'r')
                 try:
@@ -2298,7 +2307,7 @@ class sysappdb(Module):
         parser.add_argument('--aosp-mode', dest='aosp_mode',
                             action='store_const', const=True, default=False,
                             help='Treats all applications as part of AOSP.')
-        parser.add_argument('--resume', dest='resumee',
+        parser.add_argument('--resume', dest='resume',
                             action='store_const', const=True, default=False,
                             help='Try to unpack only failed/not unpacked.')
         parser.add_argument('--report', dest='report', action='store_const',
@@ -2330,8 +2339,8 @@ class sysappdb(Module):
         if not self.resume:
             if (os.path.isdir(DECODED_AOSP_DIR) or
                         os.path.isdir(DECODED_OEM_DIR)):
-            log.e(TAG, "Decoded app directories exist. Unable to continue.")
-            return -1
+                log.e(TAG, "Decoded app directories exist. Unable to continue.")
+                return -1
         # If we ARE resuming, the DB must exist.
         else:
             if not os.path.isfile(local_sysapps_db_name):
@@ -2343,20 +2352,24 @@ class sysappdb(Module):
 
         appdb = AppDb.AppDb(local_sysapps_db_name)
 
-        # TODO: add resuming!!!!
-
         # In AOSP mode, we don't need worry about AOSP data
         if aosp_mode:
 
             if not os.path.isdir(DECODED_AOSP_DIR):
                 os.mkdir(DECODED_AOSP_DIR)
 
-            # Are we resuming?
-            for app in appdb.getApps(dont_resolve=True):
+            if self.resume:
+                for app in appdb.getFailedToUnpackApps():
 
-                log.i(TAG, "Unpacking '%s'..." % app.project_name)
-                unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, app.project_name)
-                rtn |= self.unpack_app(app, appdb, unpack_dir)
+                    log.i(TAG, "Unpacking '%s'..." % app.project_name)
+                    unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, app.project_name)
+                    rtn |= self.unpack_app(app, appdb, unpack_dir)
+            else:
+                for app in appdb.getApps(dont_resolve=True):
+
+                    log.i(TAG, "Unpacking '%s'..." % app.project_name)
+                    unpack_dir = "%s/%s" % (DECODED_AOSP_DIR, app.project_name)
+                    rtn |= self.unpack_app(app, appdb, unpack_dir)
 
         #Normal mode
         else:
@@ -2376,7 +2389,12 @@ class sysappdb(Module):
             diff_appdb = AppDb.AppDb(diff_db)
             diff_apps = [i.project_name for i in diff_appdb.getApps()]
 
-            for app in appdb.getApps(dont_resolve=True):
+            if self.resume:
+                app_list = appdb.getFailedToUnpackApps()
+            else:
+                app_list = appdb.getApps(dont_resolve=True)
+
+            for app in app_list:
                 project_name = app.project_name
 
                 log.i(TAG, "Unpacking '%s'..." % project_name)
@@ -2464,7 +2482,7 @@ class sysappdb(Module):
                         help='The application to check.')
         parser.add_argument('--filter', dest='filters', default=None,
                         help='Filter by component type (comma seperated).')
-        parser.add_argument('--all', dest='all', action='store_const',
+        parser.add_argument('--all', dest='all_mode', action='store_const',
                         const=True, default=False,
                         help='Run against all applications.')
         parser.add_argument('--no-google', dest='no_google',
@@ -2473,14 +2491,19 @@ class sysappdb(Module):
         parser.add_argument('--new-only', dest='new_only',
                         action='store_const', const=True, default=False,
                         help='Omit Google packages based on package name.')
-        parser.add_argument('--diff_dir', metavar="diff_dir", type=str,
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
                         default=None, help='Diff against data in dir.')
+        parser.add_argument('--shared-id', metavar="shared_id", type=str,
+                        default=None, help='Use a shared ID security context.')
 
         parsed_args = parser.parse_args(args)
 
         app_name = parsed_args.app_name
-        all_mode = parsed_args.all
+        all_mode = parsed_args.all_mode
+        shared_id = parsed_args.shared_id
+
         config = dict()
+
         db_dir = prop.get_prop('Local', 'db-dir')
         local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
                                               SYSAPPS_DB_NAME)
@@ -2505,7 +2528,7 @@ class sysappdb(Module):
             filters = DEFAULT_FILTERS
         else:
             filters = self.validate_filters(filters, DEFAULT_FILTERS)
-            if filters == None:
+            if filters is None:
                 log.e(TAG, "Unable to validate filter!")
                 return -3
 
