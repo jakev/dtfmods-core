@@ -1616,6 +1616,37 @@ class sysappdb(Module):
     # End dump related
 
     # Exposed related
+    def generate_all_perms(self, app_db):
+
+        """Get all normal|dangerous|dev permissions"""
+
+        perm_list = list()
+
+        for perm in app_db.getPermissions():
+
+            if perm.protection_level in ['normal', 'dangerous', 'development']:
+
+                print perm
+                perm_list.append(perm.name)
+
+        return perm_list
+
+    def generate_shared_id_perms(self, app_db, shared_id):
+
+        """Get all permissions that an application possesses"""
+
+        perm_list = list()
+        shared_id_apps = app_db.getAppsBySharedUserId(shared_id)
+
+        for app in shared_id_apps:
+
+            app_perms = app_db.getAppUsesPermissions(app._id)
+
+            for perm in app_perms:
+                perm_list.append(perm.name)
+
+        return perm_list
+
     def do_exposed_activities(self, app, diff_app, local_db, diff_db):
 
         """Do activity exposure"""
@@ -1653,9 +1684,8 @@ class sysappdb(Module):
                 # Make sure there is a permission that we can work with.
                 if activity.permission is not None:
 
-                    protection_level = activity.permission.protection_level
-                    if protection_level not in ['dangerous', 'normal',
-                                                'development']:
+                    permission_name = activity.permission.name
+                    if permission_name not in self.permission_list:
                         continue
 
                 # Is this even enabled?
@@ -1714,9 +1744,8 @@ class sysappdb(Module):
                 # Make sure there is a permission that we can work with.
                 if service.permission is not None:
 
-                    protection_level = service.permission.protection_level
-                    if protection_level not in ['dangerous', 'normal',
-                                                'development']:
+                    permission_name = service.permission.name
+                    if permission_name not in self.permission_list:
                         continue
 
                 # Is this even enabled?
@@ -1772,8 +1801,8 @@ class sysappdb(Module):
                 # Debuggable isnt set.
 
                 # Make sure there are permissions that we can work with.
-                read_protection_level = None
-                write_protection_level = None
+                read_name = None
+                write_name = None
                 # This is frustratingly annoying for providers.
                 # We're actually going to ignore "permission", is distribute
                 # it's effects.
@@ -1806,16 +1835,19 @@ class sysappdb(Module):
                     write_permission = provider.write_permission
 
                 # Lets get the protection levels
+                #if read_permission is not None:
+                #    read_protection_level = read_permission.protection_level
+                #if write_permission is not None:
+                #    write_protection_level = write_permission.protection_level
+
                 if read_permission is not None:
-                    read_protection_level = read_permission.protection_level
+                    read_name = read_permission.name
                 if write_permission is not None:
-                    write_protection_level = write_permission.protection_level
+                    write_name = write_permission.name
 
                 # If both are NOT in the group below, continue
-                if (read_protection_level not in [None, 'dangerous',
-                                                  'normal', 'development']
-                    and write_protection_level not in [None, 'dangerous',
-                                                  'normal', 'development']):
+                if (read_name not in self.permission_list
+                    and write_name not in self.permission_list):
                     continue
 
                 # Is this even enabled?
@@ -1836,8 +1868,7 @@ class sysappdb(Module):
                     # check the min and targets.
                     if target_sdk_version <= 16:
 
-                        # But we need to check the permissions.
-                        # TODO
+                        # TODO: But we need to check the permissions.
                         print "   [EXP] Implicit export based on *_sdk_version!"
                         self.print_provider(provider)
         return 0
@@ -1878,9 +1909,8 @@ class sysappdb(Module):
                 # Make sure there is a permission that we can work with.
                 if receiver.permission is not None:
 
-                    protection_level = receiver.permission.protection_level
-                    if protection_level not in ['dangerous', 'normal',
-                                                'development']:
+                    permission_name = receiver.permission.name
+                    if permission_name not in self.permission_list:
                         continue
 
                 # Is this even enabled?
@@ -2540,6 +2570,25 @@ class sysappdb(Module):
         local_appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
         diff_appdb = AppDb.AppDb(diff_db)
 
+        permission_list = list()
+
+        # Generate a list of permissions to use
+        if shared_id is None:
+            log.d(TAG, "Using third party application security context.")
+            permission_list = self.generate_all_perms(local_appdb)
+        # Generate list based on user ID provided
+        else:
+            log.d(TAG, "Using security context of user: %s" % shared_id)
+            permission_list = self.generate_shared_id_perms(local_appdb,
+                                                                shared_id)
+
+        log.d(TAG, "Added %s permissions." % len(permission_list))
+
+        print permission_list
+
+        self.permission_list = permission_list
+
+        # Do exposing
         if all_mode:
             for app in local_appdb.getApps():
                 rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)

@@ -158,7 +158,7 @@ do
         continue 
     fi
 
-    log_i "Processing device: ${dev_name}"
+    log_d "Processing device: ${dev_name}"
 
     # Using built-in ls, since busybox grabs numeric only.
     full_line=$(adb shell "ls -l ${dev_name}"|sed 's/\r$//')
