@@ -1625,8 +1625,6 @@ class sysappdb(Module):
         for perm in app_db.getPermissions():
 
             if perm.protection_level in ['normal', 'dangerous', 'development']:
-
-                print perm
                 perm_list.append(perm.name)
 
         return perm_list
@@ -2583,8 +2581,6 @@ class sysappdb(Module):
                                                                 shared_id)
 
         log.d(TAG, "Added %s permissions." % len(permission_list))
-
-        print permission_list
 
         self.permission_list = permission_list
 
