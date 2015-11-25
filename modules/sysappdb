@@ -1631,7 +1631,7 @@ class sysappdb(Module):
 
     def generate_shared_id_perms(self, app_db, shared_id):
 
-        """Get all permissions that an application possesses"""
+        """Get all permissions that a SharedId possesses"""
 
         perm_list = list()
         shared_id_apps = app_db.getAppsBySharedUserId(shared_id)
@@ -1642,6 +1642,24 @@ class sysappdb(Module):
 
             for perm in app_perms:
                 perm_list.append(perm.name)
+
+        return perm_list
+
+    def generate_app_perms(self, app_db, project_name):
+
+        """Get all permissions that an application possesses"""
+
+        perm_list = list()
+        app = app_db.getAppByName(project_name)
+
+        if app is None:
+            log.e(TAG, "Unable to find app: %s" % project_name)
+            return None
+
+        app_perms = app_db.getAppUsesPermissions(app._id)
+
+        for perm in app_perms:
+            perm_list.append(perm.name)
 
         return perm_list
 
@@ -2523,12 +2541,15 @@ class sysappdb(Module):
                         default=None, help='Diff against data in dir.')
         parser.add_argument('--shared-id', metavar="shared_id", type=str,
                         default=None, help='Use a shared ID security context.')
+        parser.add_argument('--as-app', metavar="as_app", type=str,
+                        default=None, help='Use an app security context.')
 
         parsed_args = parser.parse_args(args)
 
         app_name = parsed_args.app_name
         all_mode = parsed_args.all_mode
         shared_id = parsed_args.shared_id
+        as_app = parsed_args.as_app
 
         config = dict()
 
@@ -2571,17 +2592,31 @@ class sysappdb(Module):
         permission_list = list()
 
         # Generate a list of permissions to use
-        if shared_id is None:
-            log.d(TAG, "Using third party application security context.")
-            permission_list = self.generate_all_perms(local_appdb)
-        # Generate list based on user ID provided
-        else:
-            log.d(TAG, "Using security context of user: %s" % shared_id)
+        permission_list = list()
+
+        if shared_id is not None and as_app is not None:
+            log.e(TAG, "You cannot use both --as-app and --shared-id!")
+            return -4
+
+        # Generate list based on Shared ID provided
+        if shared_id is not None:
+            log.d(TAG, "Using security context of SharedId: %s" % shared_id)
             permission_list = self.generate_shared_id_perms(local_appdb,
                                                                 shared_id)
+        # Generate list based on package name provided
+        elif as_app is not None:
+            log.d(TAG, "Using security context of app: %s" % as_app)
+            permission_list = self.generate_app_perms(local_appdb, as_app)
+        else:
+            log.d(TAG, "Using third party application security context.")
+            permission_list = self.generate_all_perms(local_appdb)
+
+
+        if permission_list is None:
+            log.e(TAG, "Unable to generate permissions list!")
+            return -5
 
         log.d(TAG, "Added %s permissions." % len(permission_list))
-
         self.permission_list = permission_list
 
         # Do exposing

@@ -20,6 +20,7 @@
 #@Version: 1.0
 
 . $DTF_CORE
+. $DTF_LOG
 
 get_all()
 {
@@ -58,18 +59,14 @@ print_file()
 
 print_perm()
 {
-    perm=$1
-
-    if [ -z "$perm" ]; then
-        echo "No perm!"
-        return
-    fi
-
+    perm="$1"
     echo "    <uses-permission android:name=\"${perm}\" />"
 }
 
 if [ -z "$1" ]; then
-    PERM=com.jakev.MYPERM
+    echo ""
+    print_perm "com.android.MYPERM"
+    echo ""
 elif [ "$1" == "-f" ] && [ ! -z "$2" ]; then
     print_file $2
 elif [ "$1" == "--all" ]; then

@@ -310,7 +310,7 @@ class sysservicedb(Module):
         with project_con:
             p_cur = project_con.cursor()
 
-            sql = ("SELECT id, name "
+            sql = ("SELECT id, project "
                    "FROM services "
                    "WHERE name='%s' LIMIT 1" % service_name)
 
@@ -342,6 +342,9 @@ class sysservicedb(Module):
                     return 0
             # Old, potentially modified
             else:
+                if name_only:
+                    return 0
+
                 print "Service %s (%s)" % (service_name, project_name)
                 if not name_only:
                     return self.diff_transactions(project_con, diff_con,
