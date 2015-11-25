@@ -354,14 +354,6 @@
 
    <!-- Binary Content -->
     <Item type="binary"
-          name="classsearch.py"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          localName="binaries/classsearch.py" />
-
-    <Item type="binary"
           name="dexdiff.py"
           majorVersion="1"
           minorVersion="0"
@@ -376,14 +368,6 @@
           health="stable"
           author="Jake Valletta (jakev)"
           localName="binaries/dexdumpsql.jar" />
-
-    <Item type="binary"
-          name="platform-diff.py"
-          majorVersion="1"
-          minorVersion="1"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          localName="binaries/platform-diff.py" />
 
     <!-- Package Content -->
     <Item type="package"
@@ -425,5 +409,4 @@
           health="stable"
           author="Jake Valletta (jakev)"
           localName="packages/MakeUserDb" />
-</Items>
 </Items>
