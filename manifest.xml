@@ -10,6 +10,15 @@
           localName="modules/apkget" />
 
     <Item type="module"
+          name="app2jar"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Convert a application DEX to a Java JAR."
+          localName="modules/app2jar" />
+
+    <Item type="module"
           name="appdexdb"
           majorVersion="1"
           minorVersion="4"
@@ -364,7 +373,7 @@
     <Item type="binary"
           name="dexdumpsql.jar"
           majorVersion="1"
-          minorVersion="1"
+          minorVersion="2"
           health="stable"
           author="Jake Valletta (jakev)"
           localName="binaries/dexdumpsql.jar" />

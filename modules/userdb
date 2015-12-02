@@ -35,7 +35,9 @@ import os.path
 TAG = "userdb"
 
 USERS_DB_NAME = 'users.db'
-DEFAULT_UPLOAD_PATH = '/mnt/sdcard'
+DEFAULT_EXTERNAL_PATH = '/mnt/sdcard'
+COPY_FILE_CMD = ('am startservice -a com.dtf.action.name.COPY_TO_SDCARD '
+                 '--es filename "users.db"')
 
 class userdb(Module):
 
@@ -145,35 +147,35 @@ class userdb(Module):
         sdk = prop.get_prop('Info', 'sdk')
         db_dir = prop.get_prop('Local', 'db-dir')
 
-        local_path = ''
-        if int(sdk) > 15:
-            local_path = "%s/MakeUserDb/makeuserdb-arm-jb" % DTF_PACKAGES_DIR
-        else:
-            local_path = "%s/MakeUserDb/makeuserdb-arm-ics" % DTF_PACKAGES_DIR
-
         dtf_data_dir = "/data/data/%s" % DTF_CLIENT
-        file_path = "%s/files/makeuserdb" % dtf_data_dir
-        out_file_path = "%s/%s" % (dtf_data_dir, USERS_DB_NAME)
+
+        if int(sdk) > 15:
+            make_db_name = "%s/files/makeuserdb-arm-jb" % dtf_data_dir
+        else:
+            make_db_name = "%s/files/makeuserdb-arm-ics" % dtf_data_dir
+
+        sdcard_users_db_name = "%s/%s" % (DEFAULT_EXTERNAL_PATH, USERS_DB_NAME)
+        users_db_name = "%s/%s" % (dtf_data_dir, USERS_DB_NAME)
         local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir, USERS_DB_NAME)
 
         adb = DtfAdb()
         adb.wait_for_device()
 
-        # Upload file
-        adb.push(local_path, file_path)
-
-        adb.run_as(DTF_CLIENT, 'chmod 775 %s' % file_path)
-        adb.run_as(DTF_CLIENT, file_path)
-
-        if not adb.is_file(out_file_path):
+        adb.run_as(DTF_CLIENT, make_db_name)
+        if not adb.is_file(users_db_name):
             log.e(TAG, "Error creating users.db!")
             return -1
 
-        adb.pull(out_file_path, local=local_users_db_name)
+        adb.shell_command(COPY_FILE_CMD)
+        if not adb.is_file(sdcard_users_db_name):
+            log.e(TAG, "Error copying DB to SDCard!")
+            return -1
+
+        adb.pull(sdcard_users_db_name, local=local_users_db_name)
 
         # cleanup
-        adb.run_as(DTF_CLIENT, "rm %s" % file_path)
-        adb.run_as(DTF_CLIENT, "rm %s" % out_file_path)
+        adb.run_as(DTF_CLIENT, "rm %s" % users_db_name)
+        adb.shell_command("rm %s" % sdcard_users_db_name)
 
         if not os.path.isfile(local_users_db_name):
             log.e(TAG, "User DB creation was not successful!")
@@ -209,6 +211,8 @@ class userdb(Module):
         if diff_db is None:
             log.e(TAG, "Unable to determine diff DB!")
             return -2
+
+        log.d(TAG, "Using diff db: %s" % diff_db)
 
         local_users_db = UserDb.UserDb(local_users_db_name, safe=True)
         diff_users_db = UserDb.UserDb(diff_db)

@@ -1425,6 +1425,11 @@ class sysappdb(Module):
 
             manifest_path = decoded_path + "/AndroidManifest.xml"
 
+            if not os.path.isfile(manifest_path):
+                log.w(TAG, "Skipping app '%s' because manifest does not exist!"
+                                                           % project_name)
+                continue
+
             log.d(TAG, "Looking for debuggable...")
             self.parse_debuggable(appdb, project_id, manifest_path)
 

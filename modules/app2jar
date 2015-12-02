@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# DTF Core Content
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#@About: Convert a application DEX to a Java JAR.
+#@Author: Jake Valletta (jakev)
+#@Health: beta
+#@Version: 1.0
+
+. $DTF_CORE
+. $DTF_LOG
+
+NAME=app2jar
+
+do_app()
+{
+    decoded_dir=$1
+    app_name=$2
+
+    log_i "Converting '${app_name}'..."
+    dex_full_path=${java_apps_dir}/${app_name}.dex
+
+    dtf_smali -o ${dex_full_path} -a ${sdk} ${decoded_dir}/ >/dev/null 2>&1
+
+    rtn=$?
+    if [ "$rtn" != "0" ]; then
+        log_e "Error smali'ing application! rtn = ${rtn}"
+        exit -1
+    fi
+
+    dtf_dex2jar -o ${java_apps_dir}/${app_name}.jar ${dex_full_path} >/dev/null 2>&1
+
+    rtn=$?
+    if [ "$rtn" != "0" ]; then
+        log_e "Error using dex2jar on application DEX! rtn = ${rtn}"
+        exit -2
+    fi
+
+    # Clean up.
+    rm ${dex_full_path}
+    log_i "Conversion successful!"
+}
+
+if [ -z "$1" ]; then
+
+    echo "Usage: $NAME com.package.name"
+    echo ""
+    exit -1
+fi
+
+app_name=$1
+java_apps_dir=java-apps-dir
+decoded_aosp_dir=${TOP}/decoded-aosp/${app_name}/smali
+decoded_oem_dir=${TOP}/decoded-oem/${app_name}/smali
+sdk=$(dtf prop get Info sdk)
+
+mkdir ${java_apps_dir} 2> /dev/null
+dtf prop set Local java-app-dir "${java_app_dir}"
+
+# Try OEM first
+if [ -d "${decoded_oem_dir}" ]; then
+    do_app "$decoded_oem_dir" "${app_name}"
+elif [ -d "${decoded_aosp_dir}" ]; then
+    do_app "$decoded_aosp_dir" "${app_name}"
+else
+    log_e "Unable to find decoded files for app '$app_name'!"
+    exit -2
+fi
