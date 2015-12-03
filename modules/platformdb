@@ -1,0 +1,688 @@
+#!/usr/bin/env python
+# DTF Core Content
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""Platform database Manipulation"""
+
+from argparse import ArgumentParser
+from lxml import etree
+
+import os
+import os.path
+import sqlite3
+
+from dtf.adb import DtfAdb
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
+
+import dtf.properties as prop
+import dtf.logging as log
+
+import AppDb
+
+
+TAG = "platformdb"
+
+SYSAPPS_DB_NAME = 'sysapps.db'
+PLATFORM_DB_NAME = 'platform.db'
+PERMISSIONS_DIR_NAME = 'permissions'
+DEVICE_PERMISSIONS_DIR_NAME = '/etc/permissions'
+
+class platformdb(Module):
+
+    """Module class manipulating platform properties"""
+
+    about = 'Create and query platform database.'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'platformdb'
+    version = '1.0'
+
+    @classmethod
+    def safe_sqlite3_connect(cls, db_file_name):
+
+        """Check if DB exists before opening"""
+
+        if os.path.isfile(db_file_name):
+            return sqlite3.connect(db_file_name)
+
+        else:
+            raise IOError("Target Sqlite3 file not found!")
+
+    def usage(self):
+
+        """Usage message"""
+
+        print "Platform DB dtf Module v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create      Create the platform database."
+        print "    diff        Diff the platform database."
+        print "    list        List platform settings."
+        print ""
+        return 0
+
+    @classmethod
+    def determine_diff_database(cls, args):
+
+        """Determine which diffing platformdb to use"""
+
+        args_diff_dir = args.diff_dir
+
+        # First check if we no arg is set
+        if args_diff_dir is None:
+
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
+
+            if prop_diff_dir is not None:
+                diff_platform_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  PLATFORM_DB_NAME)
+
+                if not os.path.isfile(diff_platform_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_platform_db)
+                    return None
+                else:
+                    return diff_platform_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_platform_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          PLATFORM_DB_NAME))
+
+                return diff_platform_db
+
+        # It is set, use it.
+        else:
+            diff_platform_db = "%s/.dbs/%s" % (args_diff_dir,
+                                               PLATFORM_DB_NAME)
+
+            if not os.path.isfile(diff_platform_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_platform_db)
+                return None
+            else:
+                return diff_platform_db
+
+    # Create related
+    @classmethod
+    def has_feature(cls, con, feature_name):
+
+        """Check for a feature"""
+
+        cursor = con.cursor()
+
+        # Check if it's already added...
+        try:
+            cursor.execute('SELECT * from features '
+                           "WHERE name='%s'" % feature_name)
+            cursor.fetchone()[1]
+        except Exception as e:
+            return False
+
+        return True
+
+    @classmethod
+    def add_feature(cls, con, feature_name):
+
+        """Add a feature"""
+
+        cursor = con.cursor()
+        cursor.execute('INSERT INTO features(name) '
+                       'VALUES(?)', (feature_name,))
+        con.commit()
+        return 0
+
+    @classmethod
+    def add_library(cls, con, library_name, file_name):
+
+        """Add a library"""
+
+        cursor = con.cursor()
+        cursor.execute('INSERT INTO libraries(name, file) '
+                       'VALUES(?, ?)', (library_name, file_name))
+        con.commit()
+        return 0
+
+    @classmethod
+    def add_assign_permission(cls, con, permission_name, uid):
+
+        """Add a assign permission"""
+
+        cursor = con.cursor()
+        cursor.execute('INSERT INTO assign_permissions(name, uid) '
+                       'VALUES(?, ?)', (permission_name, uid))
+        con.commit()
+        return 0
+
+    @classmethod
+    def add_gid_mapping(cls, con, permission_name, gid):
+
+        """Add a GID mapping"""
+
+        cursor = con.cursor()
+        cursor.execute('INSERT INTO gid_mappings(name, gid) '
+                       'VALUES(?, ?)', (permission_name, gid))
+        con.commit()
+        return 0
+
+    def process_xml(self, db_con, xml_path):
+
+        """Process a permission XML file"""
+
+        xml_f = open(xml_path)
+
+        try:
+            root = etree.XML(xml_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "XML exception parsing file!")
+            return -1
+
+        # First grab the features.
+        for feature in root.findall(".//feature"):
+
+            name = feature.attrib['name']
+
+            if self.has_feature(db_con, name):
+                log.w(TAG, "Skipping duplicate feature: %s" % name)
+                continue
+            else:
+                log.d(TAG, "Adding feature: %s" % name)
+                self.add_feature(db_con, name)
+
+        # Then libraries.
+        for library in root.findall(".//library"):
+
+            library_name = library.attrib['name']
+            file_name = library.attrib['file']
+
+            log.d(TAG, "Adding library: %s" % library_name)
+
+            self.add_library(db_con, library_name, file_name)
+
+        # Assign permissions.
+        for assign_permission in root.findall(".//assign-permission"):
+
+            name = assign_permission.attrib['name']
+            uid = assign_permission.attrib['uid']
+
+            log.d(TAG, "Adding assign-permission: %s->%s" % (uid, name))
+
+            self.add_assign_permission(db_con, name, uid)
+
+        # GID mappings.
+        for gid_mapping in root.findall(".//permission"):
+
+            name = gid_mapping.attrib['name']
+
+            for group in gid_mapping.findall(".//group"):
+
+                gid = group.attrib['gid']
+                log.d(TAG, "Adding GID mapping: %s->%s" % (name, gid))
+                self.add_gid_mapping(db_con, name, gid)
+
+        return 0
+
+    @classmethod
+    def do_pull_files(cls):
+
+        """Pull /etc/permissions/ directory"""
+
+        adb = DtfAdb()
+
+        log.i(TAG, "Pulling /etc/permissions, please connect your device...")
+        adb.wait_for_device()
+        log.d(TAG, "Connected!")
+
+        adb.pull(DEVICE_PERMISSIONS_DIR_NAME, local=PERMISSIONS_DIR_NAME)
+
+        return 0
+
+    def do_create_db(self, con):
+
+        """Create the platform DB"""
+
+        log.i(TAG, "Creating platform database...")
+
+        if self.drop_tables(con) != 0:
+            log.e(TAG, "Error dropping tables. Exiting.")
+            return -1
+
+        if self.create_tables(con) != 0:
+            log.e(TAG, "Database creation failed. Exiting.")
+            return -2
+
+        return 0
+
+    def do_populate_db(self, con):
+
+        """Populate the tables of our DB"""
+
+        log.i(TAG, "Parsing permission files...")
+
+        permissions_dir = prop.get_prop('Local', 'permissions-dir')
+        local_permissions_dir = "%s/%s" % (prop.TOP, permissions_dir)
+
+        for root, dirs, files in os.walk(local_permissions_dir):
+            for file_name in files:
+                if file_name.endswith(".xml"):
+                    xml_path = os.path.join(root, file_name)
+                    if self.process_xml(con, xml_path) != 0:
+                        log.w(TAG, "Error parsing XML: %s" % xml_path)
+                        continue
+        return 0
+
+    @classmethod
+    def drop_tables(cls, con):
+
+        """Drop tables in DB"""
+
+        log.d(TAG, "Dropping tables...")
+
+        with con:
+            cur = con.cursor()
+            cur.execute('DROP TABLE IF EXISTS features')
+            cur.execute('DROP TABLE IF EXISTS libraries')
+            cur.execute('DROP TABLE IF EXISTS assign_permissions')
+            cur.execute('DROP TABLE IF EXISTS gid_mappings')
+
+        return 0
+
+    @classmethod
+    def create_tables(cls, con):
+
+        """Create new tables in DB"""
+
+        log.d(TAG, "Creating tables...")
+
+        with con:
+            cur = con.cursor()
+
+            # Features table
+            sql = ('CREATE TABLE IF NOT EXISTS features('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT UNIQUE NOT NULL)')
+
+            cur.execute(sql)
+
+            # Libraries table
+            sql = ('CREATE TABLE IF NOT EXISTS libraries('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT UNIQUE NOT NULL, '
+                   'file TEXT NOT NULL)')
+
+            cur.execute(sql)
+
+            # Assign-permissions table
+            sql = ('CREATE TABLE IF NOT EXISTS assign_permissions('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT NOT NULL, '
+                   'uid TEXT NOT NULL)')
+
+            cur.execute(sql)
+
+            # GID mappings table
+            sql = ('CREATE TABLE IF NOT EXISTS gid_mappings('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT NOT NULL, '
+                   'gid TEXT NOT NULL)')
+
+            cur.execute(sql)
+
+        con.commit()
+        return 0
+    # End create related
+
+    # Diff related
+    @classmethod
+    def get_gid_mappings(cls, db_name):
+
+        """Get the GID mappings"""
+
+        group_mappings = {}
+
+        cursor = db_name.cursor()
+
+        sql = ('SELECT name, gid '
+              'FROM gid_mappings')
+
+        for row in cursor.execute(sql):
+
+            name = row[0]
+            gid = row[1]
+
+            if name not in group_mappings:
+                group_mappings[name] = list()
+
+            group_mappings[name].append(gid)
+
+        return group_mappings
+
+    @classmethod
+    def get_assigns(cls, db_name):
+
+        """Get the assign-permissions"""
+
+        account_perms = {}
+
+        cursor = db_name.cursor()
+
+        sql = ('SELECT name, uid '
+              'FROM assign_permissions')
+
+        for row in cursor.execute(sql):
+
+            name = row[0]
+            uid = row[1]
+
+            if uid in account_perms.keys():
+                account_perms[uid].append(name)
+            else:
+                account_perms[uid] = [name]
+
+        return account_perms
+
+    @classmethod
+    def get_features(cls, db_name):
+
+        """Get all features"""
+
+        features = list()
+
+        cursor = db_name.cursor()
+
+        sql = ('SELECT name '
+              'FROM features')
+
+        for row in cursor.execute(sql):
+
+            features.append(row[0])
+
+        return sorted(features)
+
+    @classmethod
+    def get_libraries(cls, db_name):
+
+        """Get all libraries"""
+
+        libraries = list()
+
+        cursor = db_name.cursor()
+
+        sql = ('SELECT name, file '
+              'FROM libraries')
+
+        for row in cursor.execute(sql):
+
+            name = row[0]
+            lib_file = row[1]
+            libraries.append((name, lib_file))
+
+        return libraries
+
+    @classmethod
+    def get_protection_level(cls, db_handle, permission_name):
+
+        """Resolve permission manually"""
+
+        cursor = db_handle.cursor()
+
+        sql = ('SELECT p.protection_level '
+               'FROM permissions p '
+               'WHERE p.name="%s" '
+               'LIMIT 1' % (permission_name))
+
+        cursor.execute(sql)
+
+        try:
+            return cursor.fetchone()[0]
+        except TypeError:
+            return "????"
+
+    def do_diff(self, local_sysapps_db, local_platform_db, diff_platform_db):
+
+        """Do the actual diff"""
+
+        local_gid_mappings = self.get_gid_mappings(local_platform_db)
+        diff_gid_mappings = self.get_gid_mappings(diff_platform_db)
+
+        local_assigns = self.get_assigns(local_platform_db)
+        diff_assigns = self.get_assigns(diff_platform_db)
+
+        print "[+] OEM Added mappings:"
+        for name, gids in local_gid_mappings.iteritems():
+
+            # Name is completely new.
+            if name not in diff_gid_mappings:
+
+                protection_level = self.get_protection_level(local_sysapps_db,
+                                                                        name)
+
+                for gid in gids:
+                    print "\t%s [%s] ---> %s" % (name, protection_level, gid)
+
+            # Name might still be there
+            else:
+                diff_gids = diff_gid_mappings[name]
+
+                protection_level = self.get_protection_level(local_sysapps_db,
+                                                                        name)
+
+                for gid in gids:
+                    if gid not in diff_gids:
+                        print ("\t%s [%s] ---> %s" %
+                                                (name, protection_level, gid))
+
+        print ""
+        print "[+] OEM Added <assign-permission> tags:"
+        for uid, permissions in local_assigns.iteritems():
+
+            if uid not in diff_assigns:
+                print "\tUser %s [OEM]:" % uid
+                for name in local_assigns[uid]:
+                    protection_level = self.get_protection_level(
+                                                            local_sysapps_db,
+                                                            name)
+                    print "\t\t+%s [%s]" % (name, protection_level)
+            else:
+                print "\tUser %s:" % uid
+                for name in local_assigns[uid]:
+                    if name not in diff_assigns[uid]:
+                        protection_level = self.get_protection_level(
+                                                            local_sysapps_db,
+                                                            name)
+
+                        print "\t\t+%s [%s]" % (name, protection_level)
+    # End diff section
+
+    # list section
+    def do_list(self, local_sysapps_db, local_platform_db):
+
+        """Do listing"""
+
+        local_gid_mappings = self.get_gid_mappings(local_platform_db)
+        local_assigns = self.get_assigns(local_platform_db)
+
+
+        print "<permission> tags:"
+        for name, gids in local_gid_mappings.iteritems():
+
+            protection_level = self.get_protection_level(local_sysapps_db,
+                                                                    name)
+
+            for gid in gids:
+                print "\t%s [%s] ---> %s" % (name, protection_level, gid)
+
+        print ""
+        print "<assign-permission> tags:"
+        for uid, permissions in local_assigns.iteritems():
+
+            print "\tUser %s:" % uid
+            for name in local_assigns[uid]:
+                protection_level = self.get_protection_level(
+                                                    local_sysapps_db,
+                                                    name)
+
+                print "\t\t+%s [%s]" % (name, protection_level)
+
+        print ""
+        print "Features:"
+        for feature in self.get_features(local_platform_db):
+            print "   %s" % feature
+
+        print ""
+        print "Libraries:"
+        for library, lib_file in self.get_libraries(local_platform_db):
+            print "   %s (%s)" % (library, lib_file)
+
+    # End list section
+
+    def cmd_create(self):
+
+        """Create command"""
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_platform_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                PLATFORM_DB_NAME)
+
+        local_permissions_dir_name = "%s/%s" % (prop.TOP,
+                                                PERMISSIONS_DIR_NAME)
+
+        # First check if the permissions dir exists.
+        if os.path.isdir(local_permissions_dir_name):
+            log.e(TAG, "Permissions directory exists!")
+            return -1
+
+        os.mkdir(local_permissions_dir_name)
+
+        # First pull content
+        if self.do_pull_files() != 0:
+            log.e(TAG, "Error pulling permission files!")
+            return -2
+
+        prop.set_prop("Local", "permissions-dir", PERMISSIONS_DIR_NAME)
+
+        platform_con = sqlite3.connect(local_platform_db_name)
+
+        # Now process data to the DB
+        if self.do_create_db(platform_con) != 0:
+            log.e(TAG, "Error creating platform DB!")
+            return -3
+
+        if self.do_populate_db(platform_con) != 0:
+            log.e(TAG, "Error populating platform DB!")
+            return -4
+
+        log.i(TAG, "Platform DB created!")
+        return 0
+
+    def cmd_diff(self, args):
+
+        """Diff command"""
+
+        parser = ArgumentParser(prog=self.name,
+                                description="Parse the permissions files.")
+        parser.add_argument('--diff-dir', metavar="diff_dir", default=None,
+                                help='Use the specified diff directory.')
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+
+        local_sysappsdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                            SYSAPPS_DB_NAME)
+        local_platformdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                            PLATFORM_DB_NAME)
+
+        parsed_args = parser.parse_args(args)
+
+        # Try to open local DB first.
+        try:
+            local_sysapps_db = self.safe_sqlite3_connect(local_sysappsdb_name)
+        except IOError:
+            log.e(TAG, "Local 'sysapps.db' does not exist!")
+            return -1
+
+        # Now try to open our platform DB
+        try:
+            local_platform_db = self.safe_sqlite3_connect(
+                                                        local_platformdb_name)
+        except IOError:
+            log.e(TAG, "local 'platform.db' does not exist!")
+            return -2
+
+        diff_platformdb_name = self.determine_diff_database(parsed_args)
+        if diff_platformdb_name is None:
+            log.e(TAG, "Error getting diff database.")
+            return -2
+
+        # Open diffing DB
+        diff_platform_db = self.safe_sqlite3_connect(diff_platformdb_name)
+
+        return self.do_diff(local_sysapps_db, local_platform_db,
+                                                diff_platform_db)
+
+    def cmd_list(self):
+
+        """List information"""
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+
+        local_sysappsdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                            SYSAPPS_DB_NAME)
+        local_platformdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                            PLATFORM_DB_NAME)
+
+        # Try to open local DB first.
+        try:
+            local_sysapps_db = self.safe_sqlite3_connect(local_sysappsdb_name)
+        except IOError:
+            log.e(TAG, "Local 'sysapps.db' does not exist!")
+            return -1
+
+        # Now try to open our platform DB.
+        try:
+            local_platform_db = self.safe_sqlite3_connect(
+                                                        local_platformdb_name)
+        except IOError:
+            log.e(TAG, "local 'platform.db' does not exist!")
+            return -2
+
+        return self.do_list(local_sysapps_db, local_platform_db)
+
+    def execute(self, args):
+
+        """The module entry point"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'create':
+            return self.cmd_create()
+        if mode == 'diff':
+            return self.cmd_diff(args)
+        if mode == 'list':
+            return self.cmd_list()
+        else:
+            return self.usage()

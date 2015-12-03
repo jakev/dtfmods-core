@@ -2548,6 +2548,8 @@ class sysappdb(Module):
                         default=None, help='Use a shared ID security context.')
         parser.add_argument('--as-app', metavar="as_app", type=str,
                         default=None, help='Use an app security context.')
+        parser.add_argument('--name-filter', metavar="name_filter", type=str,
+                        default=None, help='Only do matched apps.')
 
         parsed_args = parser.parse_args(args)
 
@@ -2555,6 +2557,7 @@ class sysappdb(Module):
         all_mode = parsed_args.all_mode
         shared_id = parsed_args.shared_id
         as_app = parsed_args.as_app
+        name_filter = parsed_args.name_filter
 
         config = dict()
 
@@ -2566,8 +2569,8 @@ class sysappdb(Module):
 
         filters = parsed_args.filters
 
-        if not all_mode and app_name is None:
-            log.e(TAG, "You need to specify an application name (or --all)!")
+        if not all_mode and not app_name and not name_filter:
+            log.e(TAG, "You must specify an app name, --name-filter, or --all!")
             return -1
 
         diff_db = self.determine_diff_database(parsed_args)
@@ -2624,12 +2627,29 @@ class sysappdb(Module):
         log.d(TAG, "Added %s permissions." % len(permission_list))
         self.permission_list = permission_list
 
-        # Do exposing
+        # Do all
         if all_mode:
             for app in local_appdb.getApps():
                 rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)
 
             return rtn
+
+        # Do filtering
+        elif name_filter is not None:
+
+            try:
+                pattern = re.compile(name_filter, re.UNICODE)
+            except Exception as inst:
+                log.e(TAG, "Unable to parse pattern: %s" % inst)
+                return -6
+
+            for app in local_appdb.getApps():
+                if re.search(pattern, app.project_name):
+                    rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)
+
+            return rtn
+
+        # Do only a single
         else:
             app = local_appdb.getAppByName(app_name)
             if app is None:
