@@ -36,6 +36,11 @@ if [ ! -z "$2" ]; then
     out=$2
 fi
 
-log_i "Signing \"${in}\" to \"${out}\""
+if [ ! -f "${in}" ]; then
+    log_e "File '${in}' doesn't exist!"
+    exit -2
+fi
 
-java -jar ${SRC}/signapk.jar ${SRC}/testkey.x509.pem ${SRC}/testkey.pk8 ${in} ${out}
+log_i "Signing '${in}' to '${out}'"
+
+java -jar ${SRC}/signapk.jar ${SRC}/testkey.x509.pem ${SRC}/testkey.pk8 ${LAUNCH_DIR}/${in} ${LAUNCH_DIR}/${out}
