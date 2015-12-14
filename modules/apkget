@@ -64,13 +64,13 @@ elif [ $package ]; then
     log_i "Attempting to pull APK for \"${package}\"..."
     package_path=$(adb shell pm path ${package} | tr -d '\r' |awk -F":" '{print $2}')
 
-    if [ $package_path ]; then
+    if [ -z $package_path ]; then
+        log_e "No packages match the string \"${package}\""
+        exit 1
+    else
         log_i "Found match for \"${package}\""
         adb pull $package_path > /dev/null 2>&1
         exit 0
-    else
-        log_e "No packages match the string \"${package}\""
-        exit 1
     fi
 
 elif [ $odex ]; then
