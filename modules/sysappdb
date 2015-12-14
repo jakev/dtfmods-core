@@ -27,6 +27,7 @@ from dtf.packages import launch_module
 
 import AppDb
 
+import json
 import os
 import os.path
 import re
@@ -65,6 +66,19 @@ TYPE_ELF = 2
 TYPE_UNKNOWN = 255
 
 # Exposed Stuff
+OUTPUT_DEFAULT = 'default'
+OUTPUT_JSON = 'json'
+OUTPUT_FORMATS = (OUTPUT_DEFAULT, OUTPUT_JSON)
+
+REASON_DEBUG = "debug_apk"
+REASON_EXPORT = "export_flag"
+REASON_INTENT = "intent_filter"
+REASON_SDK = "target_sdk"
+
+DB_NONE = 0x0
+DB_READ = 0x1
+DB_WRITE = 0x2
+
 FILTER_ACTIVITIES = "activities"
 FILTER_SERVICES = "services"
 FILTER_PROVIDERS = "providers"
@@ -124,6 +138,135 @@ def get_attrib(element, attrib, default="None"):
     except KeyError:
         return default
 # End global helpers
+
+class ComponentEncoder(json.JSONEncoder):
+
+    """JSON Encoder to handle Components"""
+
+    def default(self, obj):
+
+        """default override"""
+
+        # Handle Activities
+        if isinstance(obj, AppDb.Activity):
+
+            activity_dict = dict()
+            activity_dict['name'] = obj.name
+            activity_dict['enabled'] = obj.enabled
+            activity_dict['exported'] = obj.exported
+
+            if obj.permission != None:
+                activity_dict['permission'] = obj.permission.name
+            else:
+                activity_dict['permission'] = "None"
+
+            activity_dict['intent_filters'] = list()
+
+            if obj.intent_filters != []:
+                for intent_filter in obj.intent_filters:
+                    activity_dict['intent_filters'].append(intent_filter)
+
+            return activity_dict
+
+        # Handle Servicess
+        if isinstance(obj, AppDb.Service):
+
+            service_dict = dict()
+            service_dict['name'] = obj.name
+            service_dict['enabled'] = obj.enabled
+            service_dict['exported'] = obj.exported
+
+            if obj.permission != None:
+                service_dict['permission'] = obj.permission.name
+            else:
+                service_dict['permission'] = "None"
+
+            service_dict['intent_filters'] = list()
+
+            if obj.intent_filters != []:
+                for intent_filter in obj.intent_filters:
+                    service_dict['intent_filters'].append(intent_filter)
+
+            return service_dict
+
+        if isinstance(obj, AppDb.Provider):
+
+            provider_dict = dict()
+            provider_dict['name'] = obj.name
+            provider_dict['authorities'] = obj.authorities
+            provider_dict['enabled'] = obj.enabled
+            provider_dict['exported'] = obj.exported
+            provider_dict['user_access'] = obj.db_capabilities
+
+            if obj.permission != None:
+                provider_dict['permission'] = obj.permission.name
+            else:
+                provider_dict['permission'] = "None"
+
+            if obj.read_permission != None:
+                provider_dict['read_permission'] = obj.read_permission.name
+            else:
+                provider_dict['read_permission'] = "None"
+
+            if obj.write_permission != None:
+                provider_dict['write_permission'] = obj.write_permission.name
+            else:
+                provider_dict['write_permission'] = "None"
+
+            provider_dict['grant_uri_permissions'] = obj.grant_uri_permissions
+            provider_dict['grant_uri_permission_data'] = \
+                                        obj.grant_uri_permission_data
+            provider_dict['path_permission_data'] = \
+                                        obj.path_permission_data
+
+            return provider_dict
+
+        # Handle Receivers
+        if isinstance(obj, AppDb.Receiver):
+
+            receiver_dict = dict()
+            receiver_dict['name'] = obj.name
+            receiver_dict['enabled'] = obj.enabled
+            receiver_dict['exported'] = obj.exported
+
+            if obj.permission != None:
+                receiver_dict['permission'] = obj.permission.name
+            else:
+                receiver_dict['permission'] = "None"
+
+            receiver_dict['intent_filters'] = list()
+
+            if obj.intent_filters != []:
+                for intent_filter in obj.intent_filters:
+                    receiver_dict['intent_filters'].append(intent_filter)
+
+            return receiver_dict
+
+        # Handle IntentFilters
+        elif isinstance(obj, AppDb.IntentFilter):
+
+            intent_dict = dict()
+
+            for action in obj.getActions():
+                if 'actions' not in intent_dict:
+                    intent_dict['actions'] = list()
+                intent_dict['actions'].append(action)
+
+            for data in obj.getDatas():
+                if 'datas' not in intent_dict:
+                    intent_dict['data'] = list()
+                intent_dict['data'].append(str(data))
+
+            for category in obj.getCategories():
+                if 'categories' not in intent_dict:
+                    intent_dict['categories'] = list()
+                intent_dict['categories'].append(category)
+
+            return intent_dict
+
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
 
 class sysappdb(Module):
 
@@ -1668,18 +1811,80 @@ class sysappdb(Module):
 
         return perm_list
 
+    def print_default(self, app_db, filters, exposed_dict):
+
+        """Print exposed content to the screen"""
+
+        for app, exposed_content in exposed_dict.iteritems():
+
+            print "Doing : %s" % app
+
+            # Activities
+            if FILTER_ACTIVITIES in filters:
+                print "[+] Printing exposed activities..."
+                for activity in exposed_content['activities']:
+                    if activity.export_reason == REASON_DEBUG:
+                        print "   [!] Activity exported due to debuggable flag!"
+                    elif activity.export_reason == REASON_INTENT:
+                        print "   [!] Implicit export by intent-filter!"
+                    elif activity.export_reason == REASON_EXPORT:
+                        print "   [!] Explicit export flag!"
+
+                    self.print_activity(app_db, activity,
+                                        activity.intent_filters)
+
+            # Services
+            if FILTER_SERVICES in filters:
+                print "[+] Printing exposed services..."
+                for service in exposed_content['services']:
+                    if service.export_reason == REASON_DEBUG:
+                        print "   [!] Activity exported due to debuggable flag!"
+                    elif service.export_reason == REASON_INTENT:
+                        print "   [!] Implicit export by intent-filter!"
+                    elif service.export_reason == REASON_EXPORT:
+                        print "   [!] Explicit export flag!"
+
+                    self.print_service(app_db, service,
+                                        service.intent_filters)
+
+
+            # Receivers
+            if FILTER_RECEIVERS in filters:
+                print "[+] Printing exposed receivers..."
+                for receiver in exposed_content['receivers']:
+                    if receiver.export_reason == REASON_DEBUG:
+                        print "   [!] Activity exported due to debuggable flag!"
+                    elif receiver.export_reason == REASON_INTENT:
+                        print "   [!] Implicit export by intent-filter!"
+                    elif receiver.export_reason == REASON_EXPORT:
+                        print "   [!] Explicit export flag!"
+
+                    self.print_receiver(app_db, receiver,
+                                        receiver.intent_filters)
+
+        return 0
+
+    def print_json(self, exposed_dict):
+
+        """Print exposed content as a JSON blob"""
+        print json.dumps(exposed_dict, cls=ComponentEncoder, sort_keys=True,
+                            indent=3, separators=(',', ': '))
+
+        return 0
+
     def do_exposed_activities(self, app, diff_app, local_db, diff_db):
 
         """Do activity exposure"""
 
+        exposed_activities = list()
+
         debuggable = app.getDebuggable()
 
-       # If it is an AOSP app, get the activities.
+        # If it is an AOSP app, get the activities.
         if self.is_diff:
             diff_activities = map(lambda act: act.name,
                             diff_db.getAppActivities(diff_app._id))
 
-        print "[+] Printing exposed activities..."
         # Let's get exposed activities.
         for activity in local_db.getAppActivities(app._id):
 
@@ -1695,10 +1900,12 @@ class sysappdb(Module):
 
             intent_filters = local_db.getIntentFilters(activity)
 
+
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
-                print "   [EXP] Activity exported due to debuggable flag!"
-                self.print_activity(local_db, activity, intent_filters)
+                activity.intent_filters = intent_filters
+                activity.export_reason = REASON_DEBUG
+                exposed_activities.append(activity)
 
             else:
                 # Debuggable isnt set.
@@ -1719,18 +1926,23 @@ class sysappdb(Module):
 
                 # How about an explicit export?
                 elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    self.print_activity(local_db, activity, intent_filters)
+                    activity.intent_filters = intent_filters
+                    activity.export_reason = REASON_EXPORT
+                    exposed_activities.append(activity)
 
                 # Ok, this is the weird case.
                 elif exported is None and len(intent_filters) != 0:
-                    print "   [EXP] Implicit export by intent-filter!"
-                    self.print_activity(local_db, activity, intent_filters)
-        return 0
+                    activity.intent_filters = intent_filters
+                    activity.export_reason = REASON_INTENT
+                    exposed_activities.append(activity)
+
+        return exposed_activities
 
     def do_exposed_services(self, app, diff_app, local_db, diff_db):
 
         """Do service exposure"""
+
+        exposed_services = list()
 
         debuggable = app.getDebuggable()
 
@@ -1739,7 +1951,6 @@ class sysappdb(Module):
             diff_services = map(lambda serv: serv.name,
                             diff_db.getAppServices(diff_app._id))
 
-        print "[+] Printing exposed services..."
         # Let's get exposed services.
         for service in local_db.getAppServices(app._id):
 
@@ -1757,8 +1968,9 @@ class sysappdb(Module):
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
-                print "   [EXP] Service exported due to debuggable flag!"
-                self.print_service(local_db, service, intent_filters)
+                service.intent_filters = intent_filters
+                service.export_reason = REASON_DEBUG
+                exposed_services.append(service)
 
             else:
                 # Debuggable isnt set.
@@ -1779,19 +1991,23 @@ class sysappdb(Module):
 
                 # How about an explicit export?
                 elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    self.print_service(local_db, service, intent_filters)
+                    service.intent_filters = intent_filters
+                    service.export_reason = REASON_EXPORT
+                    exposed_services.append(service)
 
                 # Ok, this is the weird case.
                 elif exported is None and len(intent_filters) != 0:
-                    print "   [EXP] Implicit export by intent-filter!"
-                    self.print_service(local_db, service, intent_filters)
+                    service.intent_filters = intent_filters
+                    service.export_reason = REASON_INTENT
+                    exposed_services.append(service)
 
-        return 0
+        return exposed_services
 
     def do_exposed_providers(self, app, diff_app, local_db, diff_db):
 
         """Do provider exposure"""
+
+        exposed_providers = list()
 
         debuggable = app.getDebuggable()
         target_sdk_version = app.target_sdk_version
@@ -1801,7 +2017,6 @@ class sysappdb(Module):
             diff_providers = map(lambda pro: pro.name,
                             diff_db.getAppProviders(diff_app._id))
 
-        print "[+] Printing exposed providers..."
         for provider in local_db.getAppProviders(app._id):
 
             # If 'new_only' is used, we have to do some logic.
@@ -1816,16 +2031,25 @@ class sysappdb(Module):
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
-                print "   [EXP] Provider exported due to debuggable flag!"
-                self.print_provider(provider)
+
+                provider.export_reason = REASON_DEBUG
+                provider.db_capabilities = DB_READ | DB_WRITE
+                exposed_providers.append(provider)
             else:
-                # Debuggable isnt set.
+                # Is this even enabled?
+                if enabled is False:
+                    continue
+
+                # Is it explicitly set to false?
+                if exported is False:
+                    continue
 
                 # Make sure there are permissions that we can work with.
                 read_name = None
                 write_name = None
+
                 # This is frustratingly annoying for providers.
-                # We're actually going to ignore "permission", is distribute
+                # We're actually going to ignore "permission", and distribute
                 # it's effects.
                 # First lets set the actual read_permission for this component.
                 if (provider.permission is None and
@@ -1855,48 +2079,45 @@ class sysappdb(Module):
                         provider.write_permission is not None):
                     write_permission = provider.write_permission
 
-                # Lets get the protection levels
-                #if read_permission is not None:
-                #    read_protection_level = read_permission.protection_level
-                #if write_permission is not None:
-                #    write_protection_level = write_permission.protection_level
+                # Get the name for each permissions
+                db_capabilities = DB_NONE
 
-                if read_permission is not None:
-                    read_name = read_permission.name
-                if write_permission is not None:
-                    write_name = write_permission.name
+                # Determine if we could read this:
+                if read_permission is None:
+                    db_capabilities |= DB_READ
+                else:
+                    if read_permission.name in self.permission_list:
+                        db_capabilities |= DB_READ
 
-                # If both are NOT in the group below, continue
-                if (read_name not in self.permission_list
-                    and write_name not in self.permission_list):
+                # Determine if we could write this:
+                if write_permission is None:
+                    db_capabilities |= DB_WRITE
+                else:
+                    if write_permission.name in self.permission_list:
+                        db_capabilities |= DB_WRITE
+
+                # If we get here, exported is True/None. But does it matter?
+                if db_capabilities == DB_NONE:
                     continue
+                else:
+                    if exported is True:
+                        provider.export_reason = REASON_EXPORT
+                        provider.db_capabilities = db_capabilities
+                        exposed_providers.append(provider)
 
-                # Is this even enabled?
-                if enabled is False:
-                    continue
+                    # Ok, this is the weird case.
+                    elif exported is None and target_sdk_version <= 16:
+                        provider.export_reason = REASON_SDK
+                        provider.db_capabilities = db_capabilities
+                        exposed_providers.append(provider)
 
-                # Is it explicitly set to false?
-                if exported is False:
-                    continue
-
-                # How about an explicit export?
-                elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    self.print_provider(provider)
-
-                # Ok, this is the weird case.
-                elif exported is None:
-                    # check the min and targets.
-                    if target_sdk_version <= 16:
-
-                        # TODO: But we need to check the permissions.
-                        print "   [EXP] Implicit export based on *_sdk_version!"
-                        self.print_provider(provider)
-        return 0
+        return exposed_providers
 
     def do_exposed_receivers(self, app, diff_app, local_db, diff_db):
 
         """Do receiver exposure"""
+
+        exposed_receivers = list()
 
         debuggable = app.getDebuggable()
 
@@ -1905,7 +2126,6 @@ class sysappdb(Module):
             diff_receivers = map(lambda rec: rec.name,
                             diff_db.getAppReceivers(diff_app._id))
 
-        print "[+] Printing exposed receivers..."
         # Let's get exposed receivers.
         for receiver in local_db.getAppReceivers(app._id):
 
@@ -1923,8 +2143,9 @@ class sysappdb(Module):
 
             # First, if we're debuggable, the world is our oyster.
             if debuggable:
-                print "   [EXP] Receiver exported due to debuggable flag!"
-                self.print_receiver(local_db, receiver, intent_filters)
+                receiver.intent_filters = intent_filters
+                receiver.export_reason = REASON_DEBUG
+                exposed_receivers.append(receiver)
             else:
                 # Debuggable isnt set.
                 # Make sure there is a permission that we can work with.
@@ -1944,55 +2165,73 @@ class sysappdb(Module):
 
                 # How about an explicit export?
                 elif exported is True:
-                    print "   [EXP] Explicit export flag!"
-                    self.print_receiver(local_db, receiver, intent_filters)
+                    receiver.intent_filters = intent_filters
+                    receiver.export_reason = REASON_EXPORT
+                    exposed_receivers.append(receiver)
 
                 # Ok, this is the weird case.
                 elif exported is None and len(intent_filters) != 0:
-                    print "   [EXP] Implicit export by intent-filter!"
-                    self.print_receiver(local_db, receiver, intent_filters)
+                    receiver.intent_filters = intent_filters
+                    receiver.export_reason = REASON_INTENT
+                    exposed_receivers.append(receiver)
 
-        return 0
+        return exposed_receivers
 
-    def do_exposed(self, local_appdb, diff_appdb, app, config):
+    def do_exposed(self, local_appdb, diff_appdb, app_list, config):
 
         """Do exposing"""
 
         filters = config['filters']
         no_google = config['no_google']
+        output = config['output']
         self.new_only = config['new_only']
         self.is_diff = False
+        exposed_dict = dict()
 
-        app_name = app.project_name
+        for app in app_list:
 
-        if no_google and AppDb.isGoogleApp(app_name):
-            log.d(TAG, "Skipping Google app '%s'" % app_name)
-            return 0
+            app_name = app.project_name
 
-        log.i(TAG, "app_name : %s" % app_name)
+            if no_google and AppDb.isGoogleApp(app_name):
+                log.d(TAG, "Skipping Google app '%s'" % app_name)
+                continue
 
-        debuggable = app.getDebuggable()
-        if debuggable:
-            print "[!!!] This application is debuggable, bad!!"
+            log.d(TAG, "app_name : %s" % app_name)
+            app_dict = dict()
 
-        # Is this an AOSP/added  application?
-        diff_app = diff_appdb.getAppByName(app_name)
-        if diff_app is not None:
-            self.is_diff = True
+            # Is this an AOSP/added application?
+            diff_app = diff_appdb.getAppByName(app_name)
+            if diff_app is not None:
+                self.is_diff = True
+            else:
+                self.is_diff = False
 
-        if FILTER_ACTIVITIES in filters:
-            self.do_exposed_activities(app, diff_app, local_appdb, diff_appdb)
+            if FILTER_ACTIVITIES in filters:
+                app_dict['activities'] = self.do_exposed_activities(app,
+                                                    diff_app, local_appdb,
+                                                    diff_appdb)
 
-        if FILTER_SERVICES in filters:
-            self.do_exposed_services(app, diff_app, local_appdb, diff_appdb)
+            if FILTER_SERVICES in filters:
+                app_dict['services'] = self.do_exposed_services(app, diff_app,
+                                                    local_appdb, diff_appdb)
 
-        if FILTER_PROVIDERS in filters:
-            self.do_exposed_providers(app, diff_app, local_appdb, diff_appdb)
+            if FILTER_PROVIDERS in filters:
+                app_dict['providers'] = self.do_exposed_providers(app,
+                                                    diff_app, local_appdb,
+                                                    diff_appdb)
 
-        if FILTER_RECEIVERS in filters:
-            self.do_exposed_receivers(app, diff_app, local_appdb, diff_appdb)
+            if FILTER_RECEIVERS in filters:
+                app_dict['receivers'] = self.do_exposed_receivers(app,
+                                                    diff_app, local_appdb,
+                                                    diff_appdb)
+            # Add the new entry
+            exposed_dict[app_name] = app_dict
 
-        return 0
+        # Do the printing
+        if output == OUTPUT_DEFAULT:
+            return self.print_default(local_appdb, filters, exposed_dict)
+        elif output == OUTPUT_JSON:
+            return self.print_json(exposed_dict)
     # End exposed related
 
     # Diff related
@@ -2077,7 +2316,6 @@ class sysappdb(Module):
                     continue
 
                 print "   %s" % permission
-
 
         if FILTER_USES_PERMISSIONS in filters:
 
@@ -2536,6 +2774,9 @@ class sysappdb(Module):
         parser.add_argument('--all', dest='all_mode', action='store_const',
                         const=True, default=False,
                         help='Run against all applications.')
+        parser.add_argument('--output', dest='output_format', type=str,
+                        default=OUTPUT_DEFAULT,
+                        help='Output format (json, etc.)')
         parser.add_argument('--no-google', dest='no_google',
                         action='store_const', const=True, default=False,
                         help='Omit Google packages based on package name.')
@@ -2558,6 +2799,7 @@ class sysappdb(Module):
         shared_id = parsed_args.shared_id
         as_app = parsed_args.as_app
         name_filter = parsed_args.name_filter
+        output_format = parsed_args.output_format
 
         config = dict()
 
@@ -2593,6 +2835,12 @@ class sysappdb(Module):
         config['no_google'] = parsed_args.no_google
         config['new_only'] = parsed_args.new_only
 
+        # Determine if output is supported
+        if output_format not in OUTPUT_FORMATS:
+            log.e(TAG, "Unsupported output format: %s" % output_format)
+            return -5
+        config['output'] = output_format
+
         # Get a handle to our DBs
         local_appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
         diff_appdb = AppDb.AppDb(diff_db)
@@ -2627,36 +2875,34 @@ class sysappdb(Module):
         log.d(TAG, "Added %s permissions." % len(permission_list))
         self.permission_list = permission_list
 
+        app_list = list()
+
         # Do all
         if all_mode:
-            for app in local_appdb.getApps():
-                rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)
-
-            return rtn
+            app_list = local_appdb.getApps()
 
         # Do filtering
         elif name_filter is not None:
-
             try:
                 pattern = re.compile(name_filter, re.UNICODE)
             except Exception as inst:
                 log.e(TAG, "Unable to parse pattern: %s" % inst)
-                return -6
+                rtn = -6
 
             for app in local_appdb.getApps():
                 if re.search(pattern, app.project_name):
-                    rtn |= self.do_exposed(local_appdb, diff_appdb, app, config)
-
-            return rtn
+                    app_list.append(app)
 
         # Do only a single
         else:
             app = local_appdb.getAppByName(app_name)
             if app is None:
                 log.e(TAG, "Unable to find application '%s' in DB." % app_name)
-                return -4
+                rtn = -4
+            app_list = (app,)
 
-            return self.do_exposed(local_appdb, diff_appdb, app, config)
+        # Do the actual exposing
+        return self.do_exposed(local_appdb, diff_appdb, app_list, config)
 
     def execute(self, args):
 
