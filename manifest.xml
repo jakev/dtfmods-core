@@ -136,15 +136,6 @@
           localName="modules/getbins" />
 
     <Item type="module"
-          name="getpermissions"
-          majorVersion="1"
-          minorVersion="1"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Download all the /etc/permission files."
-          localName="modules/getpermissions" />
-
-    <Item type="module"
           name="getsyslibs"
           majorVersion="1"
           minorVersion="0"
@@ -217,13 +208,13 @@
           localName="modules/permissions" />
 
     <Item type="module"
-          name="platformdiff"
+          name="platformdb"
           majorVersion="1"
-          minorVersion="1"
-          health="stable"
+          minorVersion="0"
+          health="beta"
           author="Jake Valletta (jakev)"
-          about="Parse the /system/etc/permissions/platform.xml file."
-          localName="modules/platformdiff" />
+          about="Create and query platform database."
+          localName="modules/platformdb" />
 
     <Item type="module"
           name="resetserial"
