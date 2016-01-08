@@ -37,7 +37,7 @@ log_i "Getting all data from device..."
 # Get Data
 dtf sysappdb pull --threads 10 --no-md5
 dtf frameworkdb pull
-dtf getpermissions
+dtf platformdb create
 dtf getsyslibs
 dtf bindiff --pull
 
