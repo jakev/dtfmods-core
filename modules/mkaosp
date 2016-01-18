@@ -27,7 +27,7 @@ log_i "Creating AOSP data..."
 # Get Data
 dtf sysappdb pull --threads 15
 dtf frameworkdb pull
-dtf getpermissions
+dtf platformdb create
 dtf getsyslibs
 dtf frameworkres
 

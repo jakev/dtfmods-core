@@ -75,7 +75,7 @@ dtf userdb create
 # DEX DBs
 log_i "Generating DEX databases.  This will take some time..."
 dtf frameworkdexdb create --all
-dtf appdexdb create --all-aosps
+dtf appdexdb create --all-aosp
 
 # System Services
 log_i "Generating system services database..."
