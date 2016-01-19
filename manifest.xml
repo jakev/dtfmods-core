@@ -136,6 +136,15 @@
           localName="modules/getbins" />
 
     <Item type="module"
+          name="generateaidl"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Generate AIDL for given application name."
+          localName="modules/generateaidl" />
+
+    <Item type="module"
           name="getsyslibs"
           majorVersion="1"
           minorVersion="0"
@@ -368,6 +377,14 @@
           health="stable"
           author="Jake Valletta (jakev)"
           localName="binaries/dexdumpsql.jar" />
+
+    <Item type="binary"
+          name="GenerateAIDL-1.0.jar"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          localName="binaries/GenerateAIDL-1.0.jar" />
 
     <!-- Package Content -->
     <Item type="package"
