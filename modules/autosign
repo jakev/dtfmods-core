@@ -14,33 +14,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#@About: Sign an application with a test key.
+#@About: Quickly sign an APK.
 #@Author: Jake Valletta (jakev)
 #@Health: stable
-#@Version: 1.0
+#@Version: 1.1
 
 . $DTF_CORE
 . $DTF_LOG
 
 SRC=${DTF_PACKAGES}/Autosign
-out=your_app_signed.apk
+ROOT=/
 
-if [ -z "$1" ]; then
-    echo "Usage: autosign your_unsigned_apk [output_file]"
-    exit -1
+usage()
+{
+    echo "Usage autosign OPTIONS [unsigned_apk]"
+    echo "    OPTIONS:"
+    echo "      -o OUT  Output APK name."
+    echo "      -k KEY  Sign using specified AOSP key."
+    echo "      -h      Show this message."
+    echo ""
+    echo "    KEYs:"
+    echo "    media, platform, shared, testkey, default(*)"
+    exit 1
+}
+
+if [ $# -lt 1 ] ; then
+    usage
 fi
 
-in=$1
+out_path=""
+key=default
 
-if [ ! -z "$2" ]; then
-    out=$2
+#Process the arguments
+while getopts ho:k: opt
+do
+    case "$opt" in
+        h) usage;;
+        o) out_path=$OPTARG;;
+        k) key=$OPTARG;;
+        \?) usage;;
+    esac
+done
+
+in_path=${@:$OPTIND:1}
+
+
+relative=$(echo ${in_path} | cut -c1-1)
+if [ "$relative" = "$ROOT" ]; then
+    in_name=$in_path
+else
+    in_name=${LAUNCH_DIR}/${in_path}
 fi
 
-if [ ! -f "${in}" ]; then
-    log_e "File '${in}' doesn't exist!"
-    exit -2
+if [ ! -f "${in_name}" ]; then
+    log_e "File '${in_name}' does not exist!"
+    exit 1
 fi
 
-log_i "Signing '${in}' to '${out}'"
+if [ -z $out_path ]; then
 
-java -jar ${SRC}/signapk.jar ${SRC}/testkey.x509.pem ${SRC}/testkey.pk8 ${LAUNCH_DIR}/${in} ${LAUNCH_DIR}/${out}
+    out_path=$(basename $in_name|sed 's/\.apk//')-signed.apk
+fi
+
+relative=$(echo ${out_path} | cut -c1-1)
+if [ "$relative" = "$ROOT" ]; then
+    out_name=$out_path
+else
+    out_name=${LAUNCH_DIR}/${out_path}
+fi
+
+log_i "Signing '${in_path}' to '${out_path}'"
+
+java -jar ${SRC}/signapk.jar ${SRC}/keys/${key}.x509.pem ${SRC}/keys/${key}.pk8 \
+                            ${in_name} ${out_name}

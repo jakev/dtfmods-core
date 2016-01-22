@@ -95,7 +95,7 @@ do_build()
     ${APKTOOL} build ${DROZER_DIR}
 
     log_i "Signing APK..."
-    ${AUTOSIGN} ${DIST_DIR}/${APK_NAME} ${DIST_DIR}/${APK_NAME_SIGNED}
+    ${AUTOSIGN} -o ${DIST_DIR}/${APK_NAME_SIGNED} ${DIST_DIR}/${APK_NAME}
 
     # Uninstall old, install new.
     log_i "Removing and installing new version..."

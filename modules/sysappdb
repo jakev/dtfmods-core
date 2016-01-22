@@ -1838,7 +1838,7 @@ class sysappdb(Module):
                 print "[+] Printing exposed services..."
                 for service in exposed_content['services']:
                     if service.export_reason == REASON_DEBUG:
-                        print "   [!] Activity exported due to debuggable flag!"
+                        print "   [!] Service exported due to debuggable flag!"
                     elif service.export_reason == REASON_INTENT:
                         print "   [!] Implicit export by intent-filter!"
                     elif service.export_reason == REASON_EXPORT:
@@ -1847,13 +1847,25 @@ class sysappdb(Module):
                     self.print_service(app_db, service,
                                         service.intent_filters)
 
+            # Providers
+            if FILTER_PROVIDERS in filters:
+                print "[+] Printing exposed providers..."
+                for provider in exposed_content['providers']:
+                    if provider.export_reason == REASON_DEBUG:
+                        print "   [!] Provider exported due to debuggable flag!"
+                    elif provider.export_reason == REASON_SDK:
+                        print "   [!] Implicit export by SDK version!"
+                    elif provider.export_reason == REASON_EXPORT:
+                        print "   [!] Explicit export flag!"
+
+                    self.print_provider(provider)
 
             # Receivers
             if FILTER_RECEIVERS in filters:
                 print "[+] Printing exposed receivers..."
                 for receiver in exposed_content['receivers']:
                     if receiver.export_reason == REASON_DEBUG:
-                        print "   [!] Activity exported due to debuggable flag!"
+                        print "   [!] Receiver exported due to debuggable flag!"
                     elif receiver.export_reason == REASON_INTENT:
                         print "   [!] Implicit export by intent-filter!"
                     elif receiver.export_reason == REASON_EXPORT:
@@ -2898,7 +2910,7 @@ class sysappdb(Module):
             app = local_appdb.getAppByName(app_name)
             if app is None:
                 log.e(TAG, "Unable to find application '%s' in DB." % app_name)
-                rtn = -4
+                return -7
             app_list = (app,)
 
         # Do the actual exposing

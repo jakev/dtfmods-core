@@ -30,10 +30,10 @@
     <Item type="module"
           name="autosign"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
-          about="Sign an application with a test key."
+          about="Quickly sign an APK."
           localName="modules/autosign" />
 
     <Item type="module"
@@ -390,7 +390,7 @@
     <Item type="package"
           name="Autosign"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
           localName="packages/Autosign" />
