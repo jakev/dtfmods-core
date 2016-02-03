@@ -2794,7 +2794,7 @@ class sysappdb(Module):
                         help='Omit Google packages based on package name.')
         parser.add_argument('--new-only', dest='new_only',
                         action='store_const', const=True, default=False,
-                        help='Omit Google packages based on package name.')
+                        help='Omit items in diff DB.')
         parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
                         default=None, help='Diff against data in dir.')
         parser.add_argument('--shared-id', metavar="shared_id", type=str,

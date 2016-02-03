@@ -1,194 +1,642 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 # DTF Core Content
-# Copyright 2013-2015 Jake Valletta (@jake_valletta)
-# 
+# Copyright 2013-2016 Jake Valletta (@jake_valletta)
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+"""Module for analyzing Linux devices"""
 
-#@About: Create and manage a database with device driver details.
-#@Author: Jake Valletta (jakev)
-#@Health: stable
-#@Version: 1.0
+from argparse import ArgumentParser
 
-. $DTF_CORE
-. $DTF_LOG
+import dtf.properties as prop
+import dtf.logging as log
+import dtf.adb as DtfAdb
+from dtf.globals import DTF_PACKAGES_DIR
+from dtf.module import Module
 
-create_db()
-{
-    log_i "Creating database tables..."
+import AppDb
 
-    sql='CREATE TABLE IF NOT EXISTS devices
-         (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT,
-         type INTEGER,
-         permissions INTEGER,
-         owner_name TEXT,
-         group_name TEXT,
-         major TEXT,
-         minor TEXT,
-         FOREIGN KEY(type) REFERENCES types(id)
-         );'
+import os
+import os.path
+import sqlite3
+import re
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+TAG = "devdb"
 
-    sql='CREATE TABLE IF NOT EXISTS mappings
-         (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT,
-         number INTEGER,
-         type INTEGER,
-         FOREIGN KEY(type) REFERENCES types(id)
-         );'
+DEV_DB_NAME = 'dev.db'
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+DEV_TYPE_UNKNOWN = -1
+DEV_TYPE_BLOCK = 0
+DEV_TYPE_CHAR = 1
+DEV_TYPE_SOCKET = 2
 
-    sql='CREATE TABLE IF NOT EXISTS types
-         (
-         id INTEGER PRIMARY KEY AUTOINCREMENT,
-         name TEXT
-         );'
+FILTER_SOCKET = 'socket'
+FILTER_BLOCK = 'block'
+FILTER_CHAR = 'char'
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+DEFAULT_FILTERS = [FILTER_SOCKET,
+                   FILTER_BLOCK,
+                   FILTER_CHAR]
 
-    sql='INSERT INTO types(id, name)
-         VALUES(0, "block");'
+TTY_RGX = re.compile(
+            "/dev/(ptmx|pts|(pty|tty)([S0-9][0-9]?|[p-za-e][0-9a-f])?)")
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+DEFAULT_USER_ID = 'shell'
+DEFAULT_GROUPS = ['shell', 'input', 'log', 'adb', 'sdcard_rw', 'sdcard_r',
+                  'net_bt_admin', 'net_bt', 'inet', 'net_bw_stats']
+
+class devdb(Module):
+
+    """Module class for analyzing Linux devices"""
+
+    about = 'Module for analyzing Linux devices.'
+    author = 'Jake Valletta (jakev)'
+    health = 'beta'
+    name = 'devdb'
+    version = '1.0'
+
+    def usage(self):
+
+        """Usage message"""
+
+        print "devdb v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create     Create the device database."
+        print "    exposed    Determine device exposure."
+        print ""
+
+        return 0
+
+    @classmethod
+    def validate_filters(cls, filters, default):
+
+        """Process filters"""
+        filters = filters.split(',')
+
+        # Validate filter
+        for filt in filters:
+            if filt not in default:
+                log.e(TAG, "Invalid filter option: %s" % filt)
+                return None
+
+        return filters
+
+    @classmethod
+    def safe_sqlite3_connect(cls, db_file_name):
+
+        """Check if DB exists before opening"""
+
+        if os.path.isfile(db_file_name):
+            return sqlite3.connect(db_file_name)
+
+        else:
+            raise IOError("Target Sqlite3 file not found!")
 
 
-    sql='INSERT INTO types(id, name)
-         VALUES(1, "character");'
+    @classmethod
+    def determine_diff_database(cls, args):
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+        """Determine which diffing devdb to use"""
 
-    sql='INSERT INTO types(id, name)
-         VALUES(2, "socket");'
+        args_diff_dir = args.diff_dir
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
-}
+        # First check if we no arg is set
+        if args_diff_dir is None:
 
-drop_db()
-{
-    log_i "Dropping database tables..."
+            # First check for our argument.
+            try:
+                prop_diff_dir = prop.get_prop('Local', 'diff-data-dir')
+            except prop.PropertyError:
+                prop_diff_dir = None
 
-    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE devices" 2> /dev/null
-    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE mappings" 2> /dev/null
-    sqlite3 "${LOCAL_DB_NAME}" "DROP TABLE types" 2> /dev/null
-}
+            if prop_diff_dir is not None:
+                diff_dev_db = "%s/.dbs/%s" % (prop_diff_dir,
+                                                  DEV_DB_NAME)
+
+                if not os.path.isfile(diff_dev_db):
+                    log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                                 diff_dev_db)
+                    return None
+                else:
+                    return diff_dev_db
+            # Not set
+            else:
+                # Make sure that the AOSP_DB actually exists.
+                if not AppDb.isAOSPDataInstalled():
+                    log.e(TAG, "Missing diffing data for this API!")
+                    return None
+
+                diff_dev_db = ("%s/aosp-data-%s/.dbs/%s" %
+                                         (DTF_PACKAGES_DIR,
+                                          prop.get_prop("Info", "sdk"),
+                                          DEV_DB_NAME))
+
+                return diff_dev_db
+
+        # It is set, use it.
+        else:
+            diff_dev_db = "%s/.dbs/%s" % (args_diff_dir,
+                                               DEV_DB_NAME)
+
+            if not os.path.isfile(diff_dev_db):
+                log.e(TAG, "Diff DB '%s' doesn't exist!" %
+                                               diff_dev_db)
+                return None
+            else:
+                return diff_dev_db
+
+    # Table related
+    @classmethod
+    def drop_tables(cls, con):
+
+        """Drop tables in DB"""
+
+        log.d(TAG, "Dropping tables...")
+
+        with con:
+            cur = con.cursor()
+            cur.execute('DROP TABLE IF EXISTS devices')
+            cur.execute('DROP TABLE IF EXISTS mappings')
+            cur.execute('DROP TABLE IF EXISTS types')
+
+        return 0
+
+    @classmethod
+    def create_tables(cls, con):
+
+        """Create new tables in DB"""
+
+        log.d(TAG, "Creating tables...")
+
+        with con:
+            cur = con.cursor()
+
+            # Devices table
+            sql = ('CREATE TABLE IF NOT EXISTS devices('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT, '
+                   'type INTEGER, '
+                   'permissions INTEGER, '
+                   'owner_name TEXT, '
+                   'group_name TEXT, '
+                   'major TEXT, '
+                   'minor TEXT, '
+                   'FOREIGN KEY(type) REFERENCES types(id))')
+
+            cur.execute(sql)
+
+            # Mappings table
+            sql = ('CREATE TABLE IF NOT EXISTS mappings('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT, '
+                   'number INTEGER, '
+                   'type INTEGER, '
+                   'FOREIGN KEY(type) REFERENCES types(id))')
+
+            cur.execute(sql)
+
+            # Types table
+            sql = ('CREATE TABLE IF NOT EXISTS types('
+                   'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+                   'name TEXT NOT NULL)')
+
+            cur.execute(sql)
+
+            # We also want to populate the types table
+            cur.execute('INSERT INTO types(id, name) VALUES(0, "block")')
+            cur.execute('INSERT INTO types(id, name) VALUES(1, "character")')
+            cur.execute('INSERT INTO types(id, name) VALUES(2, "socket")')
+
+        con.commit()
+        return 0
+
+    @classmethod
+    def get_devices(cls, con, dev_type):
+
+        """Obtain devices from table by type"""
+
+        with con:
+            cur = con.cursor()
+
+            # Devices table
+            sql = ('SELECT name, permissions, owner_name, group_name, major '
+                   'FROM devices '
+                   "WHERE type=%s" % dev_type)
+
+            cur.execute(sql)
+
+            return cur.fetchall()
+
+    @classmethod
+    def get_map(cls, con, major):
+
+        """Obtain major name"""
+
+        with con:
+            cur = con.cursor()
+
+            # Devices table
+            sql = ('SELECT name '
+                   'FROM mappings '
+                   "WHERE number=%s "
+                   'LIMIT 1' % major)
+
+            cur.execute(sql)
+
+            return cur.fetchone()[0]
+    # End table related
+
+    # Create related
+    def populate_tables(self, con):
+
+        """Perform the actual populating"""
+
+        if self.populate_mappings(con) != 0:
+            log.e(TAG, "Unable to create mappings!")
+            return -1
+
+        if self.populate_devices(con) != 0:
+            log.e(TAG, "Unable to populate devices!")
+            return -2
+
+        return 0
+
+    @classmethod
+    def populate_mappings(cls, con):
+
+        """Populate device ID to name mappings"""
+
+        dev_type = DEV_TYPE_UNKNOWN
+        cursor = con.cursor()
+        mappings = list()
+
+        log.i(TAG, "Populating mappings...")
+
+        adb = DtfAdb.DtfAdb()
+        adb.wait_for_device()
+
+        adb.shell_command("cat /proc/devices")
+        for line in adb.get_output():
+            if line == "":
+                continue
+
+            elif line == "Character devices:":
+                dev_type = DEV_TYPE_CHAR
+                continue
+
+            elif line == "Block devices:":
+                dev_type = DEV_TYPE_BLOCK
+                continue
+
+            else:
+                number, name = line.split()
+                mappings.append((name, number, dev_type))
+
+        cursor.executemany(('INSERT INTO mappings(name, number, type) '
+                           'VALUES(?, ?, ?)'), mappings)
+        con.commit()
+        return 0
+
+    def populate_devices(self, con):
+
+        """Find and populate device table"""
+
+        log.i(TAG, "Finding and populating devices...")
+
+        cursor = con.cursor()
+        devices = list()
+
+        adb = DtfAdb.DtfAdb()
+        adb.wait_for_device()
+
+        adb.busybox("find / -type c -o -type b -o -type s 2>/dev/null")
+
+        for line in adb.get_output():
+
+            if line == "":
+                continue
+
+            # I'm completely ignoring PTYs and TTYs. Change if you care!
+            if re.match(TTY_RGX, line):
+                continue
+
+            log.d(TAG, "Processing device: %s" % line)
+
+            # Using built-in ls, since busybox grabs numeric only.
+            adb.shell_command("ls -l %s" % line)
+
+            ls_line = adb.get_output()[0]
+
+            adb.busybox("stat -c \"%%F,%%a,%%t,%%T\" %s" % line)
+
+            stated = adb.get_output()[0]
+
+            file_type_full, owner_name, group_name = ls_line.split()[0:3]
+            permissions, major, minor = stated.split(',')[1:4]
+
+            file_type = self.get_device_type(file_type_full)
+
+            devices.append((line, file_type, permissions, owner_name,
+                            group_name, major, minor))
+
+        cursor.executemany(('INSERT INTO devices('
+                            'name, type, permissions, owner_name, group_name, '
+                            'major, minor) '
+                            'VALUES(?, ?, ?, ?, ?, ?, ?)'), devices)
+
+        con.commit()
+
+        return 0
+
+    @classmethod
+    def get_device_type(cls, type_full):
+
+        """Return the device type as integer"""
+
+        file_type_c = type_full[0]
+
+        if file_type_c == "b":
+            return DEV_TYPE_BLOCK
+        elif file_type_c == "c":
+            return DEV_TYPE_CHAR
+        elif file_type_c == "s":
+            return DEV_TYPE_SOCKET
+        else:
+            return DEV_TYPE_UNKNOWN
+
+    # End create functions
+
+    # Exposed Related
+    def do_exposed(self, local_db, diff_db, config):
+
+        """Do actual exposing"""
+
+        filters = config['filter']
+
+        if FILTER_BLOCK in filters:
+            print "Exposed Block Devices:"
+            self.do_exposed_blocks(local_db, diff_db, config)
+            print ""
+
+        if FILTER_CHAR in filters:
+            print "Exposed Character Devices:"
+            self.do_exposed_chars(local_db, diff_db, config)
+            print ""
+
+        if FILTER_SOCKET in filters:
+            print "Exposed Socket Devices:"
+            self.do_exposed_sockets(local_db, diff_db, config)
+            print ""
+
+        return 0
+
+    def do_exposed_blocks(self, local_db, diff_db, config):
+
+        """Diff exposed block devices"""
+
+        user = config['user']
+        groups = config['groups']
+        new_only = config['new_only']
+
+        local_devs = self.get_devices(local_db, DEV_TYPE_BLOCK)
+        diff_devs = self.get_devices(diff_db, DEV_TYPE_BLOCK)
+        diff_devs_names = [i[0] for i in diff_devs]
+
+        for device in local_devs:
+
+            device_name = device[0]
+            permissions = str(device[1])
+            perms_owner, perms_group, perms_other = list(permissions)
+            dev_user = device[2]
+            dev_group = device[3]
+            major = int(device[4], 16)
+            major_map = self.get_map(local_db, major)
+
+            if new_only and device_name in diff_devs_names:
+                continue
+
+            # Wide open.
+            if perms_other != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+            # We are the owner!
+            elif user == dev_user:
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+            elif dev_group in groups and perms_group != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+        return 0
+
+    def do_exposed_chars(self, local_db, diff_db, config):
+
+        """Diff exposed char devices"""
+
+        user = config['user']
+        groups = config['groups']
+        new_only = config['new_only']
+
+        local_devs = self.get_devices(local_db, DEV_TYPE_CHAR)
+        diff_devs = self.get_devices(diff_db, DEV_TYPE_CHAR)
+        diff_devs_names = [i[0] for i in diff_devs]
+
+        for device in local_devs:
+
+            device_name = device[0]
+            permissions = str(device[1])
+            perms_owner, perms_group, perms_other = list(permissions)
+            dev_user = device[2]
+            dev_group = device[3]
+            major = int(device[4], 16)
+            major_map = self.get_map(local_db, major)
+
+            if new_only and device_name in diff_devs_names:
+                continue
+
+            # Wide open.
+            if perms_other != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+            # We are the owner!
+            elif user == dev_user:
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+            elif dev_group in groups and perms_group != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, major, major_map)
+        return 0
+
+    def do_exposed_sockets(self, local_db, diff_db, config):
+
+        """Diff exposed socket devices"""
+
+        user = config['user']
+        groups = config['groups']
+        new_only = config['new_only']
+
+        local_devs = self.get_devices(local_db, DEV_TYPE_SOCKET)
+        diff_devs = self.get_devices(diff_db, DEV_TYPE_SOCKET)
+        diff_devs_names = [i[0] for i in diff_devs]
+
+        for device in local_devs:
+
+            device_name = device[0]
+            permissions = str(device[1])
+            perms_owner, perms_group, perms_other = list(permissions)
+            dev_user = device[2]
+            dev_group = device[3]
+
+            if new_only and device_name in diff_devs_names:
+                continue
+
+            # Wide open.
+            if perms_other != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, None, None)
+            # We are the owner!
+            elif user == dev_user:
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, None, None)
+            elif dev_group in groups and perms_group != "0":
+                self.print_device(device_name, permissions,
+                                  dev_user, dev_group, None, None)
+        return 0
 
 
-populate_mapping()
-{
-    log_i "Populating mappings..."
 
-    in_character=0
-    in_block=0
-    type=-1
 
-    adb shell cat /proc/devices| sed 's/\r$//' |while read line
-    do
-        if [ -z "$line" ]; then
-            continue
-        elif [ "$line" == "Character devices:" ]; then
-           in_character=1
-           type=1
-           continue
-        elif [ "$line" == "Block devices:" ]; then
-           in_character=0
-           in_block=1
-           type=0
-           continue
-        else
-            number=$(echo $line |awk '{print $1}')
-            name=$(echo $line |awk '{print $2}')
+    @classmethod
+    def print_device(cls, name, perms, user, group, major, major_map):
 
-            sql="INSERT INTO mappings(name, number, type)
-                 VALUES('${name}',${number},${type});"
+        """Print device information"""
 
-            sqlite3 "${LOCAL_DB_NAME}" "${sql}"
-            rtn=$?
+        if major is None:
+            print "%s" % name
+        else:
+            print "%s (%s/%s)" % (name, major, major_map)
+        print "   Permissions: %s" % perms
+        print "   Owner: %s" % user
+        print "   Group: %s" % group
+        print ""
 
-            log_d "Sql return : ${rtn}"
-        fi
-    done
-}
+    def cmd_create(self):
 
-log_i "Checking if device is connected.."
+        """Create and populate device DB"""
 
-if ! dtf_device_connected; then
-    echo "[ERROR] Device connection required! Please connect your device to continue."
-    exit -1
-fi
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_dev_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              DEV_DB_NAME)
 
-if [ "$(dtf prop test Info busybox)" == "0" ]; then
-    echo "[ERROR] You need to set the Info\\busybox property if you want to use this module! Exiting."
-    exit -2
-fi
+        # Does the previous DB exist?
+        if os.path.isfile(local_dev_db_name):
+            inpt = raw_input("[WARNING] A device DB already exists. "
+                             "Recreate the DB? [y/N] ").lower()
+            if inpt != 'y':
+                log.i(TAG, "Exiting due to user cancellation")
+                return 0
 
-busybox=$(dtf prop get Info busybox)
-db_dir=$(dtf prop get Local db-dir)
+        dev_con = sqlite3.connect(local_dev_db_name)
 
-LOCAL_DB_NAME=${db_dir}/dev.db
+        if self.drop_tables(dev_con) != 0:
+            log.e(TAG, "Error dropping tables!")
+            return -1
 
-if [ -f ${LOCAL_DB_NAME} ]; then
-    drop_db
-fi
+        if self.create_tables(dev_con) != 0:
+            log.e(TAG, "Error adding tables!")
+            return -2
 
-create_db
+        if self.populate_tables(dev_con) != 0:
+            log.e(TAG, "Unable to populate device DB!")
+            return -3
 
-populate_mapping
+        log.i(TAG, "Device database created!")
+        return 0
 
-log_i "Finding all devices..."
+    def cmd_exposed(self, args):
 
-dtf_busybox "find / -type c -o -type b -o -type s 2>/dev/null"| sed 's/\r$//' |while read dev_name
-do
-    # I'm completely ignoring ptys and ttys. Change if you care!
-    if [[ $dev_name =~ /dev/(ptmx|pts|(pty|tty)([S0-9][0-9]?|[p-za-e][0-9a-f])?) ]]; then
-        log_d "Found a tty/pty: $dev_name"
-        continue 
-    fi
+        """Determine exposed devices"""
 
-    log_d "Processing device: ${dev_name}"
+        config = {}
 
-    # Using built-in ls, since busybox grabs numeric only.
-    full_line=$(adb shell "ls -l ${dev_name}"|sed 's/\r$//')
-    stated=$(dtf_busybox "stat -c "%F,%a,%t,%T" ${dev_name}"|sed 's/\r$//')
+        parser = ArgumentParser(prog=self.name,
+                            description="Find exposed devices.")
+        parser.add_argument('--diff-dir', metavar="diff_dir", default=None,
+                            help='Use the specified diff directory.')
+        parser.add_argument('--filters', metavar='filters', default=None,
+                            help='Filter by device type (comma seperated).')
+        parser.add_argument('--user', metavar='user',
+                            default=DEFAULT_USER_ID,
+                            help='Check as user (default: shell).')
+        parser.add_argument('--groups', metavar='groups',
+                            default=DEFAULT_GROUPS,
+                            help='List of groups (comma seperated).')
+        parser.add_argument('--new-only', dest='new_only',
+                        action='store_const', const=True, default=False,
+                        help='Omit items in diff DB.')
 
-    name=${dev_name}
-    type_c=$(echo ${full_line} |awk '{print $1}'|head -c 1)   
-    permissions=$(echo $stated |awk -F, '{print $2}')
-    owner_name=$(echo ${full_line} |awk '{print $2}')
-    group_name=$(echo ${full_line} |awk '{print $3}')
-    major=$(echo $stated |awk -F, '{print $3}')
-    minor=$(echo $stated |awk -F, '{print $4}')
 
-    case "$type_c" in
-    'b' )
-        type=0 ;;
-    'c' )
-        type=1 ;;
-    's' )
-        type=2 ;;
-     *  )
-        type=-1 ;;
-    esac
+        db_dir = prop.get_prop('Local', 'db-dir')
 
-    sql="INSERT INTO devices(name,type,permissions,owner_name,group_name,major,minor)
-        VALUES('${name}',${type},${permissions},'${owner_name}','${group_name}','${major}','${minor}');"
+        local_devdb_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                            DEV_DB_NAME)
 
-    sqlite3 "${LOCAL_DB_NAME}" "${sql}"
+        parsed_args = parser.parse_args(args)
 
-    rtn=$?
+        config['user'] = parsed_args.user
+        config['groups'] = parsed_args.groups
+        config['new_only'] = parsed_args.new_only
 
-    log_d "SQL Return : ${rtn}"
-done
+        # Validate Filters
+        filters = parsed_args.filters
+        if filters is None:
+            filters = DEFAULT_FILTERS
+        else:
+            filters = self.validate_filters(filters, DEFAULT_FILTERS)
+            if filters is None:
+                log.e(TAG, "Unable to validate filter!")
+                return -3
+
+        config['filter'] = filters
+
+        # Try to open local DB first.
+        try:
+            local_dev_db = self.safe_sqlite3_connect(local_devdb_name)
+        except IOError:
+            log.e(TAG, "Local 'devdb.db' does not exist!")
+            return -1
+
+        diff_devdb_name = self.determine_diff_database(parsed_args)
+        if diff_devdb_name is None:
+            log.e(TAG, "Error getting diff database.")
+            return -2
+
+        # Open diffing DB
+        diff_dev_db = self.safe_sqlite3_connect(diff_devdb_name)
+
+        return self.do_exposed(local_dev_db, diff_dev_db, config)
+
+    def execute(self, args):
+
+        """Main module execution"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'exposed':
+            return self.cmd_exposed(args)
+        elif mode == 'create':
+            return self.cmd_create()
+        else:
+            return self.usage()

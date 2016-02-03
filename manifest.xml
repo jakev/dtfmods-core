@@ -58,19 +58,10 @@
           name="devdb"
           majorVersion="1"
           minorVersion="0"
-          health="stable"
+          health="beta"
           author="Jake Valletta (jakev)"
-          about="Create and manage a database with device driver details."
+          about="Module for analyzing Linux devices."
           localName="modules/devdb" />
-
-    <Item type="module"
-          name="devdiff"
-          majorVersion="1"
-          minorVersion="0"
-          health="stable"
-          author="Jake Valletta (jakev)"
-          about="Print devices that are not part of the AOSP image."
-          localName="modules/devdiff" />
 
     <Item type="module"
           name="drozercfg"
