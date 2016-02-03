@@ -71,6 +71,27 @@ class frameworkdb(Module):
         return 0
 
     @classmethod
+    def jar_is_dex(cls, file_name):
+
+        """Determine if JAR is actually a DEX"""
+
+        magic = ''
+        try:
+            fsock = open(file_name, "rb", 0)
+            try:
+                magic = fsock.read(6)
+            finally:
+                fsock.close()
+        except IOError:
+            return True
+
+        # DEX = 6465 780a 3033
+        if magic.encode('hex') == '6465780a3033':
+            return True
+        else:
+            return False
+
+    @classmethod
     def determine_diff_database(cls, args):
 
         """Determine which diffing frameworkdb to use"""
@@ -217,8 +238,29 @@ class frameworkdb(Module):
         if isfile(framework_jar):
 
             log.d(TAG, "Trying JAR mode")
-            # There is a JAR, but is there a 'classs.dex' inside?
-            if self.file_in_zip(framework_jar, 'classes.dex'):
+
+            # There is a JAR file. Weird, but is this JAR actually DEX?
+            if self.jar_is_dex(framework_jar):
+
+                log.d(TAG, "Unpacking DEX framework")
+                out, err, rtn = baksmali("-a %s -o %s %s"
+                                         % (sdk, out_dir,
+                                            framework_jar))
+                # Error
+                if rtn != 0:
+                    log.e(TAG, "Error unpacking framework DEX (%d)" % rtn)
+
+                    # Mark failure
+                    if self.reporting:
+                        self.report.add_failed(framework)
+                # Success!
+                else:
+                    fwdb.markUnpacked(framework)
+                    if self.reporting:
+                        self.report.add_completed(framework)
+
+            # There is a (non DEX) JAR, but is there a 'classs.dex' inside?
+            elif self.file_in_zip(framework_jar, 'classes.dex'):
 
                 log.d(TAG, "classes.dex found, trying to unpack")
                 # Unzip the classes.dex
@@ -249,7 +291,7 @@ class frameworkdb(Module):
                         if self.reporting:
                             self.report.add_completed(framework)
 
-            # JAR, no classes.dex, ODEX?
+            # JAR, not DEX JAR, no classes.dex, ODEX?
             elif isfile(framework_odex):
 
                 log.d(TAG, "Unpacking ODEX framework")
@@ -336,7 +378,8 @@ class frameworkdb(Module):
     # End unpack related
 
     # Diff related
-    def do_diff(self, local_db, diff_db, bootclasspath=0):
+    @classmethod
+    def do_diff(cls, local_db, diff_db, bootclasspath=0):
 
         """Do actual diffing"""
 
