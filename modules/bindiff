@@ -58,7 +58,7 @@ pull=0
 pull_dir="oem-bins"
 sdk=$(dtf prop get Info sdk)
 
-binlist_file=${DTF_PACKAGES}/aosp-data-${sdk}/bindirlist
+binlist_file="${DTF_PACKAGES}/aosp-data-${sdk}/bindirlist"
 
 IFS=$'\n' aosp_binlist=($(cat ${binlist_file}))
 

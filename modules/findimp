@@ -21,7 +21,7 @@
 
 . $DTF_CORE
 
-cd $TOP
+cd "$TOP"
 
 full_class=$(dtf sysservicedb dump $1|head -n1|awk '{print $3}' |sed 's/(\|)//g')
 

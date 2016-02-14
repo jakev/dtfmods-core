@@ -22,7 +22,7 @@
 . $DTF_CORE
 . $DTF_LOG
 
-drozer_apk=${DTF_PACKAGES}/Drozer/drozer-agent-2.3.2.apk
+drozer_apk="${DTF_PACKAGES}/Drozer/drozer-agent-2.3.2.apk"
 drozer_package=com.mwr.dz
 
 usage()
@@ -32,6 +32,7 @@ usage()
     echo "Submodules:"
     echo "    install [-r]  Install Drozer on device."
     echo "    build         Build a local Drozer instance."
+    echo "    launch        Launch Drozer by intent."
     echo ""
 
 }
@@ -79,29 +80,37 @@ do_build()
     ADB=adb
     APKTOOL=dtf_apktool
     AUTOSIGN="dtf autosign"
-    DROZER_DIR=$TOP/.drozer
-    DIST_DIR=$DROZER_DIR/dist
+    DROZER_DIR="${TOP}/.drozer"
+    DIST_DIR="${DROZER_DIR}/dist"
     PROJECT_NAME=com.mwr.dz
     APK_NAME=drozer-agent-2.3.2.apk
     APK_NAME_SIGNED=drozer-agent-2.3.2-signed.apk
 
     # Clean
     log_i "Cleaning old Drozer build..."
-    rm ${DIST_DIR}/${APK_NAME} 2> /dev/null
-    rm ${DIST_DIR}/${APK_NAME_SIGNED} 2> /dev/null
+    rm "${DIST_DIR}/${APK_NAME}" 2> /dev/null
+    rm "${DIST_DIR}/${APK_NAME_SIGNED}" 2> /dev/null
 
     # Build APK
     log_i "Building new APK..."
-    ${APKTOOL} build ${DROZER_DIR}
+    ${APKTOOL} build "${DROZER_DIR}"
 
     log_i "Signing APK..."
-    ${AUTOSIGN} -o ${DIST_DIR}/${APK_NAME_SIGNED} ${DIST_DIR}/${APK_NAME}
+    ${AUTOSIGN} -o "${DIST_DIR}/${APK_NAME_SIGNED}" "${DIST_DIR}/${APK_NAME}"
 
     # Uninstall old, install new.
     log_i "Removing and installing new version..."
     ${ADB} wait-for-device
     ${ADB} uninstall ${PROJECT_NAME}
-    ${ADB} install ${DIST_DIR}/${APK_NAME_SIGNED}
+    ${ADB} install "${DIST_DIR}/${APK_NAME_SIGNED}"
+}
+
+do_launch()
+{
+    log_i "Launching Drozer..."
+
+    adb wait-for-device
+    adb shell am start -n com.mwr.dz/.activities.MainActivity > /dev/null
 }
 
 install_drozer()
@@ -117,7 +126,7 @@ install_drozer()
         log_w "The directory '.drozer' already exists, skipping copy"
     fi
 
-    adb install ${drozer_apk}
+    adb install "${drozer_apk}"
 
     log_i "Setting up forwarding..."
     adb forward tcp:31415 tcp:31415
@@ -136,4 +145,10 @@ elif [ "$1" = "install" ]; then
 elif [ "$1" = "build" ]; then
     do_build "$@"
 
+elif [ "$1" = "launch" ]; then
+    do_launch
+
+else
+    usage
+    exit 0
 fi

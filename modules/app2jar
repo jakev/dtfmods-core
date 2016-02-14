@@ -30,9 +30,9 @@ do_app()
     app_name=$2
 
     log_i "Converting '${app_name}'..."
-    dex_full_path=${java_apps_dir}/${app_name}.dex
+    dex_full_path="${java_apps_dir}/${app_name}.dex"
 
-    dtf_smali -o ${dex_full_path} -a ${sdk} ${decoded_dir}/ >/dev/null 2>&1
+    dtf_smali -o "${dex_full_path}" -a ${sdk} "${decoded_dir}/" >/dev/null 2>&1
 
     rtn=$?
     if [ "$rtn" != "0" ]; then
@@ -40,7 +40,7 @@ do_app()
         exit -1
     fi
 
-    dtf_dex2jar -o ${java_apps_dir}/${app_name}.jar ${dex_full_path} >/dev/null 2>&1
+    dtf_dex2jar -o "${java_apps_dir}/${app_name}.jar" "${dex_full_path}" >/dev/null 2>&1
 
     rtn=$?
     if [ "$rtn" != "0" ]; then
@@ -49,7 +49,7 @@ do_app()
     fi
 
     # Clean up.
-    rm ${dex_full_path}
+    rm "${dex_full_path}"
     log_i "Conversion successful!"
 }
 
@@ -62,11 +62,11 @@ fi
 
 app_name=$1
 java_apps_dir=java-apps-dir
-decoded_aosp_dir=${TOP}/decoded-aosp/${app_name}/smali
-decoded_oem_dir=${TOP}/decoded-oem/${app_name}/smali
+decoded_aosp_dir="${TOP}/decoded-aosp/${app_name}/smali"
+decoded_oem_dir="${TOP}/decoded-oem/${app_name}/smali"
 sdk=$(dtf prop get Info sdk)
 
-mkdir ${java_apps_dir} 2> /dev/null
+mkdir "${java_apps_dir}" 2> /dev/null
 dtf prop set Local java-app-dir "${java_app_dir}"
 
 # Try OEM first

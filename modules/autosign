@@ -71,9 +71,9 @@ if [ ! -f "${in_name}" ]; then
     exit 1
 fi
 
-if [ -z $out_path ]; then
+if [ -z "$out_path" ]; then
 
-    out_path=$(basename $in_name|sed 's/\.apk//')-signed.apk
+    out_path=$(basename "$in_name"|sed 's/\.apk//')-signed.apk
 fi
 
 relative=$(echo ${out_path} | cut -c1-1)
@@ -85,5 +85,5 @@ fi
 
 log_i "Signing '${in_path}' to '${out_path}'"
 
-java -jar ${SRC}/signapk.jar ${SRC}/keys/${key}.x509.pem ${SRC}/keys/${key}.pk8 \
-                            ${in_name} ${out_name}
+java -jar "${SRC}/signapk.jar" "${SRC}/keys/${key}.x509.pem" \
+        "${SRC}/keys/${key}.pk8" "${in_name}" "${out_name}"
