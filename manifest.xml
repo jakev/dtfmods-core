@@ -364,7 +364,7 @@
     <Item type="binary"
           name="dexdumpsql.jar"
           majorVersion="1"
-          minorVersion="2"
+          minorVersion="3"
           health="stable"
           author="Jake Valletta (jakev)"
           localName="binaries/dexdumpsql.jar" />
