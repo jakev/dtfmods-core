@@ -82,6 +82,15 @@
           localName="modules/findimp" />
 
     <Item type="module"
+          name="fixresources"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Resolve resource values in Smali files."
+          localName="modules/fixresources" />
+
+    <Item type="module"
           name="framework2jar"
           majorVersion="1"
           minorVersion="1"
