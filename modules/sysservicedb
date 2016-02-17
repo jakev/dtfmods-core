@@ -183,7 +183,7 @@ class sysservicedb(Module):
 
                 cmd_args = ['--framework', '-e', '-f', project]
 
-                out, rtn = launch_module("classsearch", cmd_args, redirect=True)
+                out = launch_module("classsearch", cmd_args, redirect=True)[0]
 
                 if out == '':
                     log.w(TAG, "Unable to find source files, native maybe?")
@@ -285,9 +285,9 @@ class sysservicedb(Module):
                 transaction_args = row[2]
                 transaction_rtn = row[3]
 
-                print ("   %s %s(%s)" %
+                print ("[+]   %s %s(%s)" %
                         (transaction_id, transaction_name, transaction_args))
-                print "      Returns: %s" % transaction_rtn
+                print "         Returns: %s" % transaction_rtn
 
             return 0
     # End dump related
@@ -298,7 +298,7 @@ class sysservicedb(Module):
 
         """Format a transaction"""
 
-        return [i for i in transactions if i[1] is name][0]
+        return [i for i in transactions if i[1] == name][0]
 
     def diff_service(self, project_con, diff_con,
                                 service_name, name_only=False):
@@ -385,15 +385,30 @@ class sysservicedb(Module):
 
         for name in project_names:
 
+            # Transaction already exists, diff the args/return
             if name in diff_names:
-                continue
+                number, _, project_args, project_rtn = self.format_trans(
+                                                project_transactions, name)
+                diff_args, diff_rtn = self.format_trans(
+                                                diff_transactions, name)[2:]
+
+                if project_args == diff_args and project_rtn == diff_rtn:
+                    continue
+                else:
+                    print ("[!]   %s %s(%s) [was %s(%s)]"
+                                            % (number, name, project_args,
+                                               name, diff_args))
+                    print ("         Returns: %s [was %s]"
+                                            % (project_rtn, diff_rtn))
+
+            # Totally new transaction
             else:
                 (number, _, arguments, returns) = self.format_trans(
                                             project_transactions,
                                             name)
 
-                print "   %s %s(%s)" % (number, name, arguments)
-                print "      Returns: %s" % returns
+                print "[+]   %s %s(%s)" % (number, name, arguments)
+                print "         Returns: %s" % returns
 
         return 0
     # End diff related
