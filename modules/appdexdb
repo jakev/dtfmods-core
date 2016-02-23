@@ -47,6 +47,12 @@ class appdexdb(Module):
     name = 'appdexdb'
     version = '1.4'
 
+    local_appdb = None
+    diff_appdb = None
+    system_apps_dir = ''
+    appdexdbs_dir = ''
+    sdk = 0
+
     def usage(self):
 
         """Print usage message"""
@@ -159,7 +165,7 @@ class appdexdb(Module):
 
         # It is set, use it.
         else:
-            diff_sysapps_db = ("%s/.dbs/%s/%s.db"
+            diff_appdex_db = ("%s/.dbs/%s/%s.db"
                                 % (args_diff_dir, APPDEX_DBS_DIR,
                                    app_name))
 
@@ -176,7 +182,7 @@ class appdexdb(Module):
 
         """Do app diffing"""
 
-        out, err, rtn = launch_binary("dexdiff.py", "%s %s"
+        out, err, rtn = launch_binary("dexdiff.py", "\"%s\" \"%s\""
                                     % (local_appdex_db, diff_appdex_db))
         # Hack
         print "\n".join(out)
@@ -244,7 +250,7 @@ class appdexdb(Module):
 
         """Process a single application"""
 
-        cmd_args = "-i %s -o %s -a %s" % (in_file, out_file, self.sdk)
+        cmd_args = "-i \"%s\" -o \"%s\" -a %s" % (in_file, out_file, self.sdk)
 
         out, err, rtn = launch_binary("dexdumpsql.jar",
                                       cmd_args, launcher="java -jar")
