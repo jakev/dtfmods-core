@@ -361,6 +361,15 @@
           author="Jake Valletta (jakev)"
           localName="libraries/UserDb" />
 
+    <Item type="library"
+          name="Utils"
+          about="Helper methods"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="libraries/Utils" />
+
    <!-- Binary Content -->
     <Item type="binary"
           name="dexdiff.py"

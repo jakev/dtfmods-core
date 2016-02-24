@@ -17,11 +17,9 @@
 """Manipulate framework DEX DBs"""
 
 from argparse import ArgumentParser
-from subprocess import Popen, PIPE
 
 import os
 import os.path
-import shlex
 
 from dtf.globals import DTF_PACKAGES_DIR
 from dtf.module import Module
@@ -31,6 +29,7 @@ import dtf.properties as prop
 import dtf.logging as log
 
 import FrameworkDb
+import Utils
 
 FRAMEWORKS_DB_NAME = 'frameworks.db'
 FRAMEWORKDEX_DBS_DIR = 'frameworkdexdbs'
@@ -65,23 +64,6 @@ class frameworkdexdb(Module):
         print ""
 
         return 0
-
-    # Zip Stuff
-    @classmethod
-    def file_in_zip(cls, zip_file, file_name):
-
-        """Determine if file in ZIP"""
-
-        lexed = shlex.split("unzip -t \"%s\" \"%s\"" % (zip_file, file_name))
-
-        proc = Popen(lexed, stdout=PIPE, stderr=PIPE, shell=False)
-        proc.wait()
-
-        if proc.returncode == 0:
-            return True
-        else:
-            return False
-
 
     @classmethod
     def determine_diff_database(cls, args):
@@ -223,7 +205,7 @@ class frameworkdexdb(Module):
 
         for dex_file, out_db in dex_mappings:
 
-            if not self.file_in_zip(in_jar, dex_file):
+            if not Utils.file_in_zip(in_jar, dex_file):
                 log.d(TAG, "Skipping non-existent DEX: %s" % dex_file)
                 continue
 
@@ -274,7 +256,7 @@ class frameworkdexdb(Module):
 
                     log.d(TAG, "Trying JAR first...")
 
-                    if self.file_in_zip(jar_name, 'classes.dex'):
+                    if Utils.file_in_zip(jar_name, 'classes.dex'):
                         rtn = self.process_framework_jar(jar_name, out_name)
                     elif os.path.isfile(odex_name):
                         log.d(TAG, "No DEX in JAR; failing to ODEX mode")

@@ -88,11 +88,12 @@ class Application(object):
     successfully_unpacked = None
     shared_user_id = ''
     shared_user_label = ''
+    allow_backup = None
 
     def __init__(self, package_name, project_name, decoded_path, has_native,
                 min_sdk_version, target_sdk_version, version_name,
                 version_code, permission, debuggable, shared_user_id,
-                shared_user_label, id=None):
+                shared_user_label, allow_backup, id=None):
 
         self.project_name = project_name
         self.package_name = package_name
@@ -106,6 +107,13 @@ class Application(object):
             self.debuggable = 1
         elif debuggable == False:
             self.debuggable = 0
+
+        if allow_backup == None:
+            self.allow_backup = None
+        elif allow_backup == True:
+            self.allow_backup = 1
+        elif allow_backup == False:
+            self.allow_backup = 0
 
         self.min_sdk_version = min_sdk_version
         self.target_sdk_version = target_sdk_version
@@ -129,6 +137,23 @@ class Application(object):
         elif self.debuggable == 0:
             return False
         elif self.debuggable == 1:
+            return True
+
+    def setAllowBackup(self, value):
+
+        """Set allow_backup value"""
+
+        self.allow_backup = value
+
+    def getAllowBackup(self):
+
+        """Check if app allows backup"""
+
+        if self.allow_backup == None:
+            return None
+        elif self.allow_backup == 0:
+            return False
+        elif self.allow_backup == 1:
             return True
 
 # Component Object Classes
@@ -513,7 +538,8 @@ class AppDb(object):
                'successfully_pulled INTEGER DEFAULT 0, '
                'successfully_unpacked INTEGER DEFAULT 0, '
                'shared_user_id TEXT, '
-               'shared_user_label TEXT)')
+               'shared_user_label TEXT, '
+               'allow_backup INTEGER)')
 
         return self.app_db.execute(sql)
 
@@ -1142,7 +1168,7 @@ class AppDb(object):
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
                'permission, debuggable, successfully_unpacked, '
-               'shared_user_id, shared_user_label '
+               'shared_user_id, shared_user_label, allow_backup '
                'FROM apps '
                'ORDER BY id')
 
@@ -1162,6 +1188,7 @@ class AppDb(object):
             successfully_unpacked = line[11]
             shared_user_id = line[12]
             shared_user_label = line[13]
+            allow_backup = line[14]
 
             if not dont_resolve:
                 if permission_id != 0 and permission_id is not None:
@@ -1176,6 +1203,7 @@ class AppDb(object):
                                 has_native, min_sdk_version, target_sdk_version,
                                 version_name, version_code, permission,
                                 debuggable, shared_user_id, shared_user_label,
+                                allow_backup,
                                 id=id))
         return app_list
 
@@ -1208,7 +1236,7 @@ class AppDb(object):
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
                'permission, debuggable, successfully_unpacked, '
-               'shared_user_id, shared_user_label '
+               'shared_user_id, shared_user_label, allow_backup '
                'FROM apps '
                'WHERE successfully_unpacked=0 '
                'ORDER BY id')
@@ -1229,6 +1257,7 @@ class AppDb(object):
             successfully_unpacked = line[11]
             shared_user_id = line[12]
             shared_user_label = line[13]
+            allow_backup = line[14]
 
             permission = None
 
@@ -1237,7 +1266,7 @@ class AppDb(object):
                                 has_native, min_sdk_version, target_sdk_version,
                                 version_name, version_code, permission,
                                 debuggable, shared_user_id, shared_user_label,
-                                id=id))
+                                allow_backup, id=id))
         return app_list
 
 
@@ -1247,7 +1276,7 @@ class AppDb(object):
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
                'permission, debuggable, successfully_unpacked, '
-               'shared_user_id, shared_user_label '
+               'shared_user_id, shared_user_label, allow_backup '
                'FROM apps '
                "WHERE id=%d "
                'ORDER BY id '
@@ -1265,7 +1294,7 @@ class AppDb(object):
             (id, package_name, project_name, decoded_path, has_native,
              min_sdk_version, target_sdk_version, version_name, version_code,
              permission_id, debuggable, successfully_unpacked, shared_user_id,
-             shared_user_label) = fetched
+             shared_user_label, allow_backup) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -1276,7 +1305,7 @@ class AppDb(object):
                                has_native, min_sdk_version, target_sdk_version,
                                version_name, version_code, permission,
                                debuggable, shared_user_id, shared_user_label,
-                               id=id)
+                               allow_backup, id=id)
         except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
@@ -1287,7 +1316,7 @@ class AppDb(object):
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
                'permission, debuggable, successfully_unpacked, '
-               'shared_user_id, shared_user_label '
+               'shared_user_id, shared_user_label, allow_backup '
                'FROM apps '
                "WHERE project_name='%s' "
                'ORDER BY id '
@@ -1305,7 +1334,7 @@ class AppDb(object):
             (id, package_name, project_name, decoded_path, has_native,
              min_sdk_version, target_sdk_version, version_name, version_code,
              permission_id, debuggable, successfully_unpacked, shared_user_id,
-             shared_user_label) = fetched
+             shared_user_label, allow_backup) = fetched
 
             if permission_id != 0 and permission_id is not None:
                 permission = self.resolvePermissionById(permission_id)
@@ -1316,7 +1345,7 @@ class AppDb(object):
                                has_native, min_sdk_version, target_sdk_version,
                                version_name, version_code, permission,
                                debuggable, shared_user_id, shared_user_label,
-                               id=id)
+                               allow_backup, id=id)
         except TypeError:
             log.e(_TAG, "Unable to resolve application ID %d!" % id)
             return 0
@@ -1397,7 +1426,6 @@ class AppDb(object):
     def resolveGroupByName(self, permission_group_name):
         c = self.app_db.cursor()
 
-        #rtn = c.execute("SELECT * FROM permission_groups WHERE name=\"%s\"" % permission_group_name)
         rtn = c.execute('SELECT id, name, application_id '
                         'FROM permission_groups '
                         "WHERE name=\"%s\"" % permission_group_name)
@@ -1414,7 +1442,6 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        #rtn = c.execute("SELECT * FROM permission_groups WHERE id=%i" % permission_group_id)
         rtn = c.execute('SELECT id, name, application_id '
                         'FROM permission_groups '
                         "WHERE id=%i" % permission_group_id)
@@ -1431,7 +1458,6 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        #rtn = c.execute("SELECT * FROM permissions WHERE name=\"%s\"" % permission_name)
         rtn = c.execute('SELECT id, name, permission_group, protection_level, '
                         'application_id '
                         'FROM permissions '
@@ -1455,7 +1481,6 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        #rtn = c.execute("SELECT * FROM permissions WHERE id=%d" % permission_id)
         rtn = c.execute('SELECT id, name, permission_group, protection_level, '
                         'application_id '
                         'FROM permissions '
@@ -1907,7 +1932,7 @@ class AppDb(object):
                'has_native=?, min_sdk_version=?, target_sdk_version=?, '
                'version_name=?, version_code=?, debuggable=?, permission=?, '
                'successfully_unpacked=?, shared_user_id=?, '
-               'shared_user_label=? '
+               'shared_user_label=?, allow_backup=? '
                'WHERE id=?')
 
         return self.app_db.execute(sql,
@@ -1915,14 +1940,14 @@ class AppDb(object):
                      a.has_native, a.min_sdk_version, a.target_sdk_version,
                      a.version_name, a.version_code, a.debuggable,
                      permission_id, a.successfully_unpacked, a.shared_user_id,
-                     a.shared_user_label, a._id))
+                     a.shared_user_label, a.allow_backup, a._id))
 # End class AppDb
 
 # Helpers
 def getAttrib(element, attrib, default="None"):
 
     try:
-        return element.attrib['{http://schemas.android.com/apk/res/android}'+attrib]
+        return element.attrib['{http://schemas.android.com/apk/res/android}' + attrib]
     except KeyError:
         return default
 

@@ -24,6 +24,7 @@ import dtf.logging as log
 import dtf.properties as prop
 
 import FrameworkDb
+import Utils
 
 import os
 import time
@@ -31,7 +32,6 @@ import time
 from argparse import ArgumentParser
 from os.path import isdir, isfile
 from shutil import move, rmtree
-from subprocess import Popen, PIPE
 from tempfile import mkdtemp
 
 TAG = "frameworkdb"
@@ -157,72 +157,6 @@ class frameworkdb(Module):
         return 0
     # End other
 
-    # XZ Compression
-    @classmethod
-    def test_xz(cls):
-
-        """Confirm that xz is installed"""
-
-        cmd = ("command -v xz").split(' ')
-
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-        proc.wait()
-
-        if proc.returncode == 0:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def decompress_xz(cls, file_name):
-
-        """Decompress an xz resource"""
-
-        cmd = ("xz -d %s" % file_name).split(' ')
-
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
-        proc.wait()
-
-        return proc.returncode
-    # End XZ Compression
-
-    # Zip Stuff
-    @classmethod
-    def file_in_zip(cls, zip_file, file_name):
-
-        """Determine if file in ZIP"""
-
-        cmd = ("unzip -t %s %s" % (zip_file, file_name)).split(' ')
-
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
-        proc.wait()
-
-        if proc.returncode == 0:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def extract_from_zip_to(cls, zip_file, extract_path, file_name=None):
-
-        """Extract a file from a ZIP"""
-
-        null_f = open(os.devnull, 'w')
-
-        if file_name is None:
-            cmd = ("unzip -u %s -d %s" % (zip_file, extract_path)).split(' ')
-        else:
-            cmd = ("unzip -u %s %s -d %s" %
-                    (zip_file, file_name, extract_path)).split(' ')
-
-        proc = Popen(cmd, stdout=null_f, stderr=null_f, shell=False)
-        proc.wait()
-
-        null_f.close()
-
-        return proc.returncode
-    # End Zip Stuff
-
     # Unpack related
     def do_unpack_dex_from_zip(self, sdk, framework_jar, mappings):
 
@@ -232,14 +166,14 @@ class frameworkdb(Module):
 
         for dex_file, out_dir in mappings:
 
-            if not self.file_in_zip(framework_jar, dex_file):
+            if not Utils.file_in_zip(framework_jar, dex_file):
                 log.d(TAG, "Skipping non-existent DEX: %s" % dex_file)
                 continue
 
             log.d(TAG, "Attempting to unzip: %s" % dex_file)
 
             # Unzip the DEX file
-            if self.extract_from_zip_to(framework_jar, out_dir,
+            if Utils.extract_from_zip_to(framework_jar, out_dir,
                                         file_name=dex_file) != 0:
 
                 log.e(TAG, "Unable to extact from ZIP: '%s'" % dex_file)
@@ -301,7 +235,7 @@ class frameworkdb(Module):
                         self.report.add_completed(framework)
 
             # There is a (non DEX) JAR, but is there a 'classs.dex' inside?
-            elif self.file_in_zip(framework_jar, 'classes.dex'):
+            elif Utils.file_in_zip(framework_jar, 'classes.dex'):
 
 
                 log.d(TAG, "Doing DEX unpack from JAR")
@@ -495,7 +429,8 @@ class frameworkdb(Module):
 
         return 0
 
-    def cmd_oatextract(self):
+    @classmethod
+    def cmd_oatextract(cls):
 
         """Perform OAT extract"""
 
@@ -537,7 +472,7 @@ class frameworkdb(Module):
         for filename in os.listdir(arm_dir):
             if filename[-5:] == ".odex.xz":
                 # Decompress with XZ
-                rtn = self.decompress_xz(filename)
+                rtn = Utils.decompress_xz(filename)
                 if rtn != 0:
                     log.e(TAG, "Error decompressing XZ archive '%s'"
                                                             % (filename))
@@ -698,7 +633,7 @@ class frameworkdb(Module):
         if self.reporting:
             self.report = UnpackReport()
 
-        if not self.test_xz():
+        if not Utils.test_xz():
             log.e(TAG, "xz is not installed! Please install it.")
             return -1
 

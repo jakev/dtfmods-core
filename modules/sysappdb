@@ -26,6 +26,7 @@ from dtf.module import Module
 from dtf.packages import launch_module
 
 import AppDb
+import Utils
 
 import json
 import os
@@ -39,9 +40,7 @@ import threading
 import Queue
 
 from argparse import ArgumentParser
-from hashlib import md5
 from shutil import move, rmtree
-from subprocess import Popen, PIPE
 from lxml import etree
 
 SYSAPPS_DB_NAME = 'sysapps.db'
@@ -90,34 +89,6 @@ FILTER_USES_PERMISSIONS = "uses-permissions"
 missing_perm_list = None
 
 # Global Helpers
-def decompress_xz(file_name):
-
-    """Decompress an XZ file"""
-
-    cmd = ("xz -d %s" % file_name).split(' ')
-
-    p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
-    p.wait()
-
-    return p.returncode
-
-def md5_local(file_path):
-
-    """MD5 a file"""
-
-    try:
-        file_f = open(file_path, 'rb')
-
-        my_md5 = md5()
-        while True:
-            data = file_f.read(128)
-            if not data:
-                break
-            my_md5.update(data)
-        return my_md5.hexdigest()
-    except:
-        return None
-
 def combine_tags(tag, xpath):
 
     """Combine multiple tags"""
@@ -295,6 +266,7 @@ class sysappdb(Module):
         print "    diff         Diff an application against another database."
         print "    dump         Dump information about application."
         print "    exposed      Print exposed components of application(s)."
+        print "    list         List applications installed on the device."
         print "    oatextract   Extract DEX from OAT files."
         print "    process      Populate the sysapp database."
         print "    pull         Pull system applications from the device."
@@ -383,44 +355,6 @@ class sysappdb(Module):
         else:
             return TYPE_UNKNOWN
     # End file related
-
-    # ZIP stuff
-    @classmethod
-    def extract_from_zip_to(cls, zip_file, extract_path, file_name=None):
-
-        """Extract file from ZIP"""
-
-        FNULL = open(os.devnull, 'w')
-
-        if file_name is None:
-            cmd = ("unzip -u %s -d %s"
-                   % (zip_file, extract_path)).split(' ')
-        else:
-            cmd = ("unzip -u %s %s -d %s"
-                   % (zip_file, file_name, extract_path)).split(' ')
-
-        p = Popen(cmd, stdout=FNULL, stderr=FNULL, shell=False)
-        p.wait()
-
-        FNULL.close()
-
-        return p.returncode
-
-    @classmethod
-    def file_in_zip(cls, zip_file, file_name):
-
-        """Determine if file in ZIP"""
-
-        cmd = ("unzip -t %s %s" % (zip_file, file_name)).split(' ')
-
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=False)
-        p.wait()
-
-        if p.returncode == 0:
-            return True
-        else:
-            return False
-    # End ZIP stuff
 
     # Pull related content
     @classmethod
@@ -584,7 +518,7 @@ class sysappdb(Module):
         log.w_ml(TAG, err)
 
         # First unzip.
-        rtn = self.extract_from_zip_to(apk_file, unpack_path)
+        rtn = Utils.extract_from_zip_to(apk_file, unpack_path)
 
         if rtn != 0:
             log.e(TAG, "Couldnt even unzip APK (%d). You're on your own."
@@ -628,11 +562,11 @@ class sysappdb(Module):
         smali_dir = "%s/%s" % (unpack_path, 'smali')
 
         # classes.dex in APK?
-        if self.file_in_zip(apk_file, 'classes.dex'):
+        if Utils.file_in_zip(apk_file, 'classes.dex'):
 
             log.i(TAG, "There is classes.dex in the APK. Unpack, and decode.")
 
-            rtn = self.extract_from_zip_to(apk_file, unpack_path,
+            rtn = Utils.extract_from_zip_to(apk_file, unpack_path,
                                            file_name='classes.dex')
 
             if rtn != 0:
@@ -1314,16 +1248,55 @@ class sysappdb(Module):
         application = appdb.getAppById(application_id)
 
         debuggable_name = root.xpath(".//application/@android:debuggable",
-                       namespaces={'android' :
+                                namespaces={'android' :
                                 'http://schemas.android.com/apk/res/android'})
 
-        if len(debuggable_name) == 1:
-            if debuggable_name == "true":
+        if debuggable_name:
+            if debuggable_name == ['true']:
                 application.setDebuggable(True)
-            elif debuggable_name == "false":
+            elif debuggable_name == ['false']:
+                application.setDebuggable(False)
+            else:
+                log.w(TAG, "Weird debuggable value: %s"
+                                            % (debuggable_name[0]))
                 application.setDebuggable(False)
         else:
             application.setDebuggable(None)
+
+        appdb.updateApplication(application)
+        appdb.commit()
+        return 0
+
+    @classmethod
+    def parse_allow_backup(cls, appdb, application_id, manifest_path):
+
+        """Check for allowed backup"""
+
+        manifest_f = open(manifest_path)
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "The manifest for this application is corrupt!")
+            return -1
+
+        application = appdb.getAppById(application_id)
+
+        allow_backup = root.xpath(".//application/@android:allowBackup",
+                                namespaces={'android':
+                                'http://schemas.android.com/apk/res/android'})
+
+        if allow_backup:
+            if allow_backup == ['true']:
+                application.setAllowBackup(True)
+            elif allow_backup == ['false']:
+                application.setAllowBackup(False)
+            else:
+                log.w(TAG, "Weird allowBackup value: %s"
+                                            % (allow_backup[0]))
+                application.setAllowBackup(False)
+        else:
+            application.setAllowBackup(None)
 
         appdb.updateApplication(application)
         appdb.commit()
@@ -1446,7 +1419,8 @@ class sysappdb(Module):
         p.wait()
 
         if p.returncode != 0:
-            log.e(TAG, "Error reading APK signatures!")
+            log.e(TAG, "Error reading APK signatures: %s"
+                                                % path_to_apk)
             return None
 
         owner = None
@@ -1575,6 +1549,9 @@ class sysappdb(Module):
 
             log.d(TAG, "Looking for debuggable...")
             self.parse_debuggable(appdb, project_id, manifest_path)
+
+            log.d(TAG, "Looking for allowBackup...")
+            self.parse_allow_backup(appdb, project_id, manifest_path)
 
             log.d(TAG, "Parsing <uses-permission> tags")
             self.parse_app_uses_permissions(appdb, project_id, manifest_path)
@@ -2246,6 +2223,28 @@ class sysappdb(Module):
             return self.print_json(exposed_dict)
     # End exposed related
 
+    # List related
+    def do_list(self, local_appdb, diff_appdb):
+
+        """Do listing"""
+
+        local_apps_all = [i.project_name for i in local_appdb.getApps()]
+        diff_apps_all = [i.project_name for i in diff_appdb.getApps()]
+
+        local_apps = [i for i in local_apps_all if i in diff_apps_all]
+        diff_apps = [i for i in local_apps_all if i not in diff_apps_all]
+
+        print "AOSP Applications:"
+        for app in sorted(local_apps):
+            print "  %s" % app
+
+        print "OEM-Added Applications:"
+        for app in sorted(diff_apps):
+            print "  %s" % app
+
+        return 0
+    # End list related
+
     # Diff related
     def do_diff(self, local_db, diff_db, app, config):
 
@@ -2354,7 +2353,7 @@ class sysappdb(Module):
 
         config = dict()
 
-        parser = ArgumentParser(prog='sysappdb exposed',
+        parser = ArgumentParser(prog='sysappdb diff',
                         description='Get differences between an application.')
         parser.add_argument('app_name', metavar="app_name", type=str,
                         default=None, help='The application to check.')
@@ -2536,6 +2535,11 @@ class sysappdb(Module):
                             help="Resume a failed pull.")
 
         parsed_args = parser.parse_args(args)
+
+        # Make sure xz is installed
+        if not Utils.test_xz():
+            log.e(TAG, "XZ utils is required to use this functionality!")
+            return -2
 
         resume = parsed_args.resume
         threads = parsed_args.threads
@@ -2916,6 +2920,36 @@ class sysappdb(Module):
         # Do the actual exposing
         return self.do_exposed(local_appdb, diff_appdb, app_list, config)
 
+    def cmd_list(self, args):
+
+        """List command"""
+
+        parser = ArgumentParser(prog='sysappdb list',
+                        description='List applications installed on device.')
+        parser.add_argument('--diff-dir', metavar="diff_dir", type=str,
+                        default=None,
+                        help='Diff against data in the specified dir.')
+
+        parsed_args = parser.parse_args(args)
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                              SYSAPPS_DB_NAME)
+
+        diff_db = self.determine_diff_database(parsed_args)
+        if diff_db is None:
+            log.e(TAG, "Unable to determine diff DB!")
+            return -2
+
+        log.d(TAG, "Using diff DB '%s'" % diff_db)
+
+        # Get a handle to our DBs
+        local_appdb = AppDb.AppDb(local_sysapps_db_name, safe=True)
+        diff_appdb = AppDb.AppDb(diff_db, safe=True)
+
+        # Do the listing
+        return self.do_list(local_appdb, diff_appdb)
+
     def execute(self, args):
 
         """Main class executor"""
@@ -2940,6 +2974,8 @@ class sysappdb(Module):
             return self.cmd_process(args)
         elif mode == "exposed":
             return self.cmd_exposed(args)
+        elif mode == "list":
+            return self.cmd_list(args)
         else:
             return self.usage()
 
@@ -3065,7 +3101,7 @@ class PullThread(threading.Thread):
         self.adb.pull(package_name, local=local_apk_name)
 
         if not self.no_md5:
-            if md5_before != md5_local(local_apk_name):
+            if md5_before != Utils.md5_file(local_apk_name):
                 #self.pull_queue.task_done()
                 log.e(self.LTAG, "APK MD5 doesn't match!")
                 self.shutdown()
@@ -3213,7 +3249,7 @@ class PullThread(threading.Thread):
         self.adb.pull(odex_name, local=local_odex_name)
 
         if not self.no_md5:
-            md5_after = md5_local(local_odex_name)
+            md5_after = Utils.md5_file(local_odex_name)
             if md5_before != md5_after:
                 log.e(self.LTAG, "ODEX MD5 doesn't match!")
                 self.shutdown()
@@ -3233,14 +3269,14 @@ class PullThread(threading.Thread):
         self.adb.pull(odex_name, local=local_odex_name)
 
         if not self.no_md5:
-            md5_after = md5_local(local_odex_name)
+            md5_after = Utils.md5_file(local_odex_name)
             if md5_before != md5_after:
                 log.e(self.LTAG, "XZ ODEX MD5 doesn't match!")
                 self.shutdown()
                 return None
 
         # Now decompress with XZ
-        rtn = decompress_xz(local_odex_name)
+        rtn = Utils.decompress_xz(local_odex_name)
         if rtn != 0:
             log.e(TAG, "Error decompressing XZ archive '%s'" %
                                                (local_odex_name))
