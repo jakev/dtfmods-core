@@ -1,0 +1,456 @@
+#!/usr/bin/env python
+# DTF Core Content
+# Copyright 2013-2015 Jake Valletta (@jake_valletta)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""SEAndroid Manipulation"""
+
+from argparse import ArgumentParser
+
+import os.path
+import sqlite3
+
+from dtf.adb import DtfAdb
+from dtf.module import Module
+
+import dtf.properties as prop
+import dtf.logging as log
+
+import AppDb
+import SeDb
+import UserDb
+
+# TODO sesearch -A -s [user] sepolicy
+
+TAG = "sedb"
+
+SE_DB_NAME = 'se.db'
+SYSAPPS_DB_NAME = 'sysapps.db'
+USERS_DB_NAME = 'users.db'
+SEANDROID_DIR_NAME = 'seandroid'
+
+DEFAULT_LOCATIONS = {'', '/data/security/context'}
+DEFAULT_MAC_XML_LOCATIONS = {'/data/security/current', '/system/etc/security'}
+
+SEPOLICY_FILE_NAME = 'sepolicy'
+MAC_PERMISSIONS_XML_NAME = 'mac_permissions.xml'
+
+# Context file names
+FILE_CONTEXTS_NAME = 'file_contexts'
+SEAPP_CONTEXTS_NAME = 'seapp_contexts'
+PROPERTY_CONTEXTS_NAME = 'property_contexts'
+SERVICE_CONTEXTS_NAME = 'service_contexts'
+
+FILE_TYPE_ORDINARY = 0
+FILE_TYPE_BLOCK = 1
+FILE_TYPE_CHAR = 2
+FILE_TYPE_DIR = 3
+FILE_TYPE_FIFO = 4
+FILE_TYPE_SYM = 5
+FILE_TYPE_SOCKET = 6
+
+def seapp_context_cmp(rule_a, rule_b):
+
+    """Sorter function"""
+
+    # Retrofit: /platform/external/libselinux/src/android.c
+
+    # Give precedence to a specified user= over an unspecified user=
+    if rule_a[0] and not rule_b[0]:
+        return -1
+    if not rule_a[0] and rule_b[0]:
+        return 1
+
+    # Give precedence to a specified seinfo= over an unspecified seinfo=
+    if rule_a[1] and not rule_b[1]:
+        return -1
+    if not rule_a[1] and rule_b[1]:
+        return 1
+
+    # Give precedence to a specified name= over an unspecified name=
+    if rule_a[2] and not rule_b[2]:
+        return -1
+    if not rule_a[2] and rule_b[2]:
+        return 1
+
+    # Anything else has equal precedence.
+    return 0
+
+class sedb(Module):
+
+    """Module class manipulating system service database"""
+
+    about = 'Create and query device SEAndroid policy.'
+    author = 'Jake Valletta (jakev)'
+    health = 'stable'
+    name = 'sedb'
+    version = '1.0'
+
+    def usage(self):
+
+        """Usage message"""
+
+        print "SEAndroid DB dtf Module v%s" % self.version
+        print ""
+        print "Submodules:"
+        print "    create      Create the SELinux database."
+        print "    appmap      Determine app context."
+        print ""
+        return 0
+
+    # Create related
+    @classmethod
+    def file_pull(cls, adb, file_name, locations):
+
+        """Try to pull file from a number of locations"""
+
+        for location in locations:
+
+            full_file_name = "%s/%s" % (location, file_name)
+
+            if adb.is_file(full_file_name):
+                log.d(TAG, "File found: %s" % (full_file_name))
+                adb.pull(full_file_name, local=SEANDROID_DIR_NAME)
+                return 0
+
+        log.e(TAG, "Could not find '%s'!" % file_name)
+        return -1
+
+    def do_pull_files(self):
+
+        """Pull SEAndroid related files from device"""
+
+        adb = DtfAdb()
+
+        log.i(TAG, "Pulling SEAndroid policies, please connect your device...")
+        adb.wait_for_device()
+        log.d(TAG, "Connected!")
+
+        # First pull the sepolicy
+        if self.file_pull(adb, SEPOLICY_FILE_NAME, DEFAULT_LOCATIONS) != 0:
+            log.e(TAG, "sepolicy not found, cannot continue!")
+            return -1
+
+        # Next MAC security XML
+        if self.file_pull(adb, MAC_PERMISSIONS_XML_NAME,
+                                            DEFAULT_MAC_XML_LOCATIONS) != 0:
+            log.e(TAG, "MAC permissions XML not found, cannot continue!")
+            return -2
+
+        # Now the contexts, don't fail if we can't find one.
+        self.file_pull(adb, FILE_CONTEXTS_NAME, DEFAULT_LOCATIONS)
+        self.file_pull(adb, SEAPP_CONTEXTS_NAME, DEFAULT_LOCATIONS)
+        self.file_pull(adb, PROPERTY_CONTEXTS_NAME, DEFAULT_LOCATIONS)
+        self.file_pull(adb, SERVICE_CONTEXTS_NAME, DEFAULT_LOCATIONS)
+
+        return 0
+
+    @classmethod
+    def has_seandroid(cls):
+
+        """Determine if device has SEAndroid"""
+
+        seandroid_state = prop.get_prop("Info", "seandroid-state")
+
+        if seandroid_state in ['Off', 'Unknown']:
+            return False
+        else:
+            return True
+
+    @classmethod
+    def print_app(cls, app_name, domain_t, type_t):
+
+        """Print app_map information"""
+
+        print "%s:" % app_name
+        print "  Domain (proc): %s" % domain_t
+        print "  Type (file/socket/prop): %s" % type_t
+
+    @classmethod
+    def do_populate_db(cls, local_sedb):
+
+        """Populate the tables of our DB"""
+
+        log.i(TAG, "Parsing SEAndroid files...")
+
+        seandroid_dir = prop.get_prop('Local', 'seandroid-dir')
+        local_seandroid_dir = "%s/%s" % (prop.TOP, seandroid_dir)
+
+        file_contexts = "%s/%s" % (local_seandroid_dir, FILE_CONTEXTS_NAME)
+        seapp_contexts = "%s/%s" % (local_seandroid_dir, SEAPP_CONTEXTS_NAME)
+        property_contexts = "%s/%s" % (local_seandroid_dir,
+                                                    PROPERTY_CONTEXTS_NAME)
+        service_contexts = "%s/%s" % (local_seandroid_dir,
+                                                    SERVICE_CONTEXTS_NAME)
+        mac_permissions = "%s/%s" % (local_seandroid_dir,
+                                                    MAC_PERMISSIONS_XML_NAME)
+
+        if os.path.isfile(file_contexts):
+            log.d(TAG, "Parsing file_contexts")
+            local_sedb.parse_file_contexts(file_contexts)
+
+        if os.path.isfile(property_contexts):
+            log.d(TAG, "Parsing property_contexts")
+            local_sedb.parse_property_contexts(property_contexts)
+
+        if os.path.isfile(seapp_contexts):
+            log.d(TAG, "Parsing seapp_contexts")
+            local_sedb.parse_seapp_contexts(seapp_contexts)
+
+        if os.path.isfile(service_contexts):
+            log.d(TAG, "Parsing service_contexts")
+            local_sedb.parse_service_contexts(service_contexts)
+
+        if os.path.isfile(mac_permissions):
+            log.d(TAG, "Parsing mac_permissions.xml")
+            local_sedb.parse_mac_permissions(mac_permissions)
+
+        return 0
+
+    # Appmap related
+    def do_appmap(self, local_sedb, appdb, userdb, app_list, filters):
+
+        """Do app mapping"""
+
+        seinfo_dict = local_sedb.get_mac_permissions()
+        shared_ids = userdb.getSharedIds()
+        seapp_rules = local_sedb.get_seapp_rules()
+        sorted_seapp_rules = sorted(seapp_rules, seapp_context_cmp)
+
+        tfilter = filters['tfilter']
+        dfilter = filters['dfilter']
+
+        for app in app_list:
+
+            # We'll need this later.
+            app_name = app.project_name
+
+            # For each app, we need to first get the user context
+            user = app.shared_user_id
+            if user is not None:
+                user_id = shared_ids[user]
+                if user_id < 10000:
+                    user_name = userdb.getUserName(user_id)
+                else:
+                    user_name = "_app"
+            else:
+                user_name = "_app"
+
+            # Next, the seinfo info, if there is one.
+            app_signature = appdb.getAppSignature(app)
+
+            cert_raw = app_signature.get_cert(print_format='base16')
+            seinfo = self.get_seinfo(cert_raw, seinfo_dict)
+
+            # With both of these pieces, we can do the seapp mapping.
+            domain_t, type_t = self.seapp_match(app_name, user_name,
+                                        seinfo, sorted_seapp_rules)
+
+            #if dfilter is None and tfilter is None:
+            #    self.print_app(app_name, domain_t, type_t)
+
+            if ((dfilter is None or domain_t in dfilter) and
+                (tfilter is None or type_t in tfilter)):
+
+                self.print_app(app_name, domain_t, type_t)
+
+                print "%s:" % app_name
+                print "  Domain (proc): %s" % domain_t
+                print "  Type (file/socket/prop): %s" % type_t
+
+    @classmethod
+    def seapp_match(cls, app_name, user_name, app_seinfo, seapp_rules):
+
+        """Take in app info, return domain/type"""
+
+        for user, seinfo, name, domain_t, type_t in seapp_rules:
+
+            # The computed username is matched against the user component.
+            # If a match or user not present check remaining components,
+            # else skip entry.
+            if not (user_name == user or not user):
+                continue
+
+            # The seinfo component is matched against the seinfo parameter.
+            # If a match or seinfo not present check remaining components,
+            # else skip entry.
+            if not (app_seinfo == seinfo or not seinfo):
+                continue
+
+            # The name component is matched against the pkgname parameter.
+            # If a match or name not present check remaining components,
+            # else skip entry.
+            if not (app_name == name or not name):
+                continue
+
+            # Ok match.
+            return domain_t, type_t
+
+        # If we get here, not sure what to do.
+        log.w(TAG, "Unable to match app: %s" % app_name)
+        return None, None
+
+    @classmethod
+    def get_seinfo(cls, cert_raw, seinfo_dict):
+
+        """Determine if an seinfo context appplies"""
+
+        for seinfo_context, signature in seinfo_dict.iteritems():
+
+            if cert_raw == signature:
+                return seinfo_context
+
+        return None
+
+    def cmd_create(self):
+
+        """Create command"""
+
+        if not self.has_seandroid():
+            log.e(TAG, "This device does not use SEAndroid!")
+            return 0
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_se_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                SE_DB_NAME)
+
+        local_seandroid_dir_name = "%s/%s" % (prop.TOP, SEANDROID_DIR_NAME)
+
+        # First check if the seandroid dir exists.
+        if os.path.isdir(local_seandroid_dir_name):
+            log.e(TAG, "SEAndroid directory exists!")
+            return -1
+
+        os.mkdir(local_seandroid_dir_name)
+
+        # First pull content
+        if self.do_pull_files() != 0:
+            log.e(TAG, "Error pulling SEAndroid files!")
+            return -2
+
+        prop.set_prop("Local", "seandroid-dir", SEANDROID_DIR_NAME)
+
+        # Create our DB
+        local_sedb = SeDb.SeDb(local_se_db_name)
+
+        log.i(TAG, "Creating SEAndroid database...")
+
+        if local_sedb.drop_tables() != 0:
+            log.e(TAG, "Error dropping tables. Exiting.")
+            return -3
+
+        if local_sedb.create_tables() != 0:
+            log.e(TAG, "Database creation failed. Exiting.")
+            return -4
+
+        # Now process data to the DB
+        if self.do_populate_db(local_sedb) != 0:
+            log.e(TAG, "Error populating SEAndroid DB!")
+            return -5
+
+        log.i(TAG, "SEAndroid DB created!")
+        return 0
+
+    def cmd_appmap(self, args):
+
+        """Create map for each application"""
+
+        parser = ArgumentParser(prog='sedb appmap',
+                        description='Get app contexts')
+        parser.add_argument('app_name', metavar="app_name", type=str,
+                        nargs='?', default=None,
+                        help='The application to check.')
+        parser.add_argument('-d', '--dfilter', dest='dfilter', default=None,
+                        help='Filter by domain.')
+        parser.add_argument('-f', '--tfilter', dest='tfilter', default=None,
+                        help='Filter by type.')
+        parser.add_argument('-a', '--all', dest='all_mode',
+                        action='store_const', const=True, default=False,
+                        help='Compute all applcation contexts.')
+
+        parsed_args = parser.parse_args(args)
+        app_name = parsed_args.app_name
+        all_mode = parsed_args.all_mode
+        filters = dict()
+
+        if not all_mode and not app_name:
+            log.e(TAG, "You must specify an app name or --all!")
+            return -1
+
+        if not self.has_seandroid():
+            log.e(TAG, "This device does not use SEAndroid!")
+            return 0
+
+        db_dir = prop.get_prop('Local', 'db-dir')
+        local_se_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                SE_DB_NAME)
+        local_sysapps_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                SYSAPPS_DB_NAME)
+        local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                USERS_DB_NAME)
+
+        # First check if our DBs exist.
+        if not os.path.isfile(local_se_db_name):
+            log.e(TAG, "Local 'se.db' doesn't exist!")
+            return -1
+
+        if not os.path.isfile(local_sysapps_db_name):
+            log.e(TAG, "Local 'sysapps.db' doesn't exist!")
+            return -2
+
+        if not os.path.isfile(local_users_db_name):
+            log.e(TAG, "Local 'users.db' doesn't exist!")
+            return -2
+
+        local_sedb = SeDb.SeDb(local_se_db_name)
+        appdb = AppDb.AppDb(local_sysapps_db_name)
+        userdb = UserDb.UserDb(local_users_db_name)
+
+        # Handle filtering
+        if parsed_args.dfilter is None:
+            filters['dfilter'] = None
+        else:
+            filters['dfilter'] = parsed_args.dfilter.split(',')
+
+        if parsed_args.tfilter is None:
+            filters['tfilter'] = None
+        else:
+            filters['tfilter'] = parsed_args.tfilter.split(',')
+
+        if all_mode:
+            return self.do_appmap(local_sedb, appdb, userdb,
+                                  appdb.getApps(), filters)
+        else:
+            app = appdb.getAppByName(app_name)
+            if not app:
+                log.e(TAG, "App '%s' not found in DB!" % app_name)
+                return -3
+
+            return self.do_appmap(local_sedb, appdb, userdb,
+                                  [app], filters)
+
+    def execute(self, args):
+
+        """The module entry point"""
+
+        if len(args) == 0:
+            return self.usage()
+        mode = args.pop(0)
+
+        if mode == 'create':
+            return self.cmd_create()
+        if mode == 'appmap':
+            return self.cmd_appmap(args)
+        else:
+            return self.usage()
