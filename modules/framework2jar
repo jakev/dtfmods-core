@@ -29,7 +29,7 @@ do_framework()
     log_i "Converting \"${fw}\"..."
     dex_full_path=${java_framework_dir}/${fw}.dex
 
-    dtf_smali -o ${dex_full_path} -a ${sdk} ${unframework_dir}/${fw}/ >/dev/null 2>&1
+    dtf_smali -o "${dex_full_path}" -a ${sdk} "${unframework_dir}/${fw}/" >/dev/null 2>&1
 
     rtn=$?
     if [ "$rtn" != "0" ]; then
@@ -37,7 +37,7 @@ do_framework()
         exit -1
     fi
 
-    dtf_dex2jar -o ${java_framework_dir}/${fw}.jar ${dex_full_path} >/dev/null 2>&1
+    dtf_dex2jar -o "${java_framework_dir}/${fw}.jar" "${dex_full_path}" >/dev/null 2>&1
 
     rtn=$?
     if [ "$rtn" != "0" ]; then
@@ -46,7 +46,7 @@ do_framework()
     fi
 
     # Clean up.
-    rm ${dex_full_path}
+    rm "${dex_full_path}"
 }
 
 name=framework2jar
@@ -76,7 +76,7 @@ else
     if [ -d "${unframework_dir}/${fw}/" ]; then
         do_framework $fw
     else
-        echo "[ERROR] Framework resource for file \"${fw}\" not found."
+        echo "[ERROR] Framework resource for file '${fw}' not found."
         exit -3
     fi
 fi

@@ -25,7 +25,7 @@ apk_file=debugintentshortcut-0.1.apk
 
 if [ "$1" == "install" ]; then
     echo "Installing shortcut..."
-    adb install ${DTF_PACKAGES}/IntentSender/${apk_file} 
+    adb install "${DTF_PACKAGES}/IntentSender/${apk_file}"
     adb shell am start -n com.jakev.dbgintnt/.MainActivity > /dev/null
     exit 0
 fi

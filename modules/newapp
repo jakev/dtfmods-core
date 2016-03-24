@@ -29,15 +29,15 @@ fi
 
 if [[ "$1" == "-s" && ! -z "$2" ]]; then
     
-    log_i "Creating new app (with source) at \"${2}\""
-    mkdir $2 2>/dev/null
-    cp -r ${DTF_PACKAGES}/HelloWorld_app/HelloWorld/* $2
-    cp -r ${DTF_PACKAGES}/HelloWorld_app/src/ $2
+    log_i "Creating new app (with source) at '${2}'"
+    mkdir "$2" 2>/dev/null
+    cp -r "${DTF_PACKAGES}/HelloWorld_app/HelloWorld/"* "$2"
+    cp -r "${DTF_PACKAGES}/HelloWorld_app/src/" "$2"
     exit 0
 fi 
 
-log_i "Creating new app at \"${1}\""
-mkdir $1 2>/dev/null
-cp -r ${DTF_PACKAGES}/HelloWorld_app/HelloWorld/* $1 
+log_i "Creating new app at '${1}'"
+mkdir "$1" 2>/dev/null
+cp -r "${DTF_PACKAGES}/HelloWorld_app/HelloWorld/"* "$1"
 
 exit 0
