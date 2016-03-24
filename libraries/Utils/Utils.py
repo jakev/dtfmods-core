@@ -102,4 +102,27 @@ def file_in_zip(zip_file, file_name):
         return True
     else:
         return False
+
+def get_files_in_zip(zip_file, pattern):
+
+    """Return list of files in ZIP matching pattern"""
+
+    file_list = list()
+
+    lexed = shlex.split("unzip -t \"%s\" \"%s\"" % (zip_file, pattern))
+
+    proc = Popen(lexed, stdout=PIPE, stderr=PIPE, shell=False)
+    proc.wait()
+
+    if proc.returncode != 0:
+        return None
+
+    for line in proc.stdout.read().split("\n"):
+        if len(line) > 15 and line[0:12] == "    testing:":
+
+            formated_line = line[13:-2].strip(' ')
+            file_list.append(formated_line)
+
+    return file_list
+
 # End ZIP Related

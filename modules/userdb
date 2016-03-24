@@ -29,6 +29,7 @@ from dtf.module import Module
 
 import UserDb
 
+import re
 import os
 import os.path
 
@@ -115,6 +116,40 @@ class userdb(Module):
             else:
                 return diff_users_db
 
+    def add_shared_users(self, adb, local_db_name):
+
+        """Add the shared users from dumpsys output"""
+
+        local_db = UserDb.UserDb(local_db_name)
+
+        if local_db.createSharedIdTable() != 0:
+            log.e(TAG, "Error creating shared_id table!")
+            return -1
+
+        shared_ids = list()
+        shared_id_name = None
+        shared_id_user_id = None
+
+        adb.shell_command("dumpsys package s")
+        for line in adb.get_output():
+
+            if line.find("SharedUser") != -1:
+                matched = re.search("\[[a-zA-Z0-9_\-]*(\.[a-zA-Z0-9_\-]*)*\]",
+                                                                line).group(0)
+                shared_id_name = matched.replace('[', '').replace(']', '')
+
+            elif line.find("userId") != -1:
+                shared_id_user_id = int(re.search("(userId=)([0-9]*)",
+                                                                line).group(2))
+
+                log.d(TAG, "Adding shared user: %s" % shared_id_name)
+                shared_ids.append((shared_id_name, shared_id_user_id))
+
+                shared_id_name = None
+                shared_id_user_id = None
+
+        return local_db.addSharedIds(shared_ids)
+
     @classmethod
     def do_diff(cls, local_db, diff_db):
 
@@ -137,8 +172,7 @@ class userdb(Module):
 
         return 0
 
-    @classmethod
-    def cmd_create(cls):
+    def cmd_create(self):
 
         """Command to create DB"""
 
@@ -180,6 +214,9 @@ class userdb(Module):
         if not os.path.isfile(local_users_db_name):
             log.e(TAG, "User DB creation was not successful!")
             return -1
+
+        log.i(TAG, "Adding shared user IDs...")
+        self.add_shared_users(adb, local_users_db_name)
 
         log.i(TAG, "User DB creation completed!")
         return 0

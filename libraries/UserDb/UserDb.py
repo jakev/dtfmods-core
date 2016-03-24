@@ -75,6 +75,34 @@ class UserDb(object):
 
         self.users_db.close()
 
+#### Additional Table Creation #########################
+    def createSharedIdTable(self):
+
+        """Shared user mapping table"""
+
+        sql = ('CREATE TABLE IF NOT EXISTS shared_ids'
+               '('
+               'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+               'name TEXT UNIQUE NOT NULL,'
+               'user_id INTEGER,'
+               'FOREIGN KEY(user_id) REFERENCES users(id)'
+               ')')
+
+        self.users_db.execute(sql)
+        self.users_db.commit()
+
+        return 0
+
+    def addSharedIds(self, shared_ids):
+
+        """Add shared ids to table"""
+
+        cursor = self.users_db.cursor()
+        cursor.executemany('INSERT INTO shared_ids(name, user_id) '
+                           'VALUES(?, ?)', shared_ids)
+
+        return self.users_db.commit()
+
 #### Table Querying Methods ############################
     def userExists(self, user_name):
 
@@ -141,4 +169,25 @@ class UserDb(object):
             return cur.fetchone()[0]
         except TypeError:
             return None
-# End class FrameworkDb
+
+    def getSharedIds(self):
+
+        """Get the shared users"""
+
+        shared_ids_dict = dict()
+
+        sql = ('SELECT u.id, s.name '
+               'FROM users u '
+               'JOIN shared_ids s '
+               'ON s.user_id=u.id '
+               'ORDER BY u.id')
+
+        cur = self.users_db.cursor()
+        cur.execute(sql)
+
+        for user_id, shared_id_name in cur.fetchall():
+
+            shared_ids_dict[shared_id_name] = int(user_id)
+
+        return shared_ids_dict
+# End class UserDb
