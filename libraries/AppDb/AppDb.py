@@ -411,14 +411,25 @@ class IntentData(object):
 class Signature(object):
 
     _id = 0
-    owner = ""
     issuer = ""
-    serial = ""
-    fingerprint = ""
+    subject = ""
+    cert = ""
 
     def __init__(self):
         return
 
+    def get_cert(self, print_format='base64'):
+
+        """Get actual certifcate"""
+
+        if print_format == 'base64':
+            return self.cert
+        elif print_format == 'base16':
+            return base64.b64decode(self.cert).encode('hex')
+        elif print_format == 'hex':
+            return base64.b64decode(self.cert)
+        else:
+            return None
 # End Component Class Declarations
 
 #### Class AppDb ########################################
@@ -783,10 +794,9 @@ class AppDb(object):
         sql = ('CREATE TABLE IF NOT EXISTS signatures'
                '('
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-               'owner STRING,'
                'issuer STRING,'
-               'serial STRING,'
-               'fingerprint STRING'
+               'subject STRING,'
+               'certificate STRING NOT NULL'
                ')')
 
         return self.app_db.execute(sql)
@@ -894,7 +904,7 @@ class AppDb(object):
 
         sql = ('INSERT INTO app_uses_signatures'
                '(application_id, signature_id) '
-               "VALUES (%i,%i)" % (application_id, signature_id))
+               "VALUES (%i, %i)" % (application_id, signature_id))
 
         return self.app_db.execute(sql)
 
@@ -1151,10 +1161,10 @@ class AppDb(object):
     def addSignature(self, signature):
 
         sql = ('INSERT INTO signatures'
-               '(owner, issuer, serial, fingerprint) '
-               "VALUES('%s', '%s', '%s', '%s')"
-                 % (signature.owner, signature.issuer,
-                    signature.serial, signature.fingerprint))
+               '(issuer, subject, certificate) '
+               "VALUES('%s', '%s', '%s')"
+                 % (signature.issuer, signature.subject,
+                    signature.cert))
 
         return self.app_db.execute(sql)
     # End Table Modification
@@ -1356,8 +1366,7 @@ class AppDb(object):
 
         app_list = list()
 
-        serial = signature.serial
-        fingerprint = signature.fingerprint
+        certificate = signature.cert
 
         sql = ('SELECT a.id '
                'FROM apps a '
@@ -1365,9 +1374,7 @@ class AppDb(object):
                'ON aus.application_id = a.id '
                'JOIN signatures s '
                'ON aus.signature_id = s.id '
-               "WHERE (s.serial='%s' "
-               "AND s.fingerprint='%s')" %
-                    (serial, fingerprint))
+               "WHERE s.certificate='%s'" % certificate)
 
         for line in c.execute(sql):
             _id = line[0]
@@ -1381,8 +1388,8 @@ class AppDb(object):
         project_name = app.project_name
         signature = Signature()
         
-        rtn = c.execute('SELECT s.id, s.owner, s.issuer, s.serial, '
-                        's.fingerprint '
+        rtn = c.execute('SELECT s.id, s.issuer, s.subject, '
+                        's.certificate '
                         'FROM signatures s '
                         'JOIN app_uses_signatures aus '
                         'ON aus.signature_id = s.id '
@@ -1392,19 +1399,18 @@ class AppDb(object):
                                     (project_name))
 
         try:
-            _id, owner, issuer, serial, fingerprint = c.fetchone()
+            _id, issuer, subject, certificate = c.fetchone()
 
             signature._id = _id
-            signature.owner = owner
             signature.issuer = issuer
-            signature.serial = serial
-            signature.fingerprint = fingerprint
+            signature.subject = subject
+            signature.cert = certificate
 
             return signature
 
         except TypeError:
             log.e(_TAG, "Unable to find app signature for '%s'" %
-                            project_name)
+                                                        project_name)
             return None
 
     def getAppsBySharedUserId(self, shared_id_name):
@@ -1504,14 +1510,11 @@ class AppDb(object):
 
         c = self.app_db.cursor()
 
-        serial = signature.serial
-        fingerprint = signature.fingerprint
+        cert = signature.cert
 
         c.execute('SELECT id '
                'FROM signatures '
-               "WHERE (serial='%s' "
-               "AND fingerprint='%s')" 
-                        % (serial, fingerprint))
+               "WHERE certificate='%s'" % cert)
 
         # If we can fetch one, we already know about this signature.
         try:

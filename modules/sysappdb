@@ -33,6 +33,7 @@ import os
 import os.path
 import re
 import signal
+import shlex
 import sqlite3
 import sys
 import time
@@ -41,6 +42,7 @@ import Queue
 
 from argparse import ArgumentParser
 from shutil import move, rmtree
+from subprocess import Popen, PIPE
 from lxml import etree
 
 SYSAPPS_DB_NAME = 'sysapps.db'
@@ -399,6 +401,16 @@ class sysappdb(Module):
         else:
             app_db = AppDb.AppDb(db_name)
             return app_db.getFailedToPullApps()
+
+    # Process related
+    @classmethod
+    def format_cert(cls, cert_raw):
+
+        """Return base64 blob of cert"""
+
+        return ("".join(cert_raw)
+                        .replace('-----BEGIN CERTIFICATE-----', '')
+                        .replace('-----END CERTIFICATE-----', ''))
 
     @classmethod
     def prepare_db(cls, db_name, app_list):
@@ -1407,50 +1419,53 @@ class sysappdb(Module):
         appdb.commit()
         return 0
 
-    @classmethod
-    def process_signature(cls, path_to_apk):
+    def process_signature(self, path_to_apk):
 
         """Process the application signature"""
 
-        cmd = ("keytool -printcert -jarfile %s"
-                    % (path_to_apk)).split(' ')
+        rsa_files = Utils.get_files_in_zip(path_to_apk, "META-INF/*.RSA")
 
-        p = Popen(cmd, stdout=PIPE, shell=False)
-        p.wait()
+        if len(rsa_files) != 1:
+            log.e(TAG, "Unable to determine RSA file!")
+            return None
 
-        if p.returncode != 0:
-            log.e(TAG, "Error reading APK signatures: %s"
+        rsa_file = rsa_files[0]
+
+        lexed = shlex.split("unzip -q -c \"%s\" \"%s\""
+                                                % (path_to_apk, rsa_file))
+
+        proc = Popen(lexed, stdout=PIPE, shell=False)
+        proc.wait()
+
+        if proc.returncode != 0:
+            log.e(TAG, "Error reading APK signature file: %s"
                                                 % path_to_apk)
             return None
 
-        owner = None
-        issuer = None
-        serial = None
-        fingerprint = None
+        manifest_cert = proc.stdout.read()
 
-        for line in p.stdout.read().split('\n'):
+        # Now pass it to openssl
+        lexed = shlex.split("openssl pkcs7 -inform DER -print_certs")
 
-            try:
-                key, value = line.replace('\t', '').split(':', 1)
-                if value == '':
-                    continue
-                if key == "Owner":
-                    owner = value.lstrip()
-                elif key == "Issuer":
-                    issuer = value.lstrip()
-                elif key == "Serial number":
-                    serial = value.lstrip()
-                elif key == " MD5":
-                    fingerprint = value.lstrip()
-                else: continue
-            except:
-                continue
+        proc = Popen(lexed, stdin=PIPE, stdout=PIPE, shell=False)
+        openssl_out = proc.communicate(input=manifest_cert)[0]
+
+        if proc.returncode != 0:
+            log.e(TAG, "Error parsing CERT.RSA: %s" % path_to_apk)
+            return None
+
+        split_out = openssl_out.split("\n")
+
+        subject = split_out[0]
+        issuer = split_out[1]
+        cert_raw = split_out[2:]
+
+        cert_base64 = self.format_cert(cert_raw)
 
         signature = AppDb.Signature()
-        signature.owner = owner
         signature.issuer = issuer
-        signature.serial = serial
-        signature.fingerprint = fingerprint
+        signature.subject = subject
+        signature.cert = cert_base64
 
         return signature
 
