@@ -3138,12 +3138,29 @@ class PullThread(threading.Thread):
             # phone is using 32-bit, it's going to be arm/.
             cpu_bits = prop.get_prop("Info", "cpu-bits")
 
+            app_files_dir = os.path.dirname(package_name)
+            app_name = os.path.splitext(os.path.basename(package_name))[0]
+
             if cpu_bits == "32":
+
+                # Marshmallow moved the OAT files to an 'oat/' directory,
+                # But Lollipop (and KitKat) buth use 'arm/'
+                app_oat_dir = "%s/oat" % app_files_dir
+                app_arm_dir = "%s/arm" % app_files_dir
+
+                if self.adb.is_dir(app_oat_dir):
+                    log.d(self.LTAG, "Using ODEX in oat/")
+                    app_odex_path = "%s/oat/arm" % app_files_dir
+                elif self.adb.is_dir(app_arm_dir):
+                    log.d(self.LTAG, "Using ODEX in arm/")
+                    app_odex_path = app_arm_dir
+                else:
+                    log.w(self.LTAG, "No ODEX directories!")
+                    return rtn
+
                 # Sometimes the ODEXs are XZ compressed. Annoying.
-                xz_odex_name = re.sub("\/([^\/]*)\.apk$",
-                                "/arm/\\1.odex.xz", package_name)
-                odex_name = re.sub("\/([^\/]*)\.apk$",
-                                "/arm/\\1.odex", package_name)
+                xz_odex_name = "%s/%s.odex.xz" % (app_odex_path, app_name)
+                odex_name = "%s/%s.odex" % (app_odex_path, app_name)
 
                 if self.adb.is_file(xz_odex_name):
                     log.d(self.LTAG, "XZ ODEX exists.")
@@ -3159,14 +3176,27 @@ class PullThread(threading.Thread):
                 # We'll check the arm64/ directory first, then arm/.
                 # For each of these checks, we'll have to also account
                 # for the possibility of there being a XZ or not.
-                xz_odex_name = re.sub("\/([^\/]*)\.apk$",
-                                    "/arm/\\1.odex.xz", package_name)
-                odex_name = re.sub("\/([^\/]*)\.apk$",
-                                    "/arm/\\1.odex", package_name)
-                xz_odex_name_64 = re.sub("\/([^\/]*)\.apk$",
-                                    "/arm64/\\1.odex.xz", package_name)
-                odex_name_64 = re.sub("\/([^\/]*)\.apk$",
-                                    "/arm64/\\1.odex", package_name)
+
+                # Marshmallow moved the OAT files to an 'oat/' directory,
+                # But Lollipop (and KitKat) buth use 'arm/'
+                app_oat_dir = "%s/oat" % app_files_dir
+
+                if self.adb.is_dir(app_oat_dir):
+                    log.d(self.LTAG, "Using ODEX in oat/")
+                    app_odex_path = "%s/oat/arm" % app_files_dir
+                elif (self.adb.is_dir(app_oat_dir)
+                        or self.adb.is_dir(app_oat_dir)):
+                    log.d(self.LTAG, "Using ODEX in arm/")
+                    app_odex_path = "%s/arm" % app_files_dir
+                else:
+                    log.w(self.LTAG, "No ODEX directories!")
+                    return rtn
+
+                # Sometimes the ODEXs are XZ compressed. Annoying.
+                xz_odex_name = "%s/%s.odex.xz" % (app_odex_path, app_name)
+                odex_name = "%s/%s.odex" % (app_odex_path, app_name)
+                xz_odex_name_64 = "%s64/%s.odex.xz" % (app_odex_path, app_name)
+                odex_name_64 = "%s64/%s.odex" % (app_odex_path, app_name)
 
                 if self.adb.is_file(xz_odex_name):
                     log.d(self.LTAG, "XZ ART ODEX exists.")
@@ -3186,7 +3216,7 @@ class PullThread(threading.Thread):
 
                 else:
                     log.w(self.LTAG, "No ODEX for ART found.")
-        # Not Lollipop
+        # Dalvik
         else:
             odex_name = re.sub("\.apk$", '.odex', package_name)
 

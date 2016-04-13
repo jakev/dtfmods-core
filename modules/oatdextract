@@ -98,18 +98,27 @@ class oatdextract(Module):
                 log.d(TAG, "OAT Data offset: %s" % oat_header_start)
 
                 magic = read_string(oat_file, oat_header_start, 4)
-                version = read_string(oat_file, oat_header_start + 4, 4)
-
-                log.d(TAG, "Magic: %s" % magic)
-                log.d(TAG, "Version: %s" % version)
-
+                version = int(read_string(oat_file,
+                                          oat_header_start + 4,
+                                          4).strip('\0'))
                 dex_file_count = read_uint32(oat_file, oat_header_start + 20)
-                key_value_store_size = read_uint32(oat_file,
+
+                log.d(TAG, "Magic: %s" % repr(magic))
+                log.d(TAG, "Version: %d" % version)
+                log.d(TAG, "DEX File Count: %d" % dex_file_count)
+
+                # The rest of the OAT header depends on the version
+                if version < 64:
+                    key_value_store_size = read_uint32(oat_file,
                                                   oat_header_start + 80)
+                    start = key_value_store_size + oat_header_start + 84
+                else:
+                    key_value_store_size = read_uint32(oat_file,
+                                                  oat_header_start + 68)
+                    start = key_value_store_size + oat_header_start + 72
 
-                log.d(TAG, "KV %i" % key_value_store_size)
-
-                start = key_value_store_size + oat_header_start + 84
+                log.d(TAG, "Key/Value Size: %i" % key_value_store_size)
+                log.d(TAG, "First DEX Header:  0x%4x" % start)
 
                 i = 0
                 while i < dex_file_count:
@@ -284,7 +293,7 @@ class OatElf(object):
 
         off = dex_header_start
 
-        log.d(TAG, "Starting OatDexHeader @ 0x%4x" % off)
+        log.d(TAG, "Parsing OatDexHeader @ 0x%4x" % off)
 
         dex_file_location_size = read_uint32(self.file_f, off)
         off += 4

@@ -28,6 +28,7 @@ import Utils
 
 import os
 import time
+import shutil
 
 from argparse import ArgumentParser
 from os.path import isdir, isfile
@@ -545,6 +546,24 @@ class frameworkdb(Module):
 
         log.i(TAG, "Framework pull complete! Elapsed Time: %s" %
                 (time.time() - start))
+
+        # On newer devices, there is an '/oat/' subdirectory.
+        # For now, we are just supporting ARM.
+        oat_dir = "%s/oat" % FRAMEWORKS_DIR
+
+        if os.path.isdir(oat_dir):
+            log.i(TAG, "Reloacting 'oat/' directory")
+
+            oat_arm_dir = "%s/arm" % oat_dir
+            arm_dir = "%s/arm" % FRAMEWORKS_DIR
+
+            for oat_file in os.listdir(oat_arm_dir):
+                full_file_name = os.path.join(oat_arm_dir, oat_file)
+                if os.path.isfile(full_file_name):
+                    shutil.move(full_file_name, arm_dir)
+
+            # Remove the directory
+            shutil.rmtree(oat_dir)
 
         # Set the property
         prop.set_prop("Local", "framework-dir", FRAMEWORKS_DIR)
