@@ -343,10 +343,11 @@ class sysappdb(Module):
             finally:
                 fsock.close()
         except IOError:
+            log.e(TAG, "Unable to read magic from file!")
             return TYPE_UNKNOWN
 
-        # ELF = 7f45 4c46 0101
-        if magic.encode('hex') == '7f454c460101':
+        # ELF = 7f45 4c46 0101|0201
+        if magic.encode('hex') in ['7f454c460101', '7f454c460201']:
             return TYPE_ELF
         # DEX = 6465 780a 3033
         elif magic.encode('hex') == '6465780a3033':
@@ -355,6 +356,7 @@ class sysappdb(Module):
         elif magic.encode('hex') == '6465790a3033':
             return TYPE_ODEX
         else:
+            log.e(TAG, "Unknown file magic: %s" % magic.encode('hex'))
             return TYPE_UNKNOWN
     # End file related
 

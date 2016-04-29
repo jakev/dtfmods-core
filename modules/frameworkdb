@@ -555,7 +555,16 @@ class frameworkdb(Module):
             log.i(TAG, "Reloacting 'oat/' directory")
 
             oat_arm_dir = "%s/arm" % oat_dir
-            arm_dir = "%s/arm" % FRAMEWORKS_DIR
+
+            # Get the CPU bits.
+            cpu_bits = prop.get_prop("Info", "cpu-bits")
+            if cpu_bits == "32":
+                arm_dir = "%s/arm" % FRAMEWORKS_DIR
+            elif cpu_bits == "64":
+                arm_dir = "%s/arm64" % FRAMEWORKS_DIR
+            else:
+                log.e(TAG, "Unable to determin CPU type from config.")
+                return -3
 
             for oat_file in os.listdir(oat_arm_dir):
                 full_file_name = os.path.join(oat_arm_dir, oat_file)
