@@ -253,6 +253,15 @@
           localName="modules/secretcode" />
 
     <Item type="module"
+          name="sedb"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          about="Create and query device SEAndroid policy."
+          localName="modules/sedb" />
+
+    <Item type="module"
           name="sharedid"
           majorVersion="1"
           minorVersion="1"
@@ -353,6 +362,15 @@
           localName="libraries/PyElfTools" />
 
     <Item type="library"
+          name="SeDb"
+          about="API for working with SEAndroid"
+          majorVersion="1"
+          minorVersion="0"
+          health="beta"
+          author="Jake Valletta (jakev)"
+          localName="libraries/SeDb" />
+
+    <Item type="library"
           name="UserDb"
           about="User Database API"
           majorVersion="1"
@@ -431,7 +449,7 @@
     <Item type="package"
           name="MakeUserDb"
           majorVersion="1"
-          minorVersion="0"
+          minorVersion="1"
           health="stable"
           author="Jake Valletta (jakev)"
           localName="packages/MakeUserDb" />

@@ -28,7 +28,7 @@ echo ""
 echo "For more info, please consult:"
 echo "   https://thecobraden.com/projects/dtf/example"
 echo ""
-echo -n "Press enter to continue. "
+echo "Press enter to continue. "
 
 read _
 

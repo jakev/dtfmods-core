@@ -31,10 +31,12 @@ import dtf.properties as prop
 import dtf.logging as log
 
 import AppDb
+import SeDb
 
 TAG = "sysservicedb"
 
 SYSSERVICES_DB_NAME = 'services.db'
+SE_DB_NAME = 'se.db'
 
 class sysservicedb(Module):
 
@@ -59,6 +61,38 @@ class sysservicedb(Module):
         print "    list        List registered system services."
         print ""
         return 0
+
+    @classmethod
+    def has_seandroid(cls):
+
+        """Determine if device has SEAndroid"""
+
+        seandroid_state = prop.get_prop("Info", "seandroid-state")
+
+        if seandroid_state in ['Off', 'Unknown']:
+            return False
+        else:
+            return True
+
+    def get_service_contexts(self, db_name):
+
+        """Try to get service contexts"""
+
+        if not self.has_seandroid():
+            log.e(TAG, "This devices doesn't use SEAndroid!")
+            return None
+
+        if not os.path.isfile(db_name):
+            log.e(TAG, "SEAndroid DB does not exist!")
+            return None
+
+        sedb = SeDb.SeDb(db_name)
+
+        if not sedb.has_service_contexts():
+            log.e(TAG, "This device does not use service contexts!")
+            return None
+
+        return sedb.get_service_contexts()
 
     @classmethod
     def determine_diff_database(cls, args):
@@ -301,11 +335,19 @@ class sysservicedb(Module):
         return [i for i in transactions if i[1] == name][0]
 
     def diff_service(self, project_con, diff_con,
-                                service_name, name_only=False):
+                     service_name, service_contexts, name_only=False):
 
         """Diff a service"""
 
         log.d(TAG, "Diffing service '%s'" % service_name)
+
+        # Do SEAndroid stuff
+        context = ""
+        if service_contexts is not None:
+            if service_name in service_contexts:
+                context = " [%s]" % service_contexts[service_name]
+            else:
+                context = " [???]"
 
         with project_con:
             p_cur = project_con.cursor()
@@ -335,7 +377,8 @@ class sysservicedb(Module):
 
             # New service
             if d_row == []:
-                print "Service %s (%s) [NEW]" % (service_name, project_name)
+                print "Service %s%s (%s) [NEW]" % (service_name, context,
+                                                   project_name)
                 if not name_only:
                     return self.dump_binder(project_con, service_id)
                 else:
@@ -345,7 +388,8 @@ class sysservicedb(Module):
                 if name_only:
                     return 0
 
-                print "Service %s (%s)" % (service_name, project_name)
+                print "Service %s%s (%s)" % (service_name, context,
+                                             project_name)
                 if not name_only:
                     return self.diff_transactions(project_con, diff_con,
                                                                 service_name)
@@ -486,12 +530,16 @@ class sysservicedb(Module):
         parser.add_argument('--name-only', dest='name_only',
                             action='store_const', const=True, default=False,
                             help='Print only service name (and if it is new).')
+        parser.add_argument('-Z', '--show-contexts', dest='show_contexts',
+                            action='store_const', const=True, default=False,
+                            help='Print SEAndroid context for service.')
 
         parsed_args = parser.parse_args(args)
 
         all_mode = parsed_args.all
         service_name = parsed_args.service_name
         name_only = parsed_args.name_only
+        show_contexts = parsed_args.show_contexts
 
         if service_name is None and not all_mode:
             log.e(TAG, "A service name is required (or --all)!")
@@ -500,6 +548,7 @@ class sysservicedb(Module):
         db_dir = prop.get_prop('Local', 'db-dir')
         local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
                                                   SYSSERVICES_DB_NAME)
+        local_se_db_name = "%s/%s/%s" % (prop.TOP, db_dir, SE_DB_NAME)
 
         diff_db = self.determine_diff_database(parsed_args)
 
@@ -511,6 +560,14 @@ class sysservicedb(Module):
         if not os.path.isfile(local_sysservices_db_name):
             log.e(TAG, "Project services database does not exist. Exiting.")
             return -3
+
+        service_contexts = None
+
+        # We need to validate SEAndroid stuff
+        if show_contexts:
+            service_contexts = self.get_service_contexts(local_se_db_name)
+            if service_contexts is None:
+                return -3
 
         project_con = sqlite3.connect(local_sysservices_db_name)
         diff_con = sqlite3.connect(diff_db)
@@ -529,30 +586,53 @@ class sysservicedb(Module):
                     service_name = row[0]
                     rtn |= self.diff_service(project_con, diff_con,
                                              service_name,
+                                             service_contexts,
                                              name_only=name_only)
                 return rtn
 
         # Do a single service diff
         else:
-            return self.diff_service(project_con, diff_con, service_name)
+            return self.diff_service(project_con, diff_con, service_name,
+                                     service_contexts)
 
     def cmd_dump(self, args):
 
         """Dump command"""
 
-        if len(args) == 0:
-            log.e(TAG, "You must provide a service to dump")
-            return -1
+        parser = ArgumentParser(prog='servicedb dump',
+                            description='Dump a system service(s).')
+        parser.add_argument('service_name', metavar="service_name",
+                            type=str, nargs='?', default=None,
+                            help='The system service to check.')
+        parser.add_argument('-Z', '--show-contexts', dest='show_contexts',
+                            action='store_const', const=True, default=False,
+                            help='Print SEAndroid context for service.')
 
-        service_name = args.pop()
+        parsed_args = parser.parse_args(args)
+
+        service_name = parsed_args.service_name
+        show_contexts = parsed_args.show_contexts
+
+        if service_name is None:
+            log.e(TAG, "A service name is required (or --all)!")
+            return -1
 
         db_dir = prop.get_prop('Local', 'db-dir')
         local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
                                                   SYSSERVICES_DB_NAME)
+        local_se_db_name = "%s/%s/%s" % (prop.TOP, db_dir, SE_DB_NAME)
 
         if not os.path.isfile(local_sysservices_db_name):
             log.e(TAG, "Project services database does not exist. Exiting.")
             return -2
+
+        service_contexts = None
+
+        # We need to validate SEAndroid stuff
+        if show_contexts:
+            service_contexts = self.get_service_contexts(local_se_db_name)
+            if service_contexts is None:
+                return -3
 
         con = sqlite3.connect(local_sysservices_db_name)
         with con:
@@ -573,20 +653,43 @@ class sysservicedb(Module):
             service_id = row[0][0]
             project_name = row[0][1]
 
-            print "Service %s (%s)" % (service_name, project_name)
+            context = ""
+            if show_contexts:
+                if service_name in service_contexts:
+                    context = " [%s]" % service_contexts[service_name]
+                else:
+                    context = " [???]"
+
+            print "Service %s%s (%s)" % (service_name, context, project_name)
             return self.dump_binder(con, service_id)
 
-    def cmd_list(self):
+    def cmd_list(self, args):
 
         """List command"""
+
+        show_contexts = False
+
+        # Print Contexts?
+        if len(args) > 0 and args[0] == "-Z":
+            show_contexts = True
 
         db_dir = prop.get_prop('Local', 'db-dir')
         local_sysservices_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
                                                   SYSSERVICES_DB_NAME)
+        local_se_db_name = "%s/%s/%s" % (prop.TOP, db_dir,
+                                                  SE_DB_NAME)
 
         if not os.path.isfile(local_sysservices_db_name):
             log.e(TAG, "Project services database does not exist. Exiting.")
             return -2
+
+        service_contexts = dict()
+
+        # We need to validate SEAndroid stuff
+        if show_contexts:
+            service_contexts = self.get_service_contexts(local_se_db_name)
+            if service_contexts is None:
+                return -3
 
         con = sqlite3.connect(local_sysservices_db_name)
         with con:
@@ -597,7 +700,16 @@ class sysservicedb(Module):
                 service_name = svc[0]
                 project_name = svc[1]
 
-                print "Service %s (%s)" % (service_name, project_name)
+                if show_contexts:
+                    if service_name in service_contexts:
+                        context = service_contexts[service_name]
+                    else:
+                        context = "???"
+
+                    print ("Service %s (%s) [%s]" %
+                                (service_name, project_name, context))
+                else:
+                    print "Service %s (%s)" % (service_name, project_name)
         return 0
 
     def execute(self, args):
@@ -615,6 +727,6 @@ class sysservicedb(Module):
         elif mode == 'dump':
             return self.cmd_dump(args)
         elif mode == "list":
-            return self.cmd_list()
+            return self.cmd_list(args)
         else:
             return self.usage()

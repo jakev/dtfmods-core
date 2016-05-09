@@ -434,10 +434,28 @@ class SeDb(object):
         cur = self.se_db.cursor()
         cur.execute(sql)
 
-        for user, seinfo, name, domain_t, type_t  in cur.fetchall():
+        for user, seinfo, name, domain_t, type_t in cur.fetchall():
 
             seapp_list.append((user, seinfo, name, domain_t, type_t))
 
         return seapp_list
+
+    def get_service_contexts(self):
+
+        """Return a list of service contexts"""
+
+        service_dict = dict()
+
+        sql = ('SELECT name, context '
+               'FROM service_contexts')
+
+        cur = self.se_db.cursor()
+        cur.execute(sql)
+
+        for name, context in cur.fetchall():
+
+            service_dict[name] = context
+
+        return service_dict
 
 # End class SeDb

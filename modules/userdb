@@ -23,6 +23,7 @@ import dtf.logging as log
 import dtf.properties as prop
 
 from dtf.adb import DtfAdb
+from dtf.client import DtfClient
 from dtf.constants import DTF_CLIENT
 from dtf.globals import DTF_PACKAGES_DIR
 from dtf.module import Module
@@ -39,6 +40,8 @@ USERS_DB_NAME = 'users.db'
 DEFAULT_EXTERNAL_PATH = '/mnt/sdcard'
 COPY_FILE_CMD = ('am startservice -a com.dtf.action.name.COPY_TO_SDCARD '
                  '--es filename "users.db"')
+
+USERDB_PACKAGE = 'MakeUserDb'
 
 class userdb(Module):
 
@@ -182,34 +185,43 @@ class userdb(Module):
         db_dir = prop.get_prop('Local', 'db-dir')
 
         dtf_data_dir = "/data/data/%s" % DTF_CLIENT
+        remote_mkuserdb_bin = "%s/files/mkuserdb" % dtf_data_dir
 
         if int(sdk) > 15:
-            make_db_name = "%s/files/makeuserdb-arm-jb" % dtf_data_dir
+            local_mkuserdb_bin = ("%s/%s/makeuserdb-arm-jb"
+                                            % (DTF_PACKAGES_DIR,
+                                               USERDB_PACKAGE))
         else:
-            make_db_name = "%s/files/makeuserdb-arm-ics" % dtf_data_dir
+            local_mkuserdb_bin = ("%s/%s/makeuserdb-arm-ics"
+                                            % (DTF_PACKAGES_DIR,
+                                               USERDB_PACKAGE))
 
-        sdcard_users_db_name = "%s/%s" % (DEFAULT_EXTERNAL_PATH, USERS_DB_NAME)
         users_db_name = "%s/%s" % (dtf_data_dir, USERS_DB_NAME)
         local_users_db_name = "%s/%s/%s" % (prop.TOP, db_dir, USERS_DB_NAME)
 
         adb = DtfAdb()
-        adb.wait_for_device()
+        client = DtfClient()
 
-        adb.run_as(DTF_CLIENT, make_db_name)
+        log.i(TAG, "Waiting for connected device...")
+        adb.wait_for_device()
+        log.i(TAG, "Device connected!")
+
+        # Push binary
+        if not adb.is_file(remote_mkuserdb_bin):
+            log.i(TAG, "Uploading mkuserdb binary...")
+            client.upload_file(local_mkuserdb_bin, remote_mkuserdb_bin)
+            client.execute_command("chmod 777 %s" % remote_mkuserdb_bin)
+
+        adb.run_as(DTF_CLIENT, remote_mkuserdb_bin)
+
         if not adb.is_file(users_db_name):
             log.e(TAG, "Error creating users.db!")
             return -1
 
-        adb.shell_command(COPY_FILE_CMD)
-        if not adb.is_file(sdcard_users_db_name):
-            log.e(TAG, "Error copying DB to SDCard!")
-            return -1
-
-        adb.pull(sdcard_users_db_name, local=local_users_db_name)
+        client.download_file(users_db_name, local_users_db_name)
 
         # cleanup
         adb.run_as(DTF_CLIENT, "rm %s" % users_db_name)
-        adb.shell_command("rm %s" % sdcard_users_db_name)
 
         if not os.path.isfile(local_users_db_name):
             log.e(TAG, "User DB creation was not successful!")

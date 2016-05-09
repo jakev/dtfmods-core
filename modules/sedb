@@ -104,7 +104,7 @@ class sedb(Module):
         print "SEAndroid DB dtf Module v%s" % self.version
         print ""
         print "Submodules:"
-        print "    create      Create the SELinux database."
+        print "    create      Create the SEAndroid database."
         print "    appmap      Determine app context."
         print ""
         return 0

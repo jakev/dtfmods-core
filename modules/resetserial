@@ -19,7 +19,7 @@
 #@Health: stable
 #@Version: 1.0
 
-echo -n "Please connect the test device, and only the test device (press any key to continue) "
+echo "Please connect the test device, and only the test device (press any key to continue) "
 read _
 
 unset ANDROID_SERIAL
@@ -32,7 +32,7 @@ adb wait-for-device
 
 serial=$(adb devices | grep -E "device$" |awk '{print $1}')
 
-echo -n "Got serial ${serial}, is this correct? [Y/n] "
+echo "Got serial ${serial}, is this correct? [Y/n]"
 read res
 
 if [ "$res" = "n" ]; then

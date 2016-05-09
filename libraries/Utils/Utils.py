@@ -41,6 +41,17 @@ def md5_file(file_path):
     except IOError:
         return None
 
+# File related
+def get_file_size(file_name):
+
+    """Get the file size of an existing file"""
+    
+    try:
+        stat_info = os.stat(file_name)
+        return stat_info.st_size
+    except OSError:
+        return None
+
 # XZ Related
 def test_xz():
 

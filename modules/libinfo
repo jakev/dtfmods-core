@@ -26,10 +26,10 @@ print_info()
     echo "Doing : ${lib_name}"
 
 	echo "Dev grep:"
-	grep -rEo --text "/dev/([a-zA-Z0-9_\-\.]*[/]?)*" ${lib_name}
-	objdump -T ${lib_name} 2>/dev/null |grep socket >/dev/null&& echo "[INFO] Imports socket!"
-	objdump -T ${lib_name} 2>/dev/null |grep ioctl >/dev/null&& echo "[INFO] Imports ioctl!"
-	nm -D ${lib_name} 2>/dev/null|grep "T Java_"
+	grep -rEo --text "/dev/([a-zA-Z0-9_\-\.]*[/]?)*" "${lib_name}"
+	objdump -T "${lib_name}" 2>/dev/null |grep socket >/dev/null&& echo "[INFO] Imports socket!"
+	objdump -T "${lib_name}" 2>/dev/null |grep ioctl >/dev/null&& echo "[INFO] Imports ioctl!"
+	nm -D "${lib_name}" 2>/dev/null|grep "T Java_"
 }
 
 if [ "$1" == "-d" ] && [ ! -z "$2" ]; then
@@ -37,18 +37,18 @@ if [ "$1" == "-d" ] && [ ! -z "$2" ]; then
     dir=$2
 
     if [ ! -d "${dir}" ]; then
-        echo "Directory ${dir} does not exist. Exiting."
+        echo "Directory '${dir}' does not exist. Exiting."
         exit -1
     fi
 
     for file in `find "${dir}"`; do
-        print_info $file
+        print_info "$file"
     done
 
 
 elif [ ! -z "$1" ]; then
 
-    print_info $1
+    print_info "$1"
 
 else
     echo "Usage: $0 [-d] lib_name"
