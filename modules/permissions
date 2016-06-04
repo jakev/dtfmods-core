@@ -144,28 +144,28 @@ class permissions(Module):
 
         for app in appdb.getApps():
 
-            for activity in appdb.getAppActivities(app._id):
+            for activity in appdb.getAppActivities(app):
 
                 if activity.permission is None: continue
 
                 if activity.permission.name == permission.name:
                     activity_list.append((app.project_name, activity))
 
-            for service in appdb.getAppServices(app._id):
+            for service in appdb.getAppServices(app):
 
                 if service.permission is None: continue
 
                 if service.permission.name == permission.name:
                     service_list.append((app.project_name, service))
 
-            for receiver in appdb.getAppReceivers(app._id):
+            for receiver in appdb.getAppReceivers(app):
 
                 if receiver.permission is None: continue
 
                 if receiver.permission.name == permission.name:
                     receiver_list.append((app.project_name, receiver))
 
-            for prov in appdb.getAppProviders(app._id):
+            for prov in appdb.getAppProviders(app):
 
                 if (prov.permission is None and
                         prov.read_permission is None):

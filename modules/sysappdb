@@ -110,6 +110,21 @@ def get_attrib(element, attrib, default="None"):
                                                                     + attrib]
     except KeyError:
         return default
+
+def read_xml_manifest(manifest_path):
+
+    """Read AndroidManifest.xml and return XML object"""
+
+    with open(manifest_path) as manifest_f:
+
+        try:
+            root = etree.XML(manifest_f.read())
+        except etree.XMLSyntaxError:
+            log.e(TAG, "Manifest is corrupt: %s" % manifest_path)
+            return None
+
+    return root
+
 # End global helpers
 
 class ComponentEncoder(json.JSONEncoder):
@@ -216,6 +231,7 @@ class ComponentEncoder(json.JSONEncoder):
             return receiver_dict
 
         # Handle IntentFilters
+        # TODO this needs to be investigated.
         elif isinstance(obj, AppDb.IntentFilter):
 
             intent_dict = dict()
@@ -708,12 +724,8 @@ class sysappdb(Module):
 
         """Parse permissions groups"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for pg in root.findall(".//permission-group"):
@@ -736,12 +748,8 @@ class sysappdb(Module):
 
         """Parse protected broadcasts"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for pb in root.findall(".//protected-broadcast"):
@@ -760,12 +768,8 @@ class sysappdb(Module):
 
         """Parse permission tags"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for p in root.findall(".//permission"):
@@ -783,7 +787,7 @@ class sysappdb(Module):
                 permission_group = None
 
             if protection_level == "None":
-                log.w(TAG, "Permission '%s' doesn't have a protection level"
+                log.d(TAG, "Permission '%s' doesn't have a protection level"
                                                                         % name)
                 protection_level = "normal"
 
@@ -806,12 +810,8 @@ class sysappdb(Module):
 
         """Parse activities"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for a in root.findall(".//application/activity"):
@@ -889,12 +889,8 @@ class sysappdb(Module):
 
         """Parse services"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for s in root.findall(".//application/service"):
@@ -973,12 +969,8 @@ class sysappdb(Module):
 
         """Parse providers"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for p in root.findall(".//application/provider"):
@@ -1096,12 +1088,8 @@ class sysappdb(Module):
 
         """Parse receivers"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for r in root.findall(".//application/receiver"):
@@ -1181,12 +1169,8 @@ class sysappdb(Module):
 
         """Parse the permissions the app uses"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         for up in root.findall(".//uses-permission"):
@@ -1198,7 +1182,7 @@ class sysappdb(Module):
             log.d(TAG, "Adding <uses-permission> : %s" % (permission_name))
 
             if permission is None:
-                log.w(TAG, "Unable to resolve the use-permission '%s'"
+                log.d(TAG, "Unable to resolve the use-permission '%s'"
                                                             % permission_name)
                 continue
 
@@ -1215,12 +1199,8 @@ class sysappdb(Module):
 
         """Parse permissions defined by application"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         name = root.xpath(".//application/@android:permission",
@@ -1251,12 +1231,8 @@ class sysappdb(Module):
 
         """Check for debuggable application"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         application = appdb.getAppById(application_id)
@@ -1286,12 +1262,8 @@ class sysappdb(Module):
 
         """Check for allowed backup"""
 
-        manifest_f = open(manifest_path)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
+        root = read_xml_manifest(manifest_path)
+        if root is None:
             return -1
 
         application = appdb.getAppById(application_id)
@@ -1402,15 +1374,11 @@ class sysappdb(Module):
 
         """Parse sharedIds"""
 
-        manifest_f = open(manifest_path)
+        root = read_xml_manifest(manifest_path)
+        if root is None:
+            return -1
 
         app = appdb.getAppById(application_id)
-
-        try:
-            root = etree.XML(manifest_f.read())
-        except etree.XMLSyntaxError:
-            log.e(TAG, "The manifest for this application is corrupt!")
-            return -4
 
         app.shared_user_id = get_attrib(root,
                                          "sharedUserId", default=None)
@@ -1719,28 +1687,28 @@ class sysappdb(Module):
         # Parse Filters
         if FILTER_ACTIVITIES in filters:
             print "Activities:"
-            for activity in appdb.getAppActivities(application_id):
+            for activity in appdb.getAppActivities(app):
 
                 intent_filters = appdb.getIntentFilters(activity)
                 self.print_activity(appdb, activity, intent_filters)
 
         if FILTER_SERVICES in filters:
             print "Services:"
-            for service in appdb.getAppServices(application_id):
+            for service in appdb.getAppServices(app):
 
                 intent_filters = appdb.getIntentFilters(service)
                 self.print_service(appdb, service, intent_filters)
 
         if FILTER_RECEIVERS in filters:
             print "Receivers:"
-            for receiver in appdb.getAppReceivers(application_id):
+            for receiver in appdb.getAppReceivers(app):
 
                 intent_filters = appdb.getIntentFilters(receiver)
                 self.print_receiver(appdb, receiver, intent_filters)
 
         if FILTER_PROVIDERS in filters:
             print "Providers:"
-            for provider in appdb.getAppProviders(application_id):
+            for provider in appdb.getAppProviders(app):
 
                 self.print_provider(provider)
 
@@ -1889,10 +1857,10 @@ class sysappdb(Module):
         # If it is an AOSP app, get the activities.
         if self.is_diff:
             diff_activities = map(lambda act: act.name,
-                            diff_db.getAppActivities(diff_app._id))
+                            diff_db.getAppActivities(diff_app))
 
         # Let's get exposed activities.
-        for activity in local_db.getAppActivities(app._id):
+        for activity in local_db.getAppActivities(app):
 
             # If 'new_only' is used, we have to do some logic.
             # However, we only need to do logic if 'new_only'
@@ -1955,10 +1923,10 @@ class sysappdb(Module):
         # If it is an AOSP app, get the activities.
         if self.is_diff:
             diff_services = map(lambda serv: serv.name,
-                            diff_db.getAppServices(diff_app._id))
+                            diff_db.getAppServices(diff_app))
 
         # Let's get exposed services.
-        for service in local_db.getAppServices(app._id):
+        for service in local_db.getAppServices(app):
 
             # If 'new_only' is used, we have to do some logic.
             # However, we only need to do logic if 'new_only'
@@ -2021,9 +1989,9 @@ class sysappdb(Module):
         # If it is an AOSP app, get the activities.
         if self.is_diff:
             diff_providers = map(lambda pro: pro.name,
-                            diff_db.getAppProviders(diff_app._id))
+                            diff_db.getAppProviders(diff_app))
 
-        for provider in local_db.getAppProviders(app._id):
+        for provider in local_db.getAppProviders(app):
 
             # If 'new_only' is used, we have to do some logic.
             # However, we only need to do logic if 'new_only'
@@ -2130,10 +2098,10 @@ class sysappdb(Module):
         # If it is an AOSP app, get the activities.
         if self.is_diff:
             diff_receivers = map(lambda rec: rec.name,
-                            diff_db.getAppReceivers(diff_app._id))
+                            diff_db.getAppReceivers(diff_app))
 
         # Let's get exposed receivers.
-        for receiver in local_db.getAppReceivers(app._id):
+        for receiver in local_db.getAppReceivers(app):
 
             # If 'new_only' is used, we have to do some logic.
             # However, we only need to do logic if 'new_only'
@@ -2276,11 +2244,11 @@ class sysappdb(Module):
         if FILTER_ACTIVITIES in filters:
 
             diff_activities = map(lambda act: act.name,
-                            diff_db.getAppActivities(diff_app._id))
+                            diff_db.getAppActivities(diff_app))
 
             print "[+] Printing added activities..."
             # Let's get new activities.
-            for activity in local_db.getAppActivities(application_id):
+            for activity in local_db.getAppActivities(app):
 
                 if activity.name in diff_activities:
                     continue
@@ -2291,11 +2259,11 @@ class sysappdb(Module):
         if FILTER_SERVICES in filters:
 
             diff_services = map(lambda serv: serv.name,
-                            diff_db.getAppServices(diff_app._id))
+                            diff_db.getAppServices(diff_app))
 
             print "[+] Printing added services..."
             # Let's get new services.
-            for service in local_db.getAppServices(application_id):
+            for service in local_db.getAppServices(app):
 
                 if service.name in diff_services:
                     continue
@@ -2306,11 +2274,11 @@ class sysappdb(Module):
         if FILTER_PROVIDERS in filters:
 
             diff_providers = map(lambda pro: pro.name,
-                            diff_db.getAppProviders(diff_app._id))
+                            diff_db.getAppProviders(diff_app))
 
             print "[+] Printing added providers..."
             # Let's get new providers.
-            for provider in local_db.getAppProviders(application_id):
+            for provider in local_db.getAppProviders(app):
 
                 if provider.name in diff_providers:
                     continue
@@ -2320,11 +2288,11 @@ class sysappdb(Module):
         if FILTER_RECEIVERS in filters:
 
             diff_receivers = map(lambda rec: rec.name,
-                            diff_db.getAppReceivers(diff_app._id))
+                            diff_db.getAppReceivers(diff_app))
 
             print "[+] Printing added receivers..."
             # Let's get new receivers.
-            for receiver in local_db.getAppReceivers(application_id):
+            for receiver in local_db.getAppReceivers(app):
 
                 if receiver.name in diff_receivers:
                     continue

@@ -17,12 +17,9 @@
 
 import sqlite3
 from os.path import isfile, isdir
-#from pydtf import dtflog as log
 import dtf.logging as log
 
-#from pydtf import dtfglobals
 import dtf.globals as globals
-#from pydtf import dtfconfig
 import dtf.properties as prop
 import base64
 
@@ -30,7 +27,7 @@ _TAG = "AppDb"
 
 APP_DB_NAME = "sysapps.db"
 
-AOSP_PACKAGE_PREFIX="aosp-data-"
+AOSP_PACKAGE_PREFIX = "aosp-data-"
 
 PROTECTION_NORMAL = 0
 PROTECTION_DANGEROUS = 1
@@ -45,9 +42,7 @@ PROTECTION_MASK_BASE = 0x0f
 # Check if we can the api data
 def isAOSPDataInstalled():
 
-    #sdk = dtfconfig.get_prop("Info", "sdk")
     sdk = prop.get_prop("Info", "sdk")
-    #dtf_packages = dtfglobals.DTF_PACKAGES
     dtf_packages = globals.DTF_PACKAGES_DIR
 
     if isdir(dtf_packages + '/' + AOSP_PACKAGE_PREFIX + sdk):
@@ -210,7 +205,7 @@ class Activity(object):
         self.enabled = enabled
 
         self.application_id = application_id
- 
+
         if id is not None:
             self._id = id
 
@@ -252,8 +247,8 @@ class Provider(object):
     path_permission_data = ""
     grant_uri_permission_data = ""
 
-    def __init__(self, name, authorities, enabled, exported, grant_uri_permissions, 
-                 grant_uri_permission_data, path_permission_data, permission, read_permission, 
+    def __init__(self, name, authorities, enabled, exported, grant_uri_permissions,
+                 grant_uri_permission_data, path_permission_data, permission, read_permission,
                  write_permission, application_id, id=None):
 
         # EDIT : Constructor expects True/False/NoneType as exported and enabled.
@@ -368,13 +363,13 @@ class IntentData(object):
     mime_type = ""
 
     def __init__(self):
-        return 
+        return
 
     def __str__(self):
 
         tmp = ""
 
-        # "If a scheme is not specified for the intent filter, 
+        # "If a scheme is not specified for the intent filter,
         # all the other URI attributes are ignored."
         if self.scheme == u"None":
 
@@ -383,8 +378,8 @@ class IntentData(object):
                 return "(mime-type=%s)" % self.mime_type
         else:
             tmp += "%s://" % self.scheme
-            
-            # "If a host is not specified for the filter, the 
+
+            # "If a host is not specified for the filter, the
             # port attribute and all the path attributes are ignored."
             if self.host != u"None":
                 tmp += str(self.host)
@@ -445,7 +440,7 @@ class AppDb(object):
             raise AppDbException("Database file not found : %s!" % db_path)
 
         self.db_path = db_path
-        self.app_db = sqlite3.connect(db_path)     
+        self.app_db = sqlite3.connect(db_path)
 
 
     def commit(self):
@@ -483,7 +478,7 @@ class AppDb(object):
         if (not self.createAppUsesPermissionsTable()):
             log.e(_TAG, "failed to create app uses permissions table!")
             return -1
- 
+
         if (not self.createSharedLibrariesTable()):
             log.e(_TAG, "failed to create Shared libraries table!")
             return -1
@@ -581,7 +576,7 @@ class AppDb(object):
 
         rtn = self.app_db.execute(sql)
         if rtn != 0:
-            return rtn   
+            return rtn
 
         # TODO: This is hacky.
         sql = ('INSERT INTO permissions(id, name, permission_group, protection_level, application_id) '
@@ -748,7 +743,7 @@ class AppDb(object):
         return self.app_db.execute(sql)
 
     def createIntentCategorysTable(self):
- 
+
         sql = ('CREATE TABLE IF NOT EXISTS intent_categories'
                '('
                'id INTEGER PRIMARY KEY AUTOINCREMENT,'
@@ -923,7 +918,7 @@ class AppDb(object):
             permission_id = 0
 
         sql = ('INSERT INTO activities(name, permission, exported, enabled, application_id) '
-               "VALUES ('%s',%i,'%s','%s',%i)"  % (name, permission_id, exported, enabled, 
+               "VALUES ('%s',%i,'%s','%s',%i)"  % (name, permission_id, exported, enabled,
                                                         application_id))
 
         return self.app_db.execute(sql)
@@ -955,7 +950,7 @@ class AppDb(object):
         authorities = ';'.join(provider.authorities)
         enabled = provider.enabled
         exported = provider.exported
-        grant_uri_permissions = provider.grant_uri_permissions       
+        grant_uri_permissions = provider.grant_uri_permissions
         grant_uri_permission_data = base64.b64encode(provider.grant_uri_permission_data)
         path_permission_data = base64.b64encode(provider.path_permission_data)
 
@@ -989,7 +984,7 @@ class AppDb(object):
                '(name, authorities, permission, read_permission, write_permission, exported, enabled, '
                'grant_uri_permissions, grant_uri_permission_data, path_permission_data, application_id) '
                "VALUES ('%s','%s',%i,%i,%i,'%s','%s','%s','%s','%s',%i)"
-                % (name, authorities, permission_id, read_permission_id, write_permission_id, exported, enabled, 
+                % (name, authorities, permission_id, read_permission_id, write_permission_id, exported, enabled,
                    grant_uri_permissions, grant_uri_permission_data, path_permission_data, application_id))
 
         return self.app_db.execute(sql)
@@ -1016,8 +1011,8 @@ class AppDb(object):
         return self.app_db.execute(sql)
 
     def addShared(self, application_id, name):
-        
-        sql = ( 'INSERT INTO shared_libraries(name, application_id)'
+
+        sql = ('INSERT INTO shared_libraries(name, application_id)'
             "VALUES( '%s',%i)" % (name, application_id))
 
         return self.app_db.execute(sql)
@@ -1153,7 +1148,7 @@ class AppDb(object):
                ' path_prefix, mime_type, intent_filter_id) '
                "VALUES('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i)"
                  % (data.scheme, data.host, data.port, data.path,
-                    data.path_pattern, data.path_prefix, 
+                    data.path_pattern, data.path_prefix,
                     data.mime_type, intent_filter_id))
 
         return self.app_db.execute(sql)
@@ -1281,7 +1276,7 @@ class AppDb(object):
 
 
     def getAppById(self, application_id):
-        
+
         sql = ('SELECT id, package_name, project_name, '
                'decoded_path, has_native, min_sdk_version, '
                'target_sdk_version, version_name, version_code, '
@@ -1378,7 +1373,7 @@ class AppDb(object):
 
         for line in c.execute(sql):
             _id = line[0]
-            app_list.append( self.getAppById(_id))
+            app_list.append(self.getAppById(_id))
 
         return app_list
 
@@ -1387,7 +1382,7 @@ class AppDb(object):
         c = self.app_db.cursor()
         project_name = app.project_name
         signature = Signature()
-        
+
         rtn = c.execute('SELECT s.id, s.issuer, s.subject, '
                         's.certificate '
                         'FROM signatures s '
@@ -1425,7 +1420,7 @@ class AppDb(object):
 
         for line in c.execute(sql):
             _id = line[0]
-            app_list.append( self.getAppById(_id))
+            app_list.append(self.getAppById(_id))
 
         return app_list
 
@@ -1480,7 +1475,6 @@ class AppDb(object):
             return Permission(name, protection_level, permission_group, int(application_id), id=int(id))
 
         except TypeError:
-            log.e(_TAG, "Unable to resolve permission \"%s\"!" % permission_name)
             return None
 
     def resolvePermissionById(self, permission_id):
@@ -1527,27 +1521,27 @@ class AppDb(object):
             return None
 
     def getAppPermissions(self, application_id):
- 
+
         perm_list = list()
         c = self.app_db.cursor()
 
         sql = ('SELECT id, name, permission_group, protection_level '
                'FROM permissions '
-               'WHERE application_id=%d' % application_id) 
-        
-        for line in c.execute(sql):
-             _id = line[0]
-             name = line[1]
-             permission_group_id = line[2]
-             protection_level = line[3]
- 
-             if permission_group_id != 0:
-                 permission_group = self.resolveGroupById(permission_group_id)
-             else:
-                 permission_group = None
+               'WHERE application_id=%d' % application_id)
 
-             perm_list.append( Permission(name, protection_level, permission_group, 
-                               application_id, id=_id) )
+        for line in c.execute(sql):
+            _id = line[0]
+            name = line[1]
+            permission_group_id = line[2]
+            protection_level = line[3]
+
+            if permission_group_id != 0:
+                permission_group = self.resolveGroupById(permission_group_id)
+            else:
+                permission_group = None
+
+            perm_list.append(Permission(name, protection_level, permission_group,
+                             application_id, id=_id))
 
         return perm_list
 
@@ -1560,16 +1554,15 @@ class AppDb(object):
                'WHERE application_id=%d' % application_id)
 
         for line in c.execute(sql):
-             permission_id = line[0]
+            permission_id = line[0]
 
-             permission = self.resolvePermissionById(permission_id)
+            permission = self.resolvePermissionById(permission_id)
 
-             uses_perm_list.append(permission)
+            uses_perm_list.append(permission)
 
         return uses_perm_list
 
-
-    def getAppActivities(self, application_id):
+    def getAppActivities(self, app):
 
         activity_list = list()
         c = self.app_db.cursor()
@@ -1577,47 +1570,52 @@ class AppDb(object):
         sql = ('SELECT id, name, permission, exported, '
                'enabled, application_id '
                'FROM activities '
-               'WHERE application_id=%d' % application_id)
+               'WHERE application_id=%d' % app._id)
 
         for line in c.execute(sql):
+            _id = line[0]
+            name = line[1]
+            permission_id = line[2]
+            exported = line[3]
+            enabled = line[4]
+            application_id = line[5]
 
-             _id = line[0]
-             name = line[1]
-             permission_id = line[2]
-             exported = line[3]
-             enabled = line[4]
-             application_id = line[5]
+            if exported == "None":
+                exported = None
+            elif exported == "False":
+                exported = False
+            elif exported == "True":
+                exported = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % exported)
 
-             if exported == "None":
-                 exported = None
-             elif exported == "False":
-                 exported = False
-             elif exported == "True":
-                 exported = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % exported)
+            if enabled == "None":
+                enabled = None
+            elif enabled == "False":
+                enabled = False
+            elif enabled == "True":
+                enabled = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % enabled)
 
-             if enabled == "None":
-                 enabled = None
-             elif enabled == "False":
-                 enabled = False
-             elif enabled == "True":
-                 enabled = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % enabled)
+            # The component perm takes precedence
+            if permission_id != 0:
+                permission = self.resolvePermissionById(permission_id)
 
-             if permission_id != 0:
-                 permission = self.resolvePermissionById(permission_id)
-             else:
-                 permission = None
+            # Otherwise, check the app perm
+            else:
+                if app.permission is not None:
+                    permission = app.permission
+                else:
+                    permission = None
 
-             activity_list.append( Activity(name, enabled, exported, permission, 
-                                            application_id, id=_id) )
+            activity_list.append(Activity(name, enabled, exported, permission,
+                                          application_id, id=_id))
 
         return activity_list
 
 
-    def getAppServices(self, application_id):
+    def getAppServices(self, app):
 
         service_list = list()
         c = self.app_db.cursor()
@@ -1625,47 +1623,52 @@ class AppDb(object):
         sql = ('SELECT id, name, permission, exported, '
                'enabled, application_id '
                'FROM services '
-               'WHERE application_id=%d' % application_id)
+               'WHERE application_id=%d' % app._id)
 
         for line in c.execute(sql):
 
-             _id = line[0]
-             name = line[1]
-             permission_id = line[2]
-             exported = line[3]
+            _id = line[0]
+            name = line[1]
+            permission_id = line[2]
+            exported = line[3]
 
-             enabled = line[4]
-             application_id = line[5]
+            enabled = line[4]
+            application_id = line[5]
 
-             if exported == "None":
-                 exported = None
-             elif exported == "False":
-                 exported = False
-             elif exported == "True":
-                 exported = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % exported)
+            if exported == "None":
+                exported = None
+            elif exported == "False":
+                exported = False
+            elif exported == "True":
+                exported = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % exported)
 
-             if enabled == "None":
-                 enabled = None
-             elif enabled == "False":
-                 enabled = False
-             elif enabled == "True":
-                 enabled = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % enabled)
+            if enabled == "None":
+                enabled = None
+            elif enabled == "False":
+                enabled = False
+            elif enabled == "True":
+                enabled = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % enabled)
 
-             if permission_id != 0:
-                 permission = self.resolvePermissionById(permission_id)
-             else:
-                 permission = None
+            # The component perm takes precedence
+            if permission_id != 0:
+                permission = self.resolvePermissionById(permission_id)
 
-             service_list.append( Service(name, enabled, exported, permission,
-                                            application_id, id=_id) )
+            # Otherwise, check the app perm
+            else:
+                if app.permission is not None:
+                    permission = app.permission
+                else:
+                    permission = None
 
+            service_list.append(Service(name, enabled, exported, permission,
+                                        application_id, id=_id))
         return service_list
 
-    def getAppProviders(self, application_id):
+    def getAppProviders(self, app):
 
         provider_list = list()
         c = self.app_db.cursor()
@@ -1676,68 +1679,73 @@ class AppDb(object):
                'path_permission_data, grant_uri_permission_data, '
                'application_id '
                'FROM providers '
-               'WHERE application_id=%d' % application_id)
+               'WHERE application_id=%d' % app._id)
 
         for line in c.execute(sql):
 
-             _id = line[0]
-             authorities  = line[1].split(';')
-             name = line[2]
-             permission_id = line[3]
-             read_permission_id = line[4]
-             write_permission_id = line[5]
-             exported = line[6]
-             enabled = line[7]
-             grant_uri_permissions = line[8]
-             path_permission_data = base64.b64decode(line[9])
-             
-             grant_uri_permission_data = base64.b64decode(line[10])
-             application_id = line[11]             
+            _id = line[0]
+            authorities = line[1].split(';')
+            name = line[2]
+            permission_id = line[3]
+            read_permission_id = line[4]
+            write_permission_id = line[5]
+            exported = line[6]
+            enabled = line[7]
+            grant_uri_permissions = line[8]
+            path_permission_data = base64.b64decode(line[9])
 
-             if exported == "None":
-                 exported = None
-             elif exported == "False":
-                 exported = False
-             elif exported == "True":
-                 exported = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % exported)
+            grant_uri_permission_data = base64.b64decode(line[10])
+            application_id = line[11]
 
-             if enabled == "None":
-                 enabled = None
-             elif enabled == "False":
-                 enabled = False
-             elif enabled == "True":
-                 enabled = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % enabled)
+            if exported == "None":
+                exported = None
+            elif exported == "False":
+                exported = False
+            elif exported == "True":
+                exported = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % exported)
 
-             # Generic Permission
-             if permission_id != 0:
-                 permission = self.resolvePermissionById(permission_id)
-             else:
-                 permission = None
+            if enabled == "None":
+                enabled = None
+            elif enabled == "False":
+                enabled = False
+            elif enabled == "True":
+                enabled = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % enabled)
 
-             # Read Permission
-             if read_permission_id != 0:
-                 read_permission = self.resolvePermissionById(read_permission_id)
-             else:
-                 read_permission = None
+            # The component perm takes precedence
+            if permission_id != 0:
+                permission = self.resolvePermissionById(permission_id)
 
-             # Write Permission
-             if write_permission_id != 0:
-                 write_permission = self.resolvePermissionById(write_permission_id)
-             else:
-                 write_permission = None
+            # Otherwise, check the app perm
+            else:
+                if app.permission is not None:
+                    permission = app.permission
+                else:
+                    permission = None
 
-             provider_list.append( Provider(name, authorities, enabled, exported, 
-                                            grant_uri_permissions, grant_uri_permission_data,
-                                            path_permission_data, permission, read_permission,
-                                            write_permission, application_id, id=_id))
+            # Read Permission
+            if read_permission_id != 0:
+                read_permission = self.resolvePermissionById(read_permission_id)
+            else:
+                read_permission = None
+
+            # Write Permission
+            if write_permission_id != 0:
+                write_permission = self.resolvePermissionById(write_permission_id)
+            else:
+                write_permission = None
+
+            provider_list.append(Provider(name, authorities, enabled, exported,
+                                          grant_uri_permissions, grant_uri_permission_data,
+                                          path_permission_data, permission, read_permission,
+                                          write_permission, application_id, id=_id))
 
         return provider_list
 
-    def getAppReceivers(self, application_id):
+    def getAppReceivers(self, app):
 
         receiver_list = list()
         c = self.app_db.cursor()
@@ -1745,42 +1753,48 @@ class AppDb(object):
         sql = ('SELECT id, name, permission, exported, '
                'enabled, application_id '
                'FROM receivers '
-               'WHERE application_id=%d' % application_id)
+               'WHERE application_id=%d' % app._id)
 
         for line in c.execute(sql):
 
-             _id = line[0]
-             name = line[1]
-             permission_id = line[2]
-             exported = line[3]
-             enabled = line[4]
-             application_id = line[5]
+            _id = line[0]
+            name = line[1]
+            permission_id = line[2]
+            exported = line[3]
+            enabled = line[4]
+            application_id = line[5]
 
-             if exported == "None":
-                 exported = None
-             elif exported == "False":
-                 exported = False
-             elif exported == "True":
-                 exported = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % exported)
+            if exported == "None":
+                exported = None
+            elif exported == "False":
+                exported = False
+            elif exported == "True":
+                exported = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % exported)
 
-             if enabled == "None":
-                 enabled = None
-             elif enabled == "False":
-                 enabled = False
-             elif enabled == "True":
-                 enabled = True
-             else:
-                 log.e(_TAG, "Unknown export value :  %s" % enabled)
+            if enabled == "None":
+                enabled = None
+            elif enabled == "False":
+                enabled = False
+            elif enabled == "True":
+                enabled = True
+            else:
+                log.e(_TAG, "Unknown export value :  %s" % enabled)
 
-             if permission_id != 0:
-                 permission = self.resolvePermissionById(permission_id)
-             else:
-                 permission = None
+            # The component perm takes precedence
+            if permission_id != 0:
+                permission = self.resolvePermissionById(permission_id)
 
-             receiver_list.append( Receiver(name, enabled, exported, permission,
-                                            application_id, id=_id) )
+            # Otherwise, check the app perm
+            else:
+                if app.permission is not None:
+                    permission = app.permission
+                else:
+                    permission = None
+
+            receiver_list.append(Receiver(name, enabled, exported, permission,
+                                          application_id, id=_id))
 
         return receiver_list
 
@@ -1820,15 +1834,15 @@ class AppDb(object):
         if type(component) is Activity:
             component_table = "activities"
             id_name = "activity_id"
-            join_table = "intent_filter_to_activity"            
+            join_table = "intent_filter_to_activity"
 
         elif type(component) is Service:
-            component_table = "services"           
+            component_table = "services"
             id_name = "service_id"
             join_table = "intent_filter_to_service"
- 
+
         elif type(component) is Receiver:
-            component_table = "receivers"           
+            component_table = "receivers"
             id_name = "receiver_id"
             join_table = "intent_filter_to_receiver"
 
@@ -1858,7 +1872,7 @@ class AppDb(object):
 
             for action in self.app_db.execute(sql):
                 tmp_actions.append(action[0])
-            
+
             # Categories.
             sql = ('SELECT ic.name FROM intent_categories ic '
                    'JOIN intent_filters if ON if.id=ic.intent_filter_id '
@@ -1880,7 +1894,7 @@ class AppDb(object):
                 tmp_data = IntentData()
 
                 tmp_data.port = data[0]
-                tmp_data.host  = data[1]
+                tmp_data.host = data[1]
                 tmp_data.mime_type = data[2]
                 tmp_data.path = data[3]
                 tmp_data.path_pattern = data[4]
@@ -1896,7 +1910,7 @@ class AppDb(object):
         return intent_filters
 
     def getPermissions(self):
-   
+
         sql = ('SELECT id, name, permission_group, '
                'protection_level, application_id '
                'FROM permissions '
@@ -1904,7 +1918,7 @@ class AppDb(object):
 
         perm_list = list()
         c = self.app_db.cursor()
-        
+
         for line in c.execute(sql):
             _id = line[0]
             name = line[1]
@@ -1917,8 +1931,8 @@ class AppDb(object):
             else:
                 permission_group = None
 
-            perm_list.append( Permission(name, protection_level, permission_group,
-                               application_id, id=_id) )
+            perm_list.append(Permission(name, protection_level, permission_group,
+                               application_id, id=_id))
 
         return perm_list
 
@@ -1986,7 +2000,7 @@ def parseIntentFiltersFromXML(component_xml):
             tmp_priority = int(tmp_priority, 16)
 
         # Add new IntentFilter
-        intent_filters.append(IntentFilter(tmp_priority, 
+        intent_filters.append(IntentFilter(tmp_priority,
                             tmp_actions, tmp_categories, tmp_data))
 
     return intent_filters
