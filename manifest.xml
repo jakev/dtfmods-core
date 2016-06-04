@@ -413,6 +413,14 @@
           author="Jake Valletta (jakev)"
           localName="binaries/GenerateAIDL-1.0.jar" />
 
+    <Item type="binary"
+          name="sesearch"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          localName="binaries/sesearch" />
+
     <!-- Package Content -->
     <Item type="package"
           name="Autosign"
