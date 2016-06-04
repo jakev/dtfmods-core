@@ -2206,6 +2206,29 @@ class sysappdb(Module):
             return self.print_default(local_appdb, filters, exposed_dict)
         elif output == OUTPUT_JSON:
             return self.print_json(exposed_dict)
+
+    @classmethod
+    def get_apps_from_file(cls, appdb, file_name):
+
+        """Get list of files from a file"""
+
+        app_list = list()
+
+        file_f = open(file_name)
+
+        for line in file_f.read().split("\n"):
+            if line == "":
+                continue
+
+            app = appdb.getAppByName(line)
+            if app is None:
+                log.w(TAG, "Unable to find app: %s!" % line)
+                continue
+
+            app_list.append(app)
+
+        return app_list
+
     # End exposed related
 
     # List related
@@ -2792,6 +2815,8 @@ class sysappdb(Module):
                         default=None, help='Use an app security context.')
         parser.add_argument('--name-filter', metavar="name_filter", type=str,
                         default=None, help='Only do matched apps.')
+        parser.add_argument('--name-file', metavar="name_file", type=str,
+                        default=None, help='File containing app names.')
 
         parsed_args = parser.parse_args(args)
 
@@ -2801,6 +2826,7 @@ class sysappdb(Module):
         as_app = parsed_args.as_app
         name_filter = parsed_args.name_filter
         output_format = parsed_args.output_format
+        name_file = parsed_args.name_file
 
         config = dict()
 
@@ -2812,8 +2838,12 @@ class sysappdb(Module):
 
         filters = parsed_args.filters
 
-        if not all_mode and not app_name and not name_filter:
-            log.e(TAG, "You must specify an app name, --name-filter, or --all!")
+        if not all_mode and not app_name and not name_filter and not name_file:
+            log.e(TAG, "You must specify one of the following:")
+            log.e(TAG, "   1. app name")
+            log.e(TAG, "   2. --name-filter")
+            log.e(TAG, "   3. --name-file")
+            log.e(TAG, "   4. --all")
             return -1
 
         diff_db = self.determine_diff_database(parsed_args)
@@ -2888,11 +2918,21 @@ class sysappdb(Module):
                 pattern = re.compile(name_filter, re.UNICODE)
             except Exception as inst:
                 log.e(TAG, "Unable to parse pattern: %s" % inst)
-                rtn = -6
+                return -6
 
             for app in local_appdb.getApps():
                 if re.search(pattern, app.project_name):
                     app_list.append(app)
+
+        elif name_file is not None:
+            if not os.path.isfile(name_file):
+                log.e(TAG, "File '%s' doesn't exist!" % name_file)
+                return -8
+
+            app_list = self.get_apps_from_file(local_appdb, name_file)
+            if app_list is None:
+                log.e(TAG, "Error parsing file!")
+                return -9
 
         # Do only a single
         else:
