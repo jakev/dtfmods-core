@@ -2022,53 +2022,17 @@ class sysappdb(Module):
                 read_name = None
                 write_name = None
 
-                # This is frustratingly annoying for providers.
-                # We're actually going to ignore "permission", and distribute
-                # it's effects.
-                # First lets set the actual read_permission for this component.
-                if (provider.permission is None and
-                        provider.read_permission is None):
-                    read_permission = None
-                elif (provider.permission is None and
-                        provider.read_permission is not None):
-                    read_permission = provider.read_permission
-                elif (provider.permission is not None and
-                        provider.read_permission is None):
-                    read_permission = provider.permission
-                elif (provider.permission is not None and
-                        provider.read_permission is not None):
-                    read_permission = provider.read_permission
-
-                # Same thing for write_permission.
-                if (provider.permission is None and
-                        provider.write_permission is None):
-                    write_permission = None
-                elif (provider.permission is None and
-                        provider.write_permission is not None):
-                    write_permission = provider.write_permission
-                elif (provider.permission is not None and
-                        provider.write_permission is None):
-                    write_permission = provider.permission
-                elif (provider.permission is not None and
-                        provider.write_permission is not None):
-                    write_permission = provider.write_permission
-
-                # Get the name for each permissions
                 db_capabilities = DB_NONE
 
-                # Determine if we could read this:
-                if read_permission is None:
+                # For providers, it's an OR condition for the permission
+                # and the readPermission/writePermission
+                if self.check_perm_access([provider.permission,
+                                           provider.read_permission]):
                     db_capabilities |= DB_READ
-                else:
-                    if read_permission.name in self.permission_list:
-                        db_capabilities |= DB_READ
 
-                # Determine if we could write this:
-                if write_permission is None:
+                if self.check_perm_access([provider.permission,
+                                           provider.write_permission]):
                     db_capabilities |= DB_WRITE
-                else:
-                    if write_permission.name in self.permission_list:
-                        db_capabilities |= DB_WRITE
 
                 # If we get here, exported is True/None. But does it matter?
                 if db_capabilities == DB_NONE:
@@ -2150,6 +2114,26 @@ class sysappdb(Module):
                     exposed_receivers.append(receiver)
 
         return exposed_receivers
+
+    def check_perm_access(self, permission_list):
+
+        """Check if access is allowed based on list"""
+
+        # First, if both perms are none, we have access
+        if permission_list.count(None) == len(permission_list):
+            return True
+
+        # Otherwise, look for one we have access to.
+        for permission in permission_list:
+
+            if permission is None:
+                continue
+
+            if permission.name in self.permission_list:
+                return True
+
+        # No match
+        return False
 
     def do_exposed(self, local_appdb, diff_appdb, app_list, config):
 
