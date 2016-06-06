@@ -55,6 +55,8 @@ done
 
 adb wait-for-device
 
+cd "${LAUNCH_DIR}"
+
 if [ $search ]; then
     echo "Searching for \"${search}\"..."
     adb shell "pm list packages"|grep -i "$search"|awk '{print $1}'
