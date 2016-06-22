@@ -244,6 +244,15 @@
           localName="modules/process-all" />
 
     <Item type="module"
+          name="screencap"
+          majorVersion="1"
+          minorVersion="0"
+          health="stable"
+          author="Jake Valletta (jakev)"
+          about="Take screenshot from device."
+          localName="modules/screencap" />
+
+    <Item type="module"
           name="secretcode"
           majorVersion="1"
           minorVersion="1"
@@ -362,13 +371,13 @@
           localName="libraries/PyElfTools" />
 
     <Item type="library"
-          name="SeDb"
+          name="SeUtils"
           about="API for working with SEAndroid"
           majorVersion="1"
           minorVersion="0"
           health="beta"
           author="Jake Valletta (jakev)"
-          localName="libraries/SeDb" />
+          localName="libraries/SeUtils" />
 
     <Item type="library"
           name="UserDb"
